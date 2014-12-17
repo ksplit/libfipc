@@ -69,12 +69,12 @@ static char *rot13(char *s, int amount)
 }
 	
 	
-static inline void monitor_mwait(unsigned long ecx, unsigned long *eax)
+static inline void monitor_mwait(unsigned long ecx, unsigned long *eax,
+				 unsigned long wait_type)
 {
 	/* TODO Figure out wtf the "extensions" and "hints" do for monitor */
 	__monitor((void*)eax,0, 0);
-
-
+	__mwait(wait_type,ecx);
 }       
 
 
@@ -93,6 +93,7 @@ static void ipc_thread_func(void *input)
 	ipc_container *container = NULL;
 	unsigned long ecx = 1; /*break of interrupt flag */
 	unsigned long edx = 0;
+	unsigned long cstate_wait = 1;
 	struct timespec64 start;
 	struct timespec64 end;
 	size_t offset = 0;
@@ -113,7 +114,6 @@ static void ipc_thread_func(void *input)
 	}
 	buf = container->mem_start;
 
-
 	/* setup hi-res timers */
 	memset(&start,0,sizeof(struct timespec64));
 	memset(&end,0,sizeof(struct timespec64));
@@ -121,7 +121,7 @@ static void ipc_thread_func(void *input)
 	if(CPU_NUM == 1) {
 		while(1) {
 			/* we send first */
-			overlay = buf;
+			overlay = buf + offset;
 			memcpy(overlay->message,msg,124);
 			/* AT THIS VOLATILE WRITE WE SHOULD HAVE JUST WOKEN UP THE OTHER THREAD */
 			overlay->monitor = 0xdeadbeef;
@@ -131,15 +131,20 @@ static void ipc_thread_func(void *input)
 			
 			/* mwait on response location */
 			/* TIME ON */
-			monitor_mwait(ecx,&overlay->monitor);
+			monitor_mwait(ecx,&overlay->monitor, cstate_wait);
 			/*TIME OFF!*/
+			
+			/*next send poisition is +128 */
 		}
 	}
 	if(CPU_NUM == 3) {
 		
 		while(1) {
 			/*we recv first */
-			
+			overlay = buf + offset;
+			/* TIME ON */
+			monitor_mwait(ecx,&overlay->monitor, cstate_wait);
+			/* TIME OFF */
 		}
 	}
 	
