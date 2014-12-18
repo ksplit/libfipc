@@ -1,7 +1,7 @@
 #include <linux/types.h>
 
 struct ipc_container{
-	task_struct *thread;
+	struct task_struct *thread;
 	size_t mem_size;
 	void * mem_start;
 };
@@ -10,7 +10,7 @@ struct ipc_container{
 struct ipc_message{ 
 	char message[124];
 	volatile uint32_t monitor;
-}__atribute__((packed));
+}__attribute__((packed));
 
 
 
@@ -20,7 +20,9 @@ struct ipc_message{
 
 
 
-/*
- * #define BETA_GET_CPU_AFFINITY 1<<1
- * #define BETA_CONNECT_
-*/
+
+#define BETA_GET_CPU_AFFINITY 1<<1
+#define BETA_CONNECT_SHARED_MEM 1<<2
+#define BETA_UNPARK_THREAD 1<<3
+#define BETA_ALLOC_MEM 1<<4
+

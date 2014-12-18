@@ -6,15 +6,11 @@
 #include <linux/string.h>
 #include <linux/slab.h>
 #include <linux/timekeeping.h>
-
-
+#include <linux/sched.h>
+#include <linux/kthread.h>
 #include <asm/uaccess.h>
-#include <asm/x86/mwait.h>
+#include <asm/mwait.h>
 #include <asm/page_types.h>
-
-
-
-
 #include "betaModule.h"
 
 MODULE_LICENSE("GPL");
@@ -45,7 +41,7 @@ MODULE_LICENSE("GPL");
 
 
 
-static const int CPU_NUM 1;
+static const int CPU_NUM = 1;
 
 
 /* 124 byte message */
@@ -69,7 +65,7 @@ static char *rot13(char *s, int amount)
 }
 	
 	
-static inline void monitor_mwait(unsigned long ecx, unsigned long *eax,
+static inline void monitor_mwait(unsigned long ecx, volatile void *eax,
 				 unsigned long wait_type)
 {
 	/* TODO Figure out wtf the "extensions" and "hints" do for monitor */
@@ -79,7 +75,7 @@ static inline void monitor_mwait(unsigned long ecx, unsigned long *eax,
 
 
 
-static void ipc_thread_func(void *input)
+static int ipc_thread_func(void *input)
 { 
 	/* This will be a while true loop with timing code and mwaits 
 	   CPU 1 WILL be the first to send info. It will ROT 13 some
@@ -90,27 +86,26 @@ static void ipc_thread_func(void *input)
 	*/
 	
 	struct file *filep = input;
-	ipc_container *container = NULL;
+	struct ipc_container *container = NULL;
 	unsigned long ecx = 1; /*break of interrupt flag */
-	unsigned long edx = 0;
 	unsigned long cstate_wait = 1;
 	struct timespec64 start;
 	struct timespec64 end;
 	size_t offset = 0;
 	void* buf;
-	ipc_message *overlay;
-	
+	struct ipc_message *overlay;
+	struct ipc_message *overlay2;
 	
 	if(filep == NULL) {
 		pr_debug("Thread was sent a null filepointer!\n");
-		return;
+		return -EINVAL;
 	}
 
 	container = filep->private_data;
 
 	if(container == NULL && container->mem_size == 0){
 		pr_debug("container was null in thread!\n");
-		return;
+		return -EINVAL;
 	}
 	buf = container->mem_start;
 
@@ -145,24 +140,32 @@ static void ipc_thread_func(void *input)
 			/* TIME ON */
 			monitor_mwait(ecx,&overlay->monitor, cstate_wait);
 			/* TIME OFF */
+			rot13(overlay->message, 124);
+			overlay2 = (overlay + (offset + sizeof(*overlay))%(PAGE_SIZE * 2));
+			memcpy(overlay2->message, overlay->message, 124);
+
+			offset += sizeof(*overlay);
+			offset %= (PAGE_SIZE * 2);
 		}
 	}
-	
+	return 0;
 
 }
 
 static inline unsigned long beta_ret_cpu(unsigned long __arg)
 {
 
-	void __user *arg = (void*) __arg;
-	return put_user(CPU_NUM, arg);
+	unsigned long *arg = (void*) __arg;
+	put_user(CPU_NUM, arg);
+	return 0;
+	
 }
 
 
 static unsigned long beta_unpark_thread(struct ipc_container *container)
 {
 
-	int ret = 0;
+
 	if(container->thread == NULL || container->mem_size == 0) {
 		return -EINVAL;
 	}
@@ -182,18 +185,19 @@ static unsigned long beta_connect_mem(struct ipc_container *container,
 				      unsigned long __arg)
 {
 
-	void __user *ubuf = (void*) __arg;
-	void *kland; 
-	struct ipc_container *container;
+	unsigned long  __user *ubuf = (void*) __arg;
+	unsigned long kland_real; 
+	unsigned long *kland;
 	
-	if(get_user(kland,ubuf)) {
+	if(get_user(kland_real,ubuf)) {
 		pr_debug("get_user failed connect_mem\n");
 		return -EFAULT;
 	
 	}
 	
+	kland = (unsigned long*) kland_real;
 	
-	if(kland != NULL && *((unsigned long*)kland) != 0xdeadbeef) {
+	if(kland != NULL && *kland != 0xdeadbeef) {
 		return -EFAULT;
 	}
 	
@@ -204,7 +208,7 @@ static unsigned long beta_connect_mem(struct ipc_container *container,
 
 static unsigned long beta_alloc_mem(struct ipc_container *container)
 {
-	if(mem_size > 0) {
+	if(container->mem_size > 0) {
 		return 0;
 	}
 	container->mem_start = kzalloc((PAGE_SIZE * 2), GFP_KERNEL);
@@ -220,7 +224,7 @@ static unsigned long beta_alloc_mem(struct ipc_container *container)
 	return 0;
 }
 
-static ssize_t beta_open(struct inode *nodp, struct file *filep)
+static int beta_open(struct inode *nodp, struct file *filep)
 {
 	
 	/* setup kernel thread, bound to some CPU, but do not run */
@@ -233,8 +237,7 @@ static ssize_t beta_open(struct inode *nodp, struct file *filep)
 		return -1;
 	}
 	
-	container->thread = kthread_create_on_cpu(&ipc_thread_func, (void*)filep,
-				       CPU_NUM,"betaIPC.%u");
+	container->thread = kthread_create_on_cpu(&ipc_thread_func, (void*)filep,CPU_NUM,"betaIPC.%u");
 	
 	if(IS_ERR(container->thread)) {
 		pr_debug("Error while creating kernel thread\n");
@@ -243,7 +246,7 @@ static ssize_t beta_open(struct inode *nodp, struct file *filep)
 	
 	filep->private_data = container;
 	
-	return ret;
+	return 0;
 
 }
 
@@ -272,25 +275,15 @@ static long beta_ioctl(struct file *filep, unsigned int cmd,
 		break;
 		
 	}
-
-
-}
-
-
-/* Dispatch messages to work queue */
-/* Perhaps this thread will read messages too? */
-
-static int ipc_thread_func(void* data)
-{
-	pr_debug("ipcThreadFunc not implemented\n");
 	return 0;
 }
+
 
 
 static const struct file_operations betaIPC_fops = {
 	.owner	 = THIS_MODULE,
 	.open    = beta_open,
-	.ioctl   = beta_ioctl,
+	.unlocked_ioctl   = beta_ioctl,
 };
 
 static struct miscdevice dev = {
