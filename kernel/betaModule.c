@@ -5,7 +5,7 @@
 #include <linux/fs.h>
 #include <linux/string.h>
 #include <linux/slab.h>
-#include <linux/timekeeping.h>
+\\#include <linux/timekeeping.h>
 #include <linux/sched.h>
 #include <linux/kthread.h>
 #include <asm/uaccess.h>
@@ -332,3 +332,5 @@ static int __init bIPC_init(void)
 
 
 }
+
+module_init(bIPC_init);
