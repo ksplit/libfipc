@@ -89,8 +89,8 @@ static int ipc_thread_func(void *input)
 	struct ipc_container *container = NULL;
 	unsigned long ecx = 1; /*break of interrupt flag */
 	unsigned long cstate_wait = 1;
-	struct timespec64 start;
-	struct timespec64 end;
+	//	struct timespec64 start;
+	//struct timespec64 end;
 	size_t offset = 0;
 	void* buf;
 	struct ipc_message *overlay;
@@ -110,8 +110,8 @@ static int ipc_thread_func(void *input)
 	buf = container->mem_start;
 
 	/* setup hi-res timers */
-	memset(&start,0,sizeof(struct timespec64));
-	memset(&end,0,sizeof(struct timespec64));
+	//	memset(&start,0,sizeof(struct timespec64));
+	//	memset(&end,0,sizeof(struct timespec64));
 
 	if(CPU_NUM == 1) {
 		while(1) {
