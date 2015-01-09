@@ -5,8 +5,8 @@
 #include <linux/fs.h>
 #include <linux/string.h>
 #include <linux/slab.h>
-\\#include <linux/timekeeping.h>
 #include <linux/sched.h>
+//#include <linux/timekeeping.h>
 #include <linux/kthread.h>
 #include <asm/uaccess.h>
 #include <asm/mwait.h>
@@ -45,7 +45,7 @@ static const int CPU_NUM = 1;
 
 
 /* 124 byte message */
-static char* msg = "The quick brown fox jumped over the lazy dog. Sally sells sea shells down by the sea shore. abcdefghijklmnopqrstuvwxyz123456";
+static char* msg = "The quick brown fox jumped over the lazy dog. Sally sells sea shells down by the sea shore. abcdefghijklmnopqrstuvwxyz12345";
 
 
 /* Stolen and slightly modified from http://rosettacode.org/wiki/Rot-13 */
@@ -88,13 +88,14 @@ static int ipc_thread_func(void *input)
 	struct file *filep = input;
 	struct ipc_container *container = NULL;
 	unsigned long ecx = 1; /*break of interrupt flag */
-	unsigned long cstate_wait = 1;
+	unsigned long cstate_wait = 2;
 	//	struct timespec64 start;
 	//struct timespec64 end;
 	size_t offset = 0;
 	void* buf;
 	struct ipc_message *overlay;
 	struct ipc_message *overlay2;
+	int count = 0;
 	
 	if(filep == NULL) {
 		pr_debug("Thread was sent a null filepointer!\n");
@@ -130,8 +131,15 @@ static int ipc_thread_func(void *input)
 			/* TIME ON */
 			monitor_mwait(ecx,&overlay->monitor, cstate_wait);
 			/*TIME OFF!*/
+		    
 			pr_debug("BETA 1 JUST WOKE UP FROM MWAIT\n");
-			
+			if(overlay->monitor != 0xdeadbeef){
+				pr_debug("MONITOR WASNT WHAT WE EXPECTED it was %x on CPU %d\n", overlay->monitor, CPU_NUM);
+			}
+			if(count > 150){
+				break;
+			}
+			count++;
 			/*next send poisition is +128 */
 		}
 	}
@@ -144,6 +152,7 @@ static int ipc_thread_func(void *input)
 			pr_debug("BETA2 ABOUT TO WAIT ON MONITOR AT %p\n", &overlay->monitor);
 			monitor_mwait(ecx,&overlay->monitor, cstate_wait);
 			/* TIME OFF */
+			pr_debug("Message recvd was %124s in beta2 \n", overlay->message);
 			rot13(overlay->message, 124);
 			overlay2 = (buf + (offset + sizeof(*overlay))%(PAGE_SIZE * 2));
 			memcpy(overlay2->message, overlay->message, 124);
@@ -177,9 +186,7 @@ static unsigned long beta_unpark_thread(struct ipc_container *container)
 	 * IS SITTING IN THE COMM CODE
 	 */
 
-        kthread_unpark(container->thread);
-       
-	
+        wake_up_process(container->thread);
 	return 0;
 }
 
@@ -193,7 +200,7 @@ static unsigned long beta_connect_mem(struct ipc_container *container,
 	unsigned long *kland;
 	
 	if(get_user(kland_real,ubuf)) {
-		pr_debug("get_user failed connect_mem\n");
+		pr_debug("get_user failed connect_mem with ptr %p\n", ubuf);
 		return -EFAULT;
 	
 	}
@@ -324,13 +331,28 @@ static int __init bIPC_init(void)
 	
 	/* reading through the source of misc.c it looks like register
 	   will init everything else for us */
+	pr_debug("hello from bIPC with pr_debug\n");
+	printk(KERN_DEBUG "Hello from bIPC with printk\n");
 	ret = misc_register(&dev);
 	if(ret) {
 		pr_debug("Failed to register dev for BetaIPC\n");
 		return ret;
 	}
 
+	return ret;
+}
 
+static int __exit bIPC_rmmod(void)
+{
+	int ret = 0;
+	ret = misc_deregister(&dev);
+	if (ret) {
+		pr_debug("Failed to de-reg dev in eudy!\n");
+		return ret;
+	}
+
+	return 0;
 }
 
 module_init(bIPC_init);
+module_exit(bIPC_rmmod);

@@ -1,5 +1,5 @@
 obj-m := betaModule.o
-CFLAGS_usb_hello.o = -DDEBUG
+CFLAGS_betaModule.o = -DDEBUG
 
 KDIR := /lib/modules/`uname -r`/build
 
