@@ -11,7 +11,12 @@
 #include <asm/uaccess.h>
 #include <asm/mwait.h>
 #include <asm/page_types.h>
+#include <asm/cpufeature.h>
+
 #include "betaModule.h"
+
+
+
 
 MODULE_LICENSE("GPL");
 
@@ -41,7 +46,7 @@ MODULE_LICENSE("GPL");
 
 
 
-static const int CPU_NUM = 1;
+static const int CPU_NUM = 0;
 
 
 /* 124 byte message */
@@ -65,12 +70,36 @@ static char *rot13(char *s, int amount)
 }
 	
 	
-static inline void monitor_mwait(unsigned long ecx, volatile void *eax,
+ static void ___monitor(const void *eax, unsigned long ecx,
+                               unsigned long edx)
+ {
+         /* "monitor %eax, %ecx, %edx;" */
+	 //asm volatile("mov $0, %rbx;");
+	 asm volatile(".byte 0x0f, 0x01, 0xc8;"
+		      :: "a" (eax), "c" (ecx), "d"(edx));
+ }
+
+static void ___mwait(unsigned long eax, unsigned long ecx)
+{
+	/* "mwait %eax, %ecx;" */
+	//asm volatile("mov $0, %rbx;");
+	asm volatile(".byte 0x0f, 0x01, 0xc9;"
+		     :: "a" (eax), "c" (ecx));
+}
+
+
+static inline void monitor_mwait(unsigned long rcx, volatile void *rax,
 				 unsigned long wait_type)
 {
+
+	
 	/* TODO Figure out wtf the "extensions" and "hints" do for monitor */
-	__monitor((void*)eax,0, 0);
-	__mwait(wait_type,ecx);
+	if (this_cpu_has(X86_BUG_CLFLUSH_MONITOR))
+		clflush(rax);
+	
+	___monitor((void*)rax,0, 0);
+	smp_mb();
+	___mwait(wait_type,rcx);
 }       
 
 
@@ -96,6 +125,7 @@ static int ipc_thread_func(void *input)
 	struct ipc_message *overlay;
 	struct ipc_message *overlay2;
 	int count = 0;
+	int retry_count = 0;
 	
 	if(filep == NULL) {
 		pr_debug("Thread was sent a null filepointer!\n");
@@ -114,27 +144,36 @@ static int ipc_thread_func(void *input)
 	//	memset(&start,0,sizeof(struct timespec64));
 	//	memset(&end,0,sizeof(struct timespec64));
 
-	if(CPU_NUM == 1) {
+
+	pr_debug("Hello from thread in CPU %d\n", CPU_NUM);
+	if(CPU_NUM == 0) {
 		while(1) {
 			/* we send first */
 			overlay = buf + offset;
-			memcpy(overlay->message,msg,124);
+			memcpy(overlay->message,msg,123);
 			/* AT THIS VOLATILE WRITE WE SHOULD HAVE JUST WOKEN UP THE OTHER THREAD */
 			pr_debug("BETA 1 WRITING TO VOLTAILE VAR AT %p\n", &overlay->monitor);
 			overlay->monitor = 0xdeadbeef;
 			offset += sizeof(*overlay);
 			offset %= (PAGE_SIZE * 2);
-			overlay += offset;
+			overlay = buf + offset;
 			
 			/* mwait on response location */
 			pr_debug("BETA 1 WAITING ON MONITOR, at %p\n", &overlay->monitor);
 			/* TIME ON */
+		retry:
 			monitor_mwait(ecx,&overlay->monitor, cstate_wait);
 			/*TIME OFF!*/
 		    
 			pr_debug("BETA 1 JUST WOKE UP FROM MWAIT\n");
-			if(overlay->monitor != 0xdeadbeef){
-				pr_debug("MONITOR WASNT WHAT WE EXPECTED it was %x on CPU %d\n", overlay->monitor, CPU_NUM);
+			if(overlay->monitor != 0xbadc0de){
+				pr_debug("MONITOR WASNT WHAT WE EXPECTED it was %x on CPU %d with retry_count %d\n", overlay->monitor, CPU_NUM, retry_count);
+				retry_count++;
+				if(retry_count > 150){
+					printk(KERN_DEBUG "TERMINATING EARLY ON CPU %d\n", CPU_NUM);
+					break;
+				}
+				goto retry;
 			}
 			if(count > 150){
 				break;
@@ -178,6 +217,7 @@ static unsigned long beta_unpark_thread(struct ipc_container *container)
 {
 
 
+	int ret = 0;
 	if(container->thread == NULL || container->mem_size == 0) {
 		return -EINVAL;
 	}
@@ -185,8 +225,13 @@ static unsigned long beta_unpark_thread(struct ipc_container *container)
 	/* FROM THIS POINT FORWARD, ATLEAST ONE OF THE THREADS
 	 * IS SITTING IN THE COMM CODE
 	 */
-
-        wake_up_process(container->thread);
+	pr_debug("waking up process on CPU %d\n", CPU_NUM);
+	kthread_unpark(container->thread);
+	if(wake_up_process(container->thread) == 1){
+		pr_debug("Woke up process on cpu %d\n", CPU_NUM);
+	}
+	//kthread_stop(container->thread);
+	
 	return 0;
 }
 
@@ -253,7 +298,8 @@ static int beta_open(struct inode *nodp, struct file *filep)
 		pr_debug("Error while creating kernel thread\n");
 		return PTR_ERR(container->thread);
 	}
-	
+
+
 	filep->private_data = container;
 	
 	return 0;
@@ -265,7 +311,7 @@ static int beta_close(struct inode *nodp, struct file *filep)
 	/* TODO STOP LEAKING 2 PAGES OF MEMORY FROM THE CONTAINER!\n */
 	struct ipc_container *container;
 	container = filep->private_data;
-	kthread_stop(container->thread);
+	//kthread_stop(container->thread);
 	kfree(container);
 	return 0;
 }
@@ -303,8 +349,8 @@ static long beta_ioctl(struct file *filep, unsigned int cmd,
 	default:
 		pr_debug("No such ioctl %d\n", cmd);
 		break;
-		
-	}
+			
+}
 	return 0;
 }
 
@@ -329,6 +375,11 @@ static int __init bIPC_init(void)
 {
 	int ret = 0;
 	
+
+	if(this_cpu_has(X86_FEATURE_MWAIT)){
+		printk(KERN_DEBUG "HAS MWAIT\n");
+	}
+
 	/* reading through the source of misc.c it looks like register
 	   will init everything else for us */
 	pr_debug("hello from bIPC with pr_debug\n");
@@ -341,7 +392,6 @@ static int __init bIPC_init(void)
 
 	return ret;
 }
-
 static int __exit bIPC_rmmod(void)
 {
 	int ret = 0;

