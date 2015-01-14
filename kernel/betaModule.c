@@ -6,6 +6,7 @@
 #include <linux/string.h>
 #include <linux/slab.h>
 #include <linux/sched.h>
+#include <linux/irqflags.h>
 //#include <linux/timekeeping.h>
 #include <linux/kthread.h>
 #include <asm/uaccess.h>
@@ -14,9 +15,6 @@
 #include <asm/cpufeature.h>
 
 #include "betaModule.h"
-
-
-
 
 MODULE_LICENSE("GPL");
 
@@ -28,10 +26,6 @@ MODULE_LICENSE("GPL");
  * http://lxr.free-electrons.com/source/arch/x86/include/asm/mwait.h#L26
  *   
 */
-
-
-
-
 
 /** TODO  and THOUGHTS
  *
@@ -50,7 +44,45 @@ static const int CPU_NUM = 0;
 
 
 /* 124 byte message */
-static char* msg = "The quick brown fox jumped over the lazy dog. Sally sells sea shells down by the sea shore. abcdefghijklmnopqrstuvwxyz12345";
+static char* msg = "The quick brown fox jumped over the lazy dog."\
+	"Sally sells sea shells down by the sea shore. abcdefghijkl"\
+	"mnopqrstuvwxyz12345";
+
+
+static inline int keep_waiting(struct ipc_message *i_msg, unsigned int notify_key)
+{
+	return !(i_msg->monitor == notify_key);
+}
+
+
+static void send_and_notify(struct ipc_message *i_msg, char* _msg, size_t len,
+			    unsigned int notify_key)
+{
+		memcpy(i_msg->message,_msg,len);
+		/*		pr_debug("BETA %d WRITING TO VOLTAILE VAR AT %p\n", CPU_NUM, 
+				&i_msg->monitor);*/
+		i_msg->monitor = notify_key;
+
+} 
+
+
+static inline void* get_current_slot(size_t offset, void* buf)
+{
+	return (void*) ((char*)buf + offset);
+}
+
+/* All the casts are in here to stick within the standard. 
+ * 6.2.5-19: The void type comprises an empty set of values; 
+ * it is an incomplete type that cannot be completed.
+ */
+static inline void* get_next_slot(size_t *offset, void* buf)
+{
+	*offset += sizeof(struct ipc_message);
+	*offset %= (PAGE_SIZE * 2);
+	return (void*) ((char*)buf) + *offset;
+}
+
+
 
 
 /* Stolen and slightly modified from http://rosettacode.org/wiki/Rot-13 */
@@ -68,7 +100,17 @@ static char *rot13(char *s, int amount)
         }
         return s;
 }
-	
+
+static void assert_expect_and_zero(struct ipc_message *i_msg, int need_rot)
+{
+	if(need_rot){
+		rot13(i_msg->message,123);
+	}
+	if(strncmp(i_msg->message,msg,124) != 0){
+		pr_debug("STRINGS DIFFERED IN CPU %d\n", CPU_NUM);
+	}
+	i_msg->monitor = 0;
+}	
 	
  static void ___monitor(const void *eax, unsigned long ecx,
                                unsigned long edx)
@@ -92,14 +134,16 @@ static inline void monitor_mwait(unsigned long rcx, volatile void *rax,
 				 unsigned long wait_type)
 {
 
-	
+	unsigned long flags;
+
 	/* TODO Figure out wtf the "extensions" and "hints" do for monitor */
 	if (this_cpu_has(X86_BUG_CLFLUSH_MONITOR))
 		clflush(rax);
-	
+	local_irq_save(flags);
 	___monitor((void*)rax,0, 0);
 	smp_mb();
 	___mwait(wait_type,rcx);
+	local_irq_restore(flags);
 }       
 
 
@@ -123,7 +167,6 @@ static int ipc_thread_func(void *input)
 	size_t offset = 0;
 	void* buf;
 	struct ipc_message *overlay;
-	struct ipc_message *overlay2;
 	int count = 0;
 	int retry_count = 0;
 	
@@ -147,62 +190,36 @@ static int ipc_thread_func(void *input)
 
 	pr_debug("Hello from thread in CPU %d\n", CPU_NUM);
 	if(CPU_NUM == 0) {
-		while(1) {
+		while(count < 150) {
 			/* we send first */
-			overlay = buf + offset;
-			memcpy(overlay->message,msg,123);
-			/* AT THIS VOLATILE WRITE WE SHOULD HAVE JUST WOKEN UP THE OTHER THREAD */
-			pr_debug("BETA 1 WRITING TO VOLTAILE VAR AT %p\n", &overlay->monitor);
-			overlay->monitor = 0xdeadbeef;
-			offset += sizeof(*overlay);
-			offset %= (PAGE_SIZE * 2);
-			overlay = buf + offset;
-			
+			overlay = get_current_slot(offset, buf);
+			send_and_notify(overlay, msg, 124, 0xdeadbeef);
+			overlay = get_next_slot(&offset, buf);
+
 			/* mwait on response location */
-			pr_debug("BETA 1 WAITING ON MONITOR, at %p\n", &overlay->monitor);
+			//pr_debug("BETA %d WAITING ON MONITOR, at %p\n", CPU_NUM, &overlay->monitor);
 			/* TIME ON */
 		retry:
 			monitor_mwait(ecx,&overlay->monitor, cstate_wait);
 			/*TIME OFF!*/
-		    
-			pr_debug("BETA 1 JUST WOKE UP FROM MWAIT\n");
-			if(overlay->monitor != 0xbadc0de){
-				pr_debug("MONITOR WASNT WHAT WE EXPECTED it was %x on CPU %d with retry_count %d\n", overlay->monitor, CPU_NUM, retry_count);
+		   
+			if(keep_waiting(overlay,0xbadc0de) && retry_count < 150) {
 				retry_count++;
-				if(retry_count > 150){
-					printk(KERN_DEBUG "TERMINATING EARLY ON CPU %d\n", CPU_NUM);
-					break;
-				}
+				pr_debug("Retrying with count %d on CPU %d\n", 
+					 retry_count, CPU_NUM);
 				goto retry;
 			}
-			if(count > 150){
+			else if(retry_count > 150){
+				printk(KERN_DEBUG "TERMINATING EARLY ON CPU %d\n", CPU_NUM);
 				break;
 			}
-			count++;
-			/*next send poisition is +128 */
-		}
-	}
-	if(CPU_NUM == 3) {
-		
-		while(1) {
-			/*we recv first */
-			overlay = buf + offset;
-			/* TIME ON */
-			pr_debug("BETA2 ABOUT TO WAIT ON MONITOR AT %p\n", &overlay->monitor);
-			monitor_mwait(ecx,&overlay->monitor, cstate_wait);
-			/* TIME OFF */
-			pr_debug("Message recvd was %124s in beta2 \n", overlay->message);
-			rot13(overlay->message, 124);
-			overlay2 = (buf + (offset + sizeof(*overlay))%(PAGE_SIZE * 2));
-			memcpy(overlay2->message, overlay->message, 124);
-			pr_debug("BETA2 ABOUT TO WRITE TO VOLATILE VAR AT %p\n", &overlay2->monitor);
-			overlay2->monitor = 0xdeadbeef;
-			offset += sizeof(*overlay);
-			offset %= (PAGE_SIZE * 2);
+			assert_expect_and_zero(overlay,1);
+			get_next_slot(&offset,buf);
+			retry_count = 0;
+			count++;			
 		}
 	}
 	return 0;
-
 }
 
 static inline unsigned long beta_ret_cpu(unsigned long __arg)
@@ -215,9 +232,6 @@ static inline unsigned long beta_ret_cpu(unsigned long __arg)
 
 static unsigned long beta_unpark_thread(struct ipc_container *container)
 {
-
-
-	int ret = 0;
 	if(container->thread == NULL || container->mem_size == 0) {
 		return -EINVAL;
 	}
