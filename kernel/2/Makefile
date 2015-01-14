@@ -1,5 +1,5 @@
-obj-m := betaModule.o
-CFLAGS_betaModule.o = -DDEBUG -g -O2 -Wall
+obj-m := betaModule2.o
+CFLAGS_betaModule2.o = -DDEBUG -O2 -Wall
 
 KDIR := /lib/modules/`uname -r`/build
 
