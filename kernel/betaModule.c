@@ -13,72 +13,18 @@
 #include <asm/page_types.h>
 #include <asm/cpufeature.h>
 
+#include "ring-chan/ring-channel.h"
 #include "betaModule.h"
 
 MODULE_LICENSE("GPL");
 
-
-/**
- *   Useful things to look at:
- *   wait_event_interruptible /wait.h
- *   alloc_page / gfp.h
- * http://lxr.free-electrons.com/source/arch/x86/include/asm/mwait.h#L26
- *
- */
-
-/** TODO  and THOUGHTS
- *
- *  TODO: Move kthread creation into open so we can install
- *        In filp->private_data? -- Think about context of
- *        who calls this code... It's coming from kland?
- *
- *  TODO: Mutex on current_avail_token and the array of mem_tokens
- *  TODO: will atomic inc work for cur_avail_token?
- */
-
-
-
-
-static const int CPU_NUM;
+static int CPU_NUM;
 
 
 /* 124 byte message */
-static char *msg = "The quick brown fox jumped over the lazy dog."\
-	"Sally sells sea shells down by the sea shore. abcdefghijkl"\
-	"mnopqrstuvwxyz12345";
+static char *msg = "12345678123456781234567812345678123456781234567812345678" \
+	"1234567";
 
-
-static inline int keep_waiting(struct ipc_message *i_msg,
-			       unsigned int notify_key)
-{
-	return !(i_msg->monitor == notify_key);
-}
-
-
-static void send_and_notify(struct ipc_message *i_msg, char *_msg, size_t len,
-			    unsigned int notify_key)
-{
-	memcpy(i_msg->message, _msg, len);
-	/*pr_debug("BETA %d WRITING TO VOLTAILE VAR AT %p\n", CPU_NUM,
-	  &i_msg->monitor);*/
-	i_msg->monitor = notify_key;
-}
-
-static inline void *get_current_slot(size_t offset, void *buf)
-{
-	return (void *) ((char *)buf + offset);
-}
-
-/* All the casts are in here to stick within the standard.
- * 6.2.5-19: The void type comprises an empty set of values;
- * it is an incomplete type that cannot be completed.
- */
-static inline void *get_next_slot(size_t *offset, void *buf)
-{
-	*offset += sizeof(struct ipc_message);
-	*offset %= (PAGE_SIZE * 2);
-	return (void *) ((char *)buf) + *offset;
-}
 
 
 /* Stolen and slightly modified from http://rosettacode.org/wiki/Rot-13 */
@@ -113,36 +59,47 @@ static void assert_expect_and_zero(struct ipc_message *i_msg, int need_rot)
 	i_msg->monitor = 0;
 }
 
-static void ___monitor(const void *eax, unsigned long ecx,
-		       unsigned long edx)
-{
-	/* "monitor %eax, %ecx, %edx;" */
-	 asm volatile(".byte 0x0f, 0x01, 0xc8;"
-		      : : "a" (eax), "c" (ecx), "d"(edx));
-}
-
-static void ___mwait(unsigned long eax, unsigned long ecx)
-{
-	/* "mwait %eax, %ecx;" */
-	asm volatile(".byte 0x0f, 0x01, 0xc9;"
-		     : : "a" (eax), "c" (ecx));
-}
-
-static inline void monitor_mwait(unsigned long rcx, volatile void *rax,
+static inline void monitor_mwait(unsigned long rcx, void *rax,
 				 unsigned long wait_type)
 {
 
 	unsigned long flags;
+	int cpu;
 
 	/* TODO Figure out wtf the "extensions" and "hints" do for monitor */
-	if (this_cpu_has(X86_BUG_CLFLUSH_MONITOR))
+	wbinvd();
+
+	/* smp is supposed to be used under "lock", however one can use it if
+	 * you have pegged your thread to a CPU, which we have.
+	 */
+	cpu = smp_processor_id();
+
+	if (cpu_has_bug(&cpu_data(cpu), X86_BUG_CLFLUSH_MONITOR)) {
+		mb();
 		clflush(rax);
+		mb();
+	}
+
 	local_irq_save(flags);
-	___monitor((void *)rax, 0, 0);
+	__monitor((void *)rax, 0, 0);
 	/* TODO comment for memory barrier, why is this necessary? */
-	smp_mb();
-	___mwait(wait_type, rcx);
+	mb();
+	__mwait(wait_type, rcx);
 	local_irq_restore(flags);
+}
+
+
+static inline int trample_imminent(unsigned int *loc)
+{
+	return *loc == 0xbadc0de;
+}
+
+static inline int trample_imminent_store(struct ttd_ring_channel *prod,
+			    unsigned int prod_loc, unsigned int **t_loc)
+{
+
+	*t_loc = (unsigned int*) ttd_ring_channel_get_rec_slow(prod, prod_loc);
+	return ((*(*t_loc)) == 0xbadc0de);
 }
 
 static int ipc_thread_func(void *input)
@@ -155,15 +112,19 @@ static int ipc_thread_func(void *input)
 	   byte boundary until it gets out of its OPT loop
 	*/
 
-	struct file *filep = input;
+ 	struct file *filep = input;
 	struct ipc_container *container = NULL;
 	unsigned long ecx = 1; /*break of interrupt flag */
 	unsigned long cstate_wait = 2;
-	size_t offset = 0;
-	void *buf;
-	struct ipc_message *overlay;
+	struct ttd_ring_channel *prod_channel;
 	int count = 0;
-	int retry_count = 0;
+	unsigned int local_prod;
+	unsigned int *trample_loc;
+	struct ipc_message *imsg;
+
+#if defined(DEBUG_MWAIT_RETRY)
+	unsigned long retry_count = 0;
+#endif
 
 	if (filep == NULL) {
 		pr_debug("Thread was sent a null filepointer!\n");
@@ -172,49 +133,55 @@ static int ipc_thread_func(void *input)
 
 	container = filep->private_data;
 
-	if (container == NULL && container->mem_size == 0) {
+	if (container == NULL && container->channel_rx == NULL) {
 		pr_debug("container was null in thread!\n");
 		return -EINVAL;
 	}
-	buf = container->mem_start;
 
-	/* setup hi-res timers */
+	prod_channel = container->channel_tx;
 
-	pr_debug("Hello from thread in CPU %d\n", CPU_NUM);
-	if (CPU_NUM == 0) {
-		while (count < 1000000) {
-			/* we send first */
-			overlay = get_current_slot(offset, buf);
-			send_and_notify(overlay, msg, 124, 0xdeadbeef);
-			overlay = get_next_slot(&offset, buf);
+	/* PRODUCER */
+	local_prod = 1;
+	ttd_ring_channel_set_prod(prod_channel, 1);
+	ttd_ring_channel_set_cons(prod_channel, 0);
+	/* 10 mil */
+	while(count < 10000000) {
 
-			/* mwait on response location */
-			/*pr_debug("BETA %d WAITING ON MONITOR, at %p\n",
-			  CPU_NUM, &overlay->monitor);*/
-			/* TIME ON */
-retry:
-			monitor_mwait(ecx, &overlay->monitor, cstate_wait);
-			/*TIME OFF!*/
+		/* POSSIBLE CACHE THRASHING WILE WAITING ??*/
+		/* TODO LETS DO BOTH METHODS, LETS MWAIT ON THE NIL */
+		/* AND LETS MWAIT ONT THE CONSUMER */
+		if(trample_imminent_store(prod_channel, local_prod, &trample_loc)) {
+			do{
+				monitor_mwait(ecx, trample_loc, cstate_wait);
 
-			if (keep_waiting(overlay, 0xbadc0de) &&
-			    retry_count < 150) {
+
+#if defined(DEBUG_MWAIT_RETRY)
+				if(retry_count > 50) {
+					pr_debug("RETRY COUNT FAILED! MORE THAN "\
+						 "50 WAITS on CPU %d\n", CPU_NUM);
+					return -1;
+				}
 				retry_count++;
-				/*pr_debug("Retrying with count %d on CPU %d\n",
-				  retry_count, CPU_NUM);*/
-				goto retry;
-			} else if (retry_count > 150) {
-				printk(KERN_DEBUG "TERMINATING EARLY ON CPU %d\n", CPU_NUM);
-				break;
-			}
-			assert_expect_and_zero(overlay, 1);
-			memset(overlay->message, 0, 124);
-			get_next_slot(&offset, buf);
+#endif
+			}while(trample_imminent(trample_loc));
+
+			/* trample Location is now free for us to write */
+			imsg = (struct ipc_message *)trample_loc;
+
+			memcpy(imsg->message, msg, 63);
+			imsg->monitor = 0;
+
+			ttd_ring_channel_inc_prod(prod_channel);
+
+#if defined(DEBUG_MWAIT_RETRY)
 			retry_count = 0;
-			count++;
-		}
-		pr_debug("Complete on %d\n", CPU_NUM);
+#endif
+
+		   }
+		   local_prod++;
+		   count++;
 	}
-	return 0;
+	return 1;
 }
 
 static inline unsigned long beta_ret_cpu(unsigned long __arg)
@@ -228,7 +195,7 @@ static inline unsigned long beta_ret_cpu(unsigned long __arg)
 
 static unsigned long beta_unpark_thread(struct ipc_container *container)
 {
-	if (container->thread == NULL || container->mem_size == 0)
+	if (container->thread == NULL)
 		return -EINVAL;
 
 	/* FROM THIS POINT FORWARD, ATLEAST ONE OF THE THREADS
@@ -259,41 +226,52 @@ static unsigned long beta_connect_mem(struct ipc_container *container,
 
 	kland = (unsigned long *) kland_real;
 
-	if (kland != NULL && *kland != 0xdeadbeef)
+	if (kland == NULL)
 		return -EFAULT;
 
-	container->mem_start = kland;
-	container->mem_size = PAGE_SIZE * 2;
+
+	/* todo talk about this bootstrap issue while we're beta testing */
+	/* perhaps, we can use extern and export syms? */
+	container->channel_rx = (struct ttd_ring_channel *) kland;
 	return 0;
 }
 
 static unsigned long beta_alloc_mem(struct ipc_container *container)
 {
-	if (container->mem_size > 0)
-		return 0;
+	int ret;
+	if (container->channel_tx == NULL)
+		return -EINVAL;
 
-	container->mem_start = kzalloc((PAGE_SIZE * 2), GFP_KERNEL);
-	if (!container->mem_start)
-		return -1;
+	ret = ttd_ring_channel_alloc(container->channel_tx,
+				     CHAN_NUM_PAGES,
+				     sizeof(struct ipc_message));
 
-	container->mem_size = PAGE_SIZE * 2;
-
-	/* Yes I know this is outright disgusting */
-	*((unsigned long *)container->mem_start) = 0xdeadbeef;
+	if (ret != 0) {
+		pr_err("Failed to alloc/Init ring channel\n");
+		return -ENOMEM;
+	}
 
 	return 0;
 }
 
 static int beta_open(struct inode *nodp, struct file *filep)
 {
-	/* setup kernel thread, bound to some CPU, but do not run */
+
 	struct ipc_container *container;
 
 	container = kzalloc(sizeof(*container), GFP_KERNEL);
 
 	if (!container) {
-		pr_debug("Could not alloc space for container\n");
-		return -1;
+		pr_err("Could not alloc space for container\n");
+		return -ENOMEM;
+	}
+
+	container->channel_tx = kzalloc(sizeof(*container->channel_tx),
+					GFP_KERNEL);
+
+	if (!container->channel_tx) {
+		pr_err("Could not alloc space for ring channel\n");
+		return -ENOMEM;
 	}
 
 	container->thread = kthread_create_on_cpu(&ipc_thread_func,
@@ -301,7 +279,7 @@ static int beta_open(struct inode *nodp, struct file *filep)
 						  "betaIPC.%u");
 
 	if (IS_ERR(container->thread)) {
-		pr_debug("Error while creating kernel thread\n");
+		pr_err("Error while creating kernel thread\n");
 		return PTR_ERR(container->thread);
 	}
 
@@ -311,11 +289,16 @@ static int beta_open(struct inode *nodp, struct file *filep)
 
 static int beta_close(struct inode *nodp, struct file *filep)
 {
-	/* TODO STOP LEAKING 2 PAGES OF MEMORY FROM THE CONTAINER!\n */
+
 	struct ipc_container *container;
 
 	container = filep->private_data;
 	kfree(container);
+
+	if (container->channel_tx)
+		ttd_ring_channel_free(container->channel_tx);
+
+
 	return 0;
 }
 
@@ -324,7 +307,7 @@ static long beta_return_mem(struct ipc_container *container,
 {
 	unsigned long __user  *save = (unsigned long *) __arg;
 
-	return put_user((unsigned long)container->mem_start, save);
+	return put_user((unsigned long)container->channel_tx, save);
 }
 
 static long beta_ioctl(struct file *filep, unsigned int cmd,

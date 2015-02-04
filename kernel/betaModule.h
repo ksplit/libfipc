@@ -1,14 +1,17 @@
 #include <linux/types.h>
 
+
+int CHAN_NUM_PAGES = 2;
+
 struct ipc_container{
 	struct task_struct *thread;
-	size_t mem_size;
-	void * mem_start;
+	struct ttd_ring_channel *channel_tx;
+	struct ttd_ring_channel *channel_rx;
 };
 
 /*Don't let gcc do anything cute, we need this to be 128 bytes */
-struct ipc_message{ 
-	char message[124];
+struct ipc_message{
+	char message[63];
 	volatile uint32_t monitor;
 }__attribute__((packed));
 
