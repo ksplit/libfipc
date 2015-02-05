@@ -24,11 +24,11 @@ static inline unsigned long lower_power_of_two(unsigned long x)
 /* Stolen from  xen/mm.h */
 static inline int get_order_from_pages(unsigned long nr_pages)
 {
-    int order;
-    nr_pages--;
-    for ( order = 0; nr_pages; order++ )
-        nr_pages >>= 1;
-    return order;
+	int order;
+	nr_pages--;
+	for ( order = 0; nr_pages; order++ )
+		nr_pages >>= 1;
+	return order;
 }
 
 int ttd_ring_channel_alloc(struct ttd_ring_channel *ring_channel,

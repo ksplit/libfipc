@@ -133,7 +133,7 @@ static int ipc_thread_func(void *input)
 
 	container = filep->private_data;
 
-	if (container == NULL && container->channel_rx == NULL) {
+	if (container == NULL && container->channel_tx == NULL) {
 		pr_debug("container was null in thread!\n");
 		return -EINVAL;
 	}
@@ -164,20 +164,18 @@ static int ipc_thread_func(void *input)
 				retry_count++;
 #endif
 			}while(trample_imminent(trample_loc));
+		}
+		/* trample Location is now free for us to write */
+		imsg = (struct ipc_message *)trample_loc;
 
-			/* trample Location is now free for us to write */
-			imsg = (struct ipc_message *)trample_loc;
+		memcpy(imsg->message, msg, 63);
+		imsg->monitor = 0;
 
-			memcpy(imsg->message, msg, 63);
-			imsg->monitor = 0;
-
-			ttd_ring_channel_inc_prod(prod_channel);
+		ttd_ring_channel_inc_prod(prod_channel);
 
 #if defined(DEBUG_MWAIT_RETRY)
 			retry_count = 0;
 #endif
-
-		   }
 		   local_prod++;
 		   count++;
 	}
@@ -250,6 +248,7 @@ static unsigned long beta_alloc_mem(struct ipc_container *container)
 		pr_err("Failed to alloc/Init ring channel\n");
 		return -ENOMEM;
 	}
+	memset(container->channel_tx->rec, 0, (CHAN_NUM_PAGES * PAGE_SIZE));
 
 	return 0;
 }
