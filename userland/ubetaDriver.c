@@ -17,13 +17,13 @@
 #define printf_v(fmt, ...) \
 	if(verbose)	   \
 		printf(fmt,##__VA_ARGS__);
-		
+
 
 static int verbose;
 
 static int open_beta_drivers(int* beta1, int* beta2)
 {
-	
+
 	printf_v("[*] Opening \"betaIPC\"\n");
 
 	*beta1 = open("/dev/betaIPC", O_RDWR);
@@ -80,14 +80,14 @@ static int connect_mem_regions(int fd2, unsigned long *ptr)
 
 static int unpark_threads(int fd, int fd2)
 {
-	
+
 	long ret = -1;
 	ret = ioctl(fd2, BETA_UNPARK_THREAD, NULL);
 	if(ret != 0) {
 		printf("Couldn't unpark beta2!\n");
 		return 1;
 	}
-	printf_v("[*] Woke up CPU3 waking up CPU 0\n");
+	printf_v("[*] Woke up CPU0 waking up CPU3\n");
        	ret = ioctl(fd, BETA_UNPARK_THREAD, NULL);
 	if(ret != 0) {
 		printf("Couldn't unpark beta1!\n");

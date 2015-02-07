@@ -12,8 +12,9 @@
 #include <asm/mwait.h>
 #include <asm/page_types.h>
 #include <asm/cpufeature.h>
+#include <linux/ktime.h>
 
-#include "../ring-chan/ring-channel.h"
+#include "ring-chan/ring-channel.h"
 #include "../betaModule.h"
 
 MODULE_LICENSE("GPL");
@@ -25,6 +26,8 @@ static int CPU_NUM;
 static char *msg = "12345678123456781234567812345678123456781234567812345678" \
 	"1234567";
 
+static unsigned long start;
+static unsigned long end;
 
 
 /* Stolen and slightly modified from http://rosettacode.org/wiki/Rot-13 */
@@ -51,15 +54,16 @@ static char *rot13(char *s, int amount)
 static void assert_expect_and_zero(struct ipc_message *i_msg, int need_rot)
 {
 	if (need_rot)
-		rot13(i_msg->message, 123);
+		rot13(i_msg->message, 60);
 
-	if (strncmp(i_msg->message, msg, 123) != 0)
+	if (strncmp(i_msg->message, msg, BUF_SIZE) != 0)
 		pr_debug("STRINGS DIFFERED IN CPU %d\n", CPU_NUM);
 
-	i_msg->monitor = 0;
+	//	memset(i_msg->message, 0, 60);
+	i_msg->monitor = 0xC1346BAD;
 }
 
-static inline void monitor_mwait(unsigned long rcx, void *rax,
+static inline void monitor_mwait(unsigned long rcx, volatile uint32_t *rax,
 				 unsigned long wait_type)
 {
 
@@ -80,27 +84,39 @@ static inline void monitor_mwait(unsigned long rcx, void *rax,
 		mb();
 	}
 
-	local_irq_save(flags);
+	//	local_irq_save(flags);
 	__monitor((void *)rax, 0, 0);
 	/* TODO comment for memory barrier, why is this necessary? */
 	mb();
 	__mwait(wait_type, rcx);
-	local_irq_restore(flags);
+	//local_irq_restore(flags);
 }
 
 
-static inline int trample_imminent(unsigned int *loc)
+static inline int trample_imminent(struct ipc_message *loc)
 {
-	return *loc == 0xbadc0de;
+	return (loc->monitor != 0xbadbeef);
 }
 
 static inline int trample_imminent_store(struct ttd_ring_channel *prod,
-			    unsigned int prod_loc, unsigned int **t_loc)
+			    unsigned int prod_loc, struct ipc_message  **t_loc)
+{
+	struct ipc_message *imsg;
+	imsg = (struct ipc_message *) ttd_ring_channel_get_rec_slow(prod, prod_loc);
+	*t_loc = imsg;
+	return (imsg->monitor != 0xbadbeef);
+}
+
+
+static void write_protected_slot(struct ttd_ring_channel *cons,
+unsigned long location)
 {
 
-	*t_loc = (unsigned int*) ttd_ring_channel_get_rec_slow(prod, prod_loc);
-	return ((*(*t_loc)) == 0xbadc0de);
+	unsigned long *write_loc;
+	write_loc = (unsigned long*) ttd_ring_channel_get_rec_slow(cons, location);
+	*write_loc = 0;
 }
+
 
 static int ipc_thread_func(void *input)
 {
@@ -112,6 +128,8 @@ static int ipc_thread_func(void *input)
 	   byte boundary until it gets out of its OPT loop
 	*/
 
+	pr_debug("Hello from betaModule2\n");
+
  	struct file *filep = input;
 	struct ipc_container *container = NULL;
 	unsigned long ecx = 1; /*break of interrupt flag */
@@ -121,6 +139,7 @@ static int ipc_thread_func(void *input)
 	unsigned int local_cons;
 	unsigned int *trample_loc;
 	struct ipc_message *imsg;
+	ktime_t start, end;
 
 #if defined(DEBUG_MWAIT_RETRY)
 	unsigned long retry_count = 0;
@@ -140,45 +159,58 @@ static int ipc_thread_func(void *input)
 
 	cons_channel = container->channel_rx;
 
-	/* PRODUCER */
-	write_protected_slot(cons_channel, 0);
-	local_cons = 0;
+	local_cons = 1;
 	/* 10 mil */
-	while(count < 10000000) {
+	start = ktime_get();
+	while(count < 5000000) {
 
 		/* POSSIBLE CACHE THRASHING WILE WAITING ??*/
 		/* TODO LETS DO BOTH METHODS, LETS MWAIT ON THE NIL */
 		/* AND LETS MWAIT ONT THE CONSUMER */
-		if(trample_imminent_store(cons_channel, local_prod, &trample_loc)) {
+		if(trample_imminent_store(cons_channel, local_cons, &imsg)) {
 			do{
-				monitor_mwait(ecx, trample_loc, cstate_wait);
-
+				pr_debug("Waiting in CPU%d on %p\n",
+					 CPU_NUM, &imsg->monitor);
+				monitor_mwait(ecx, &imsg->monitor, cstate_wait);
 
 #if defined(DEBUG_MWAIT_RETRY)
 				if(retry_count > 50) {
-					pr_debug("RETRY COUNT FAILED! MORE THAN "\
-						 "50 WAITS on CPU %d\n", CPU_NUM);
+					pr_err("RETRY COUNT FAILED! MORE THAN "\
+						 "50 WAITS on CPU %d with count %d\n",
+					       CPU_NUM, count);
 					return -1;
 				}
 				retry_count++;
 #endif
-			}while(trample_imminent(trample_loc));
+			}while(trample_imminent(imsg));
 		}
-			/* trample Location is now free for us to write */
-		imsg = (struct ipc_message *)trample_loc;
 
-		memcpy(imsg->message, msg, 63);
-		imsg->monitor = 0;
+#if defined(DEBUG_BOUNDS_CHECK)
+		/* trample Location is now free for us to write */
+		if((unsigned long)imsg > end || (unsigned long)imsg < start) {
+			pr_err("OUT OF BOUNDS! with %p on CPU %d\n", imsg,
+			       CPU_NUM);
+			break;
+		}
+#endif
+		pr_debug("assert_expecting on count %d at loc %p\n",
+			 count, imsg->message);
+		assert_expect_and_zero(imsg, 0);
+		pr_debug("Wrote to voltile var in cpu %d at loc %p\n",
+			 CPU_NUM, &imsg->monitor);
 
-		ttd_ring_channel_inc_prod(prod_channel);
+		//ttd_ring_channel_inc_cons(cons_channel);
 
 #if defined(DEBUG_MWAIT_RETRY)
 		retry_count = 0;
 #endif
 
-		local_prod++;
+		local_cons++;
 		count++;
 	}
+	end = ktime_get();
+	printk(KERN_DEBUG "Time taken for function() execution: %llu on cpu %d\n",
+	       ktime_to_ns(ktime_sub(end, start)), CPU_NUM);
 	return 1;
 }
 
@@ -231,6 +263,8 @@ static unsigned long beta_connect_mem(struct ipc_container *container,
 	/* todo talk about this bootstrap issue while we're beta testing */
 	/* perhaps, we can use extern and export syms? */
 	container->channel_rx = (struct ttd_ring_channel *) kland;
+	start = (unsigned long) container->channel_rx->recs;
+	end = (unsigned long) container->channel_rx->recs + (CHAN_NUM_PAGES * PAGE_SIZE);
 	return 0;
 }
 
@@ -272,6 +306,7 @@ static int beta_open(struct inode *nodp, struct file *filep)
 		return -ENOMEM;
 	}
 
+
 	container->thread = kthread_create_on_cpu(&ipc_thread_func,
 						  (void *)filep, CPU_NUM,
 						  "betaIPC.%u");
@@ -293,8 +328,9 @@ static int beta_close(struct inode *nodp, struct file *filep)
 	container = filep->private_data;
 	kfree(container);
 
-	if (container->channel_tx)
-		ttd_ring_channel_free(container->channel_tx);
+
+	/*	if (container->channel_tx)
+		ttd_ring_channel_free(container->channel_tx);*/
 
 
 	return 0;
@@ -334,7 +370,7 @@ static long beta_ioctl(struct file *filep, unsigned int cmd,
 		pr_debug("No such ioctl %d\n", cmd);
 		break;
 	}
-	return 0;
+	return ret;
 }
 
 static const struct file_operations betaIPC_fops = {
@@ -346,7 +382,7 @@ static const struct file_operations betaIPC_fops = {
 
 static struct miscdevice dev = {
 	MISC_DYNAMIC_MINOR,
-	"betaIPC",
+	"betaIPC2",
 	&betaIPC_fops,
 };
 
@@ -356,7 +392,7 @@ static int __init bIPC_init(void)
 {
 	int ret = 0;
 
-	CPU_NUM = 0;
+	CPU_NUM = 3;
 	if (this_cpu_has(X86_FEATURE_MWAIT))
 		printk(KERN_DEBUG "HAS MWAIT\n");
 

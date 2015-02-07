@@ -15,9 +15,17 @@
 #include "ring-channel.h"
 
 
+static inline unsigned long bsrl(unsigned long x)
+{
+	unsigned long ret;
+	asm("bsr %1,%0" : "=r"(ret) : "r"(x));
+	return ret;
+
+}
+
 static inline unsigned long lower_power_of_two(unsigned long x)
 {
-	return 0x80000000000000 >> __builtin_clz(x);
+	return 0x80000000000000UL >>  (__builtin_clzl(x)-1);
 }
 
 
@@ -95,9 +103,25 @@ int ttd_ring_channel_alloc_with_metadata(struct ttd_ring_channel *ring_channel,
 	ttd_ring_channel_reinit_stats(ring_channel->buf);
 
 	ring_channel->size_of_a_rec = size_of_a_rec;
-	ring_channel->size_in_recs  = (lower_power_of_two(size_in_pages * PAGE_SIZE))
-		/ ring_channel->size_of_a_rec;
+	pr_debug("Size of a rec is %lu\n", size_of_a_rec);
 
+
+	/* ring_channel->size_in_recs  = (lower_power_of_two(size_in_pages * PAGE_SIZE))
+		/ ring_channel->size_of_a_rec;
+	*/
+	ring_channel->size_in_recs = (size_in_pages * PAGE_SIZE) /
+		ring_channel->size_of_a_rec;
+
+
+	pr_debug("size in recs is %lu lower_power_of_two returned %lu and in hex %lxwith input %lu and hex %lx\n",
+		 ring_channel->size_in_recs,
+		 lower_power_of_two(size_in_pages * PAGE_SIZE),
+		 lower_power_of_two(size_in_pages * PAGE_SIZE),
+		 (size_in_pages * PAGE_SIZE), (size_in_pages * PAGE_SIZE));
+	if (ring_channel->size_in_recs == 0) {
+		pr_err(" Size_in_recs was incorrectly 0\n");
+		ret = -EINVAL; goto cleanup;
+	}
 
 	/* Init shared buffer structures */
 
