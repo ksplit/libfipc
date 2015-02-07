@@ -176,7 +176,7 @@ static int ipc_thread_func(void *input)
 		/* trample Location is now free for us to write */
 #if defined (DEBUG_BOUNDS_CHECK)
 		if((unsigned long)imsg  > end || (unsigned long)imsg < start) {
-			pr_err("OUT OF BOUNDS! with %p\n", trample_loc);
+			pr_err("OUT OF BOUNDS! with %p\n", imsg);
 			break;
 		}
 #endif
