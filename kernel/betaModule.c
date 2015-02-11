@@ -13,6 +13,7 @@
 #include <asm/page_types.h>
 #include <asm/cpufeature.h>
 #include <linux/ktime.h>
+#include <asm/tsc.h>
 
 #include "ring-chan/ring-channel.h"
 #include "betaModule.h"
@@ -30,6 +31,12 @@ static char *msg = "12345678123456781234567812345678123456781234567812345678" \
 static unsigned long start;
 static unsigned long end;
 
+#if defined(TIMING)
+static u64 *timekeeper;
+#endif
+
+
+
 /* Stolen and slightly modified from http://rosettacode.org/wiki/Rot-13 */
 static char *rot13(char *s, int amount)
 {
@@ -40,10 +47,10 @@ static char *rot13(char *s, int amount)
 	while (*p && count < amount) {
 		upper = *p;
 		if ((upper >= 'a' && upper <= 'm') ||
-		   (upper >= 'A' && upper <= 'M'))
+		    (upper >= 'A' && upper <= 'M'))
 			*p += 13;
 		else if ((upper >= 'n' && upper <= 'z') ||
-			(upper >= 'A' && upper <= 'Z'))
+			 (upper >= 'A' && upper <= 'Z'))
 			*p -= 13;
 		++p;
 		count++;
@@ -54,34 +61,67 @@ static char *rot13(char *s, int amount)
 static void assert_expect_and_zero(struct ipc_message *i_msg, int need_rot)
 {
 	if (need_rot)
-		rot13(i_msg->message, 123);
+		rot13(i_msg->message, BUF_SIZE);
 
-	if (strncmp(i_msg->message, msg, 123) != 0)
-		pr_debug("STRINGS DIFFERED IN CPU %d\n", CPU_NUM);
+	if (strncmp(i_msg->message, msg, BUF_SIZE) != 0)
+		pr_err("STRINGS DIFFERED IN CPU %d\n", CPU_NUM);
 
 	i_msg->monitor = 0;
 }
+
+
+static unsigned int find_target_mwait(void)
+{
+        unsigned int eax, ebx, ecx, edx;
+        unsigned int highest_cstate = 0;
+        unsigned int highest_subcstate = 0;
+        int i;
+
+        if (boot_cpu_data.cpuid_level < CPUID_MWAIT_LEAF)
+                return 0;
+
+        cpuid(CPUID_MWAIT_LEAF, &eax, &ebx, &ecx, &edx);
+
+        if (!(ecx & CPUID5_ECX_EXTENSIONS_SUPPORTED) ||
+            !(ecx & CPUID5_ECX_INTERRUPT_BREAK))
+                return 0;
+
+        edx >>= MWAIT_SUBSTATE_SIZE;
+        for (i = 0; i < 7 && edx; i++, edx >>= MWAIT_SUBSTATE_SIZE) {
+                if (edx & MWAIT_SUBSTATE_MASK) {
+                        highest_cstate = i;
+                        highest_subcstate = edx & MWAIT_SUBSTATE_MASK;
+                        printk(KERN_DEBUG "Found cstate at %d and highest_subcstate %d\n",
+                               i, highest_subcstate);
+                        printk(KERN_DEBUG "IF WE WERE TO RETURN NOW IT WOUDL LOOK LIKE %x\n", (highest_cstate << MWAIT_SUBSTATE_SIZE) | (highest_subcstate -1));
+                }
+        }
+        return (highest_cstate << MWAIT_SUBSTATE_SIZE) |
+                (highest_subcstate - 1);
+
+}
+
 
 static inline void monitor_mwait(unsigned long rcx, volatile uint32_t *rax,
 				 unsigned long wait_type)
 {
 
-	unsigned long flags;
-	int cpu;
+	//unsigned long flags;
+	//int cpu;
 
-	/* TODO Figure out wtf the "extensions" and "hints" do for monitor */
-	wbinvd();
+
 
 	/* smp is supposed to be used under "lock", however one can use it if
 	 * you have pegged your thread to a CPU, which we have.
 	 */
-	cpu = smp_processor_id();
+	/* we know we're noot ona buggy cpu when we release we'll re-enable this */
+	/*cpu = smp_processor_id();
 
-	if (cpu_has_bug(&cpu_data(cpu), X86_BUG_CLFLUSH_MONITOR)) {
-		mb();
-		clflush(rax);
-		mb();
-	}
+	  if (cpu_has_bug(&cpu_data(cpu), X86_BUG_CLFLUSH_MONITOR)) {
+	  mb();
+	  clflush(rax);
+	  mb();
+	  }*/
 
 	//	local_irq_save(flags);
 	__monitor((void *)rax, 0, 0);
@@ -92,44 +132,95 @@ static inline void monitor_mwait(unsigned long rcx, volatile uint32_t *rax,
 }
 
 
-static inline int trample_imminent(struct ipc_message *loc)
+static inline int trample_imminent(struct ipc_message *loc, unsigned int token)
 {
-	return (loc->monitor != 0xC1346BAD) && (loc->monitor != 0);
+	return (loc->monitor != token) && (loc->monitor != 0);
+	//return (loc->monitor != 0xC1346BAD) && (loc->monitor != 0);
 }
 
-static inline int trample_imminent_store(struct ttd_ring_channel *prod,
-			    unsigned int prod_loc, struct ipc_message **t_loc)
+static int trample_imminent_store(struct ttd_ring_channel *prod,
+				  unsigned int prod_loc,
+				  struct ipc_message **t_loc,
+				  unsigned int token)
 {
 	struct ipc_message *imsg;
 	imsg = (struct ipc_message *) ttd_ring_channel_get_rec_slow(prod, prod_loc);
 	*t_loc = imsg;
-	return (imsg->monitor != 0xC1346BAD) && (imsg->monitor != 0);
+	return (imsg->monitor != token) && (imsg->monitor != 0);
+	//	return (imsg->monitor != 0xC1346BAD) && (imsg->monitor != 0);
 }
 
-static int ipc_thread_func(void *input)
+
+static int wait_for_slot(struct ttd_ring_channel *chan, unsigned long bucket,
+			 struct ipc_message **imsg, unsigned int token)
 {
-	/* This will be a while true loop with timing code and mwaits
-	   CPU 1 WILL be the first to send info. It will ROT 13 some
-	   message and inc on some pointer at 128 bytes.
-
-	   CPU 0 will come in here and will monitor/mwait on the 128
-	   byte boundary until it gets out of its OPT loop
-	*/
-
- 	struct file *filep = input;
-	struct ipc_container *container = NULL;
-	unsigned long ecx = 1; /*break of interrupt flag */
-	unsigned long cstate_wait = 2;
-	struct ttd_ring_channel *prod_channel;
-	int count = 0;
-	unsigned int local_prod;
-	unsigned int *trample_loc;
-	struct ipc_message *imsg;
-	ktime_t start, end;
 
 #if defined(DEBUG_MWAIT_RETRY)
 	unsigned long retry_count = 0;
 #endif
+	unsigned long ecx = 1; /*break of interrupt flag */
+	unsigned long cstate_wait = 0x1; /* 4 states, 0x1, 0x10, 0x20, 0x30 */
+
+
+	if(trample_imminent_store(chan, bucket, imsg, token)) {
+
+		do{
+			pr_debug("Waiting on CPU %d with %p\n",
+				 CPU_NUM, &(*imsg)->monitor);
+			monitor_mwait(ecx, &(*imsg)->monitor, cstate_wait);
+
+#if defined(DEBUG_MWAIT_RETRY)
+			if(retry_count > 50) {
+				pr_err("RETRY COUNT FAILED! MORE THAN 50 WAITS on CPU %d\n", CPU_NUM);
+				return -1;
+			}
+			retry_count++;
+#endif
+		}while(trample_imminent(*imsg, token));
+	}
+
+
+	/* trample Location is now free for us to write */
+#if defined (DEBUG_BOUNDS_CHECK)
+	if((unsigned long)*imsg  > end || (unsigned long)*imsg < start) {
+		pr_err("OUT OF BOUNDS! with %p\n", imsg);
+		return -1;
+	}
+#endif
+#if defined(DEBUG_MWAIT_RETRY)
+	retry_count = 0;
+#endif
+	return 0;
+}
+
+
+
+static inline u64 rdtsc(void)
+{
+         unsigned int low, high;
+
+         asm volatile("rdtsc" : "=a" (low), "=d" (high));
+
+         return low | ((u64)high) << 32;
+}
+
+
+
+
+static int ipc_thread_func(void *input)
+{
+
+ 	struct file *filep = input;
+	struct ipc_container *container = NULL;
+
+	struct ttd_ring_channel *prod_channel;
+	struct ttd_ring_channel *cons_channel;
+	int count = 0;
+	unsigned int local_prod, local_cons;
+	struct ipc_message *imsg;
+	u64 start64, end64;
+	unsigned int pTok = 0xC1346BAD;
+	unsigned int cTok = 0xBADBEEF;
 
 	if (filep == NULL) {
 		pr_debug("Thread was sent a null filepointer!\n");
@@ -144,59 +235,57 @@ static int ipc_thread_func(void *input)
 	}
 
 	prod_channel = container->channel_tx;
+	cons_channel = container->channel_rx;
 
 	/* PRODUCER */
 	local_prod = 1;
+	local_cons = 1;
 	ttd_ring_channel_set_prod(prod_channel, 1);
 	ttd_ring_channel_set_cons(prod_channel, 0);
 	/* 10 mil */
-	start = ktime_get();
-	while(count < 5000000) {
 
-		/* POSSIBLE CACHE THRASHING WILE WAITING ??*/
-		/* TODO LETS DO BOTH METHODS, LETS MWAIT ON THE NIL */
-		/* AND LETS MWAIT ONT THE CONSUMER */
-		if(trample_imminent_store(prod_channel, local_prod, &imsg)) {
-			do{
-				pr_debug("Waiting on CPU %d with %p\n",
-					 CPU_NUM, &imsg->monitor);
-				monitor_mwait(ecx, &imsg->monitor, cstate_wait);
+	while(count < NUM_LOOPS) {
 
-#if defined(DEBUG_MWAIT_RETRY)
-				if(retry_count > 50) {
-					pr_err("RETRY COUNT FAILED! MORE THAN"\
-					       "50 WAITS on CPU %d at count %d\n",
-					       CPU_NUM, count);
-					return -1;
-				}
-				retry_count++;
-#endif
-			}while(trample_imminent(imsg));
-		}
-		/* trample Location is now free for us to write */
-#if defined (DEBUG_BOUNDS_CHECK)
-		if((unsigned long)imsg  > end || (unsigned long)imsg < start) {
-			pr_err("OUT OF BOUNDS! with %p\n", imsg);
+		/* get slot to write */
+		if (wait_for_slot(prod_channel, local_prod, &imsg, pTok) == -1)
 			break;
-		}
-#endif
+
 		pr_debug("Memcpying in CPU0 iter %d count to loc %p\n",
 			 count, imsg->message);
-		memcpy(imsg->message, msg, BUF_SIZE);
-		imsg->monitor = 0xbadbeef;
+
+		imsg->message[0] = 'b';
+		imsg->message[1] = 'e';
+		imsg->message[2] = 't';
+		imsg->message[3] = '1';
+
+		start64 = rdtsc();
+
+		imsg->monitor = cTok;
 		pr_debug("Wrot to volatile var on CPU %d at loc %p\n",
 			 CPU_NUM, &imsg->monitor);
-		//ttd_ring_channel_inc_prod(prod_channel);
 
-#if defined(DEBUG_MWAIT_RETRY)
-			retry_count = 0;
+		if (wait_for_slot(cons_channel, local_cons, &imsg, cTok) == -1)
+			break;
+		/* ack the msg */
+		imsg->monitor = pTok;
+
+		end64 = rdtsc();
+
+
+#if defined(TIMING)
+		timekeeper[count] = (end64 - start64);
 #endif
-		   local_prod++;
-		   count++;
+
+#if defined(DEBUG_VERIFY_MSG)
+		assert_expect_and_zero(imsg,1);
+#endif
+
+
+		local_prod++;
+		local_cons++;
+		count++;
 	}
-	end = ktime_get();
-	printk(KERN_DEBUG "Time taken for function() execution: %llu on cpu %d\n",
-	       ktime_to_ns(ktime_sub(end, start)), CPU_NUM);
+
 	return 1;
 }
 
@@ -282,6 +371,14 @@ static int beta_open(struct inode *nodp, struct file *filep)
 
 	struct ipc_container *container;
 
+#if defined(TIMING)
+	timekeeper = kzalloc(sizeof(u64) * NUM_LOOPS, GFP_KERNEL);
+
+	if(!timekeeper) {
+		pr_err("could not alloc space for time keeping");
+		return -ENOMEM;
+	}
+#endif
 	container = kzalloc(sizeof(*container), GFP_KERNEL);
 
 	if (!container) {
@@ -333,8 +430,22 @@ static long beta_return_mem(struct ipc_container *container,
 	return put_user((unsigned long)container->channel_tx, save);
 }
 
+
+static void dump_time(void)
+{
+	int i;
+	if (timekeeper == NULL) {
+		pr_err("Time keeper was null, ret");
+		return;
+	}
+
+	for (i = 0; i < NUM_LOOPS; i++)
+		pr_err("CPU %d RTT %lu\n", CPU_NUM, timekeeper[i]);
+
+}
+
 static long beta_ioctl(struct file *filep, unsigned int cmd,
-			  unsigned long __arg)
+		       unsigned long __arg)
 {
 	struct ipc_container *container = filep->private_data;
 	long ret = 0;
@@ -354,6 +465,9 @@ static long beta_ioctl(struct file *filep, unsigned int cmd,
 		break;
 	case BETA_GET_MEM:
 		ret = beta_return_mem(container, __arg);
+		break;
+	case BETA_DUMP_TIME:
+		dump_time();
 		break;
 	default:
 		pr_debug("No such ioctl %d\n", cmd);

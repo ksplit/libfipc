@@ -13,6 +13,7 @@
 #define BETA_UNPARK_THREAD 1<<3
 #define BETA_ALLOC_MEM 1<<4
 #define BETA_GET_MEM 1<<5
+#define BETA_DUMP_TIME 1<<6
 
 #define printf_v(fmt, ...) \
 	if(verbose)	   \
@@ -43,7 +44,7 @@ static int open_beta_drivers(int* beta1, int* beta2)
 	return 0;
 }
 
-static int alloc_mem_beta1(int fd)
+static int alloc_mem_beta(int fd)
 {
 	long ret = -1;
 	ret = ioctl(fd, BETA_ALLOC_MEM, NULL);
@@ -55,7 +56,7 @@ static int alloc_mem_beta1(int fd)
 }
 
 
-static int get_mem_region_beta1(int fd, unsigned long **ptr) 
+static int get_mem_region_beta(int fd, unsigned long **ptr)
 {
 	
 	long ret = -1;
@@ -96,6 +97,12 @@ static int unpark_threads(int fd, int fd2)
 	return 0;
 }
 
+static void print_stats(int fd){
+	ioctl(fd, BETA_DUMP_TIME, NULL);
+}
+
+
+
 int main(int argc, char **argv)
 {
 
@@ -103,38 +110,64 @@ int main(int argc, char **argv)
 	int beta1, beta2;
 	beta1 = beta2 = -1;
 	unsigned long *ptr = NULL;
+	unsigned long *ptr2 = NULL;
+
 	if(open_beta_drivers(&beta1, &beta2)){
 		printf("Failed to open one of the beta drivers!\n");
 		exit(EXIT_FAILURE);
 	}
-	
-	printf_v("[*] Allocating mem on IPCbeta (1)\n");
 
-	if(alloc_mem_beta1(beta1)) 
-		goto cleanup;	
+	printf_v("[*] Allocating Ring chan on IPCbeta (1)\n");
+
+	if(alloc_mem_beta(beta1))
+		goto cleanup;
+
+
+	printf_v("[*] Allocating ring chan on IPCbeta (2)\n");
+	if(alloc_mem_beta(beta2))
+		goto cleanup;
+
+
+
+
 	printf_v("[*] Getting memory region of alloc'd kernel mem from IPCBeta (1)\n");
-	if(get_mem_region_beta1(beta1, &ptr)) 
-		goto cleanup;	
-	
+	if(get_mem_region_beta(beta1, &ptr))
+		goto cleanup;
+
 	printf_v("[*] Got ptr %lx asking kland to take ptr from uland: %lx\n", ptr, &ptr);
-	if(connect_mem_regions(beta2, &ptr)) 
-		goto cleanup;	
-	
+
+	printf_v("[*] Getting memory region of alloc'd kernel mem from IPCBeta (2)\n");
+	if(get_mem_region_beta(beta2, &ptr2))
+		goto cleanup;
+
+	printf_v("[*] Got ptr %lx asking kland to take ptr from uland: %lx\n", ptr2, &ptr2);
+
+	if(connect_mem_regions(beta2, &ptr))
+		goto cleanup;
+	if(connect_mem_regions(beta1, &ptr2))
+		goto cleanup;
+
 	printf_v("[*] Unparking both threads PREPARE FOR PANIC!\n");
-	if(unpark_threads(beta1,beta2)) 
+	if(unpark_threads(beta1,beta2))
 		goto cleanup;
 
 	/* PROBBALY KERNEL PANICKING HARD BY NOW OR STALLED 2 CPUS*/
-	
+
 	printf_v("[*] THREADS UNPARKED, SLEEPING FOR 2 SEC \n");
 	sleep(60);
+	print_stats(beta1);
+	sleep(3);
+	print_stats(beta2);
+
+
+
 	printf_v("[*] AWAKE CLOSING AND EXITING \n");
  cleanup:
 	close(beta1);
 	close(beta2);
 	exit(EXIT_FAILURE);
-	
-}	
+
+}
 
 
 
