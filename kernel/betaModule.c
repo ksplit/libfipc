@@ -434,13 +434,24 @@ static long beta_return_mem(struct ipc_container *container,
 static void dump_time(void)
 {
 	int i;
+	unsigned long long counter = 0;
+        u64 min;
+	u64 max;
 	if (timekeeper == NULL) {
 		pr_err("Time keeper was null, ret");
 		return;
 	}
+	min = timekeeper[0];
+	max = min;
 
-	for (i = 0; i < NUM_LOOPS; i++)
-		pr_err("CPU %d RTT %lu\n", CPU_NUM, timekeeper[i]);
+	for (i = 0; i < NUM_LOOPS; i++) {
+	  counter+= timekeeper[i];
+	  if(timekeeper[i] > max)
+	    max = timekeeper[i];
+	  if(timekeeper[i] < min)
+	    min = timekeeper[i];
+	}
+	pr_err("TIME STATS MIN %u, MAX %u, AVG %u\n", min, max, counter/NUM_LOOPS);
 
 }
 
