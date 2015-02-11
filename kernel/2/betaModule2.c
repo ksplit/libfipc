@@ -487,7 +487,7 @@ static const struct file_operations betaIPC_fops = {
 
 static struct miscdevice dev = {
 	MISC_DYNAMIC_MINOR,
-	"betaIPC",
+	"betaIPC2",
 	&betaIPC_fops,
 };
 
