@@ -33,6 +33,7 @@ static unsigned long end;
 
 #if defined(TIMING)
 static u64 *timekeeper;
+static unsigned long mwaitcount;
 #endif
 
 
@@ -106,11 +107,15 @@ static inline void monitor_mwait(unsigned long rcx, volatile uint32_t *rax,
 				 unsigned long wait_type)
 {
 
+	__monitor((void *)rax, 0, 0);
+	/* TODO comment for memory barrier, why is this necessary? */
+	mb();
+	__mwait(wait_type, rcx);
+}
+
+
 	//unsigned long flags;
 	//int cpu;
-
-
-
 	/* smp is supposed to be used under "lock", however one can use it if
 	 * you have pegged your thread to a CPU, which we have.
 	 */
@@ -124,35 +129,53 @@ static inline void monitor_mwait(unsigned long rcx, volatile uint32_t *rax,
 	  }*/
 
 	//	local_irq_save(flags);
-	__monitor((void *)rax, 0, 0);
-	/* TODO comment for memory barrier, why is this necessary? */
-	mb();
-	__mwait(wait_type, rcx);
 	//	local_irq_restore(flags);
-}
 
 
-static inline int trample_imminent(struct ipc_message *loc, unsigned int token)
+
+static inline int trample_imminent(struct ipc_message *loc, unsigned int token,
+				   unsigned int write)
 {
-	return (loc->monitor != token) && (loc->monitor != 0);
+	/* this "readwrite" is so I don't have to dup functions
+	 * When we're the writer we want to check if we're gonna trample on a
+	 * unread slot, but we also need to see if we're on the first iteration
+	 * to check if we're on the first iteration we see if the slot is 0
+	 * if the slot is zero we WONT trample the location as it's free
+	 *
+	 * However, this function is used for the consumer as well.
+	 * The consumer will check if there is something to be read
+	 * and the monitor wont match the token, ie nothing is available to read
+	 * but, if that is the case there is the possibility that slot we want
+	 * to read is zero as well. The 2nd portion will trigger and we will
+	 * incorrectly read an empty slot. The fix is to "negate" the second
+	 * portion of the boolean statement so only the monitor != token is the
+	 * trigger
+	 */
+	if(write)
+		return (loc->monitor != token) && (loc->monitor != 0);
+
+	return (loc->monitor != token);
+
+	//return (loc->monitor != token) && ((loc->monitor != 0) && readwrite);
 	//return (loc->monitor != 0xC1346BAD) && (loc->monitor != 0);
 }
 
 static int trample_imminent_store(struct ttd_ring_channel *prod,
 				  unsigned int prod_loc,
 				  struct ipc_message **t_loc,
-				  unsigned int token)
+				  unsigned int token,
+				  unsigned int readwrite)
 {
 	struct ipc_message *imsg;
 	imsg = (struct ipc_message *) ttd_ring_channel_get_rec_slow(prod, prod_loc);
 	*t_loc = imsg;
-	return (imsg->monitor != token) && (imsg->monitor != 0);
-	//	return (imsg->monitor != 0xC1346BAD) && (imsg->monitor != 0);
+	return trample_imminent(imsg, token, readwrite);
 }
 
 
 static int wait_for_slot(struct ttd_ring_channel *chan, unsigned long bucket,
-			 struct ipc_message **imsg, unsigned int token)
+			 struct ipc_message **imsg, unsigned int token,
+			 unsigned int readwrite)
 {
 
 #if defined(DEBUG_MWAIT_RETRY)
@@ -162,21 +185,22 @@ static int wait_for_slot(struct ttd_ring_channel *chan, unsigned long bucket,
 	unsigned long cstate_wait = 0x1; /* 4 states, 0x1, 0x10, 0x20, 0x30 */
 
 
-	if(trample_imminent_store(chan, bucket, imsg, token)) {
+	if(trample_imminent_store(chan, bucket, imsg, token, readwrite)) {
 
 		do{
 			pr_debug("Waiting on CPU %d with %p\n",
 				 CPU_NUM, &(*imsg)->monitor);
+			mwaitcount++;
 			monitor_mwait(ecx, &(*imsg)->monitor, cstate_wait);
 
 #if defined(DEBUG_MWAIT_RETRY)
 			if(retry_count > 50) {
 				pr_err("RETRY COUNT FAILED! MORE THAN 50 WAITS on CPU %d\n", CPU_NUM);
-				return -1;
+				return 1;
 			}
 			retry_count++;
 #endif
-		}while(trample_imminent(*imsg, token));
+		}while(trample_imminent(*imsg, token,readwrite));
 	}
 
 
@@ -184,7 +208,7 @@ static int wait_for_slot(struct ttd_ring_channel *chan, unsigned long bucket,
 #if defined (DEBUG_BOUNDS_CHECK)
 	if((unsigned long)*imsg  > end || (unsigned long)*imsg < start) {
 		pr_err("OUT OF BOUNDS! with %p\n", imsg);
-		return -1;
+		return 1;
 	}
 #endif
 #if defined(DEBUG_MWAIT_RETRY)
@@ -247,7 +271,7 @@ static int ipc_thread_func(void *input)
 	while(count < NUM_LOOPS) {
 
 		/* get slot to write */
-		if (wait_for_slot(prod_channel, local_prod, &imsg, pTok) == -1)
+		if (wait_for_slot(prod_channel, local_prod, &imsg, pTok, 1))
 			break;
 
 		pr_debug("Memcpying in CPU0 iter %d count to loc %p\n",
@@ -264,7 +288,7 @@ static int ipc_thread_func(void *input)
 		pr_debug("Wrot to volatile var on CPU %d at loc %p\n",
 			 CPU_NUM, &imsg->monitor);
 
-		if (wait_for_slot(cons_channel, local_cons, &imsg, cTok) == -1)
+		if (wait_for_slot(cons_channel, local_cons, &imsg, cTok, 0))
 			break;
 		/* ack the msg */
 		imsg->monitor = pTok;
@@ -452,6 +476,7 @@ static void dump_time(void)
 	    min = timekeeper[i];
 	}
 	pr_err("TIME STATS MIN %u, MAX %u, AVG %u\n", min, max, counter/NUM_LOOPS);
+	pr_err("WE ENTERED MWAIT LOOP %lu times on CPU %d\n", mwaitcount, CPU_NUM);
 
 }
 
