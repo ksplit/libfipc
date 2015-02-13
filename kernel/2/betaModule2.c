@@ -163,7 +163,7 @@ static int wait_for_slot(struct ttd_ring_channel *chan, unsigned long bucket,
 	unsigned long retry_count = 0;
 #endif
 	unsigned long ecx = 1; /*break of interrupt flag */
-	unsigned long cstate_wait = 0x1; /* 4 states, 0x1, 0x10, 0x20, 0x30 */
+	unsigned long cstate_wait = 0x0; /* 4 states, 0x1, 0x10, 0x20, 0x30 */
 
 
 	if(trample_imminent_store(chan, bucket, imsg, token, readwrite)) {
@@ -191,9 +191,7 @@ static int wait_for_slot(struct ttd_ring_channel *chan, unsigned long bucket,
 		return 1;
 	}
 #endif
-#if defined(DEBUG_MWAIT_RETRY)
-	retry_count = 0;
-#endif
+
 	return 0;
 }
 
@@ -258,6 +256,11 @@ static int ipc_thread_func(void *input)
 		imsg->monitor = pTok;
 		pr_debug("Notified recvd on CPU %d at volatile location %p\n",
 			 CPU_NUM, &imsg->monitor);
+
+		if(imsg->message[3] != '1') {
+		  pr_err("message wasnt 1 it was %c and monitor is %u\n",
+			 imsg->message[3], imsg->monitor);
+		}
 
 		start64 = rdtsc();
 

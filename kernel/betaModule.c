@@ -133,7 +133,7 @@ static inline void monitor_mwait(unsigned long rcx, volatile uint32_t *rax,
 
 
 
-static inline int trample_imminent(struct ipc_message *loc, unsigned int token,
+static int trample_imminent(struct ipc_message *loc, unsigned int token,
 				   unsigned int write)
 {
 	/* this "readwrite" is so I don't have to dup functions
@@ -151,8 +151,12 @@ static inline int trample_imminent(struct ipc_message *loc, unsigned int token,
 	 * portion of the boolean statement so only the monitor != token is the
 	 * trigger
 	 */
-	if(write)
-		return (loc->monitor != token) && (loc->monitor != 0);
+
+  //  pr_err("write is %u and ret will be %d\n", write, ((loc->monitor != token) && (loc->monitor != 0)));
+
+
+	if(write) 
+	  return ((loc->monitor != token) && (loc->monitor != 0));
 
 	return (loc->monitor != token);
 
@@ -182,7 +186,7 @@ static int wait_for_slot(struct ttd_ring_channel *chan, unsigned long bucket,
 	unsigned long retry_count = 0;
 #endif
 	unsigned long ecx = 1; /*break of interrupt flag */
-	unsigned long cstate_wait = 0x1; /* 4 states, 0x1, 0x10, 0x20, 0x30 */
+	unsigned long cstate_wait = 0x0; /* 4 states, 0x1, 0x10, 0x20, 0x30 */
 
 
 	if(trample_imminent_store(chan, bucket, imsg, token, readwrite)) {
@@ -200,7 +204,7 @@ static int wait_for_slot(struct ttd_ring_channel *chan, unsigned long bucket,
 			}
 			retry_count++;
 #endif
-		}while(trample_imminent(*imsg, token,readwrite));
+		}while(trample_imminent(*imsg, token, readwrite));
 	}
 
 
@@ -211,9 +215,7 @@ static int wait_for_slot(struct ttd_ring_channel *chan, unsigned long bucket,
 		return 1;
 	}
 #endif
-#if defined(DEBUG_MWAIT_RETRY)
-	retry_count = 0;
-#endif
+
 	return 0;
 }
 
@@ -245,7 +247,7 @@ static int ipc_thread_func(void *input)
 	u64 start64, end64;
 	unsigned int pTok = 0xC1346BAD;
 	unsigned int cTok = 0xBADBEEF;
-
+	find_target_mwait();
 	if (filep == NULL) {
 		pr_debug("Thread was sent a null filepointer!\n");
 		return -EINVAL;
@@ -253,7 +255,8 @@ static int ipc_thread_func(void *input)
 
 	container = filep->private_data;
 
-	if (container == NULL && container->channel_tx == NULL) {
+	if (container == NULL || container->channel_tx == NULL
+	    || container->channel_rx == NULL) {
 		pr_debug("container was null in thread!\n");
 		return -EINVAL;
 	}
@@ -271,8 +274,9 @@ static int ipc_thread_func(void *input)
 	while(count < NUM_LOOPS) {
 
 		/* get slot to write */
-		if (wait_for_slot(prod_channel, local_prod, &imsg, pTok, 1))
-			break;
+	  if (wait_for_slot(prod_channel, local_prod, &imsg, pTok, 1))
+	  		break;
+	  //	  wait_for_slot(prod_channel, local_prod, &imsg, pTok, 1);
 
 		pr_debug("Memcpying in CPU0 iter %d count to loc %p\n",
 			 count, imsg->message);
@@ -290,11 +294,16 @@ static int ipc_thread_func(void *input)
 
 		if (wait_for_slot(cons_channel, local_cons, &imsg, cTok, 0))
 			break;
+		//	wait_for_slot(cons_channel, local_cons, &imsg, pTok, 0);
 		/* ack the msg */
+		
+		if (imsg->message[3] != '2') {
+		  pr_err("didn't get message from other side, tok is %u and char is %c",imsg->monitor, imsg->message[3]);
+		}
 		imsg->monitor = pTok;
 
 		end64 = rdtsc();
-
+		
 
 #if defined(TIMING)
 		timekeeper[count] = (end64 - start64);
