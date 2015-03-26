@@ -8,12 +8,16 @@
 #include <linux/sched.h>
 #include <linux/irqflags.h>
 #include <linux/kthread.h>
+#include <linux/cpumask.h>
 #include <asm/uaccess.h>
 #include <asm/mwait.h>
 #include <asm/page_types.h>
 #include <asm/cpufeature.h>
 #include <linux/ktime.h>
+#include <linux/sort.h>
 #include <asm/tsc.h>
+
+
 
 #include "ring-chan/ring-channel.h"
 #include "betaModule.h"
@@ -30,6 +34,8 @@ static char *msg = "12345678123456781234567812345678123456781234567812345678" \
 
 static unsigned long start;
 static unsigned long end;
+
+static volatile int should_stop;
 
 #if defined(TIMING)
 static u64 *timekeeper;
@@ -152,16 +158,12 @@ static int trample_imminent(struct ipc_message *loc, unsigned int token,
 	 * trigger
 	 */
 
-  //  pr_err("write is %u and ret will be %d\n", write, ((loc->monitor != token) && (loc->monitor != 0)));
 
-
-	if(write) 
+	if(write)
 	  return ((loc->monitor != token) && (loc->monitor != 0));
 
 	return (loc->monitor != token);
 
-	//return (loc->monitor != token) && ((loc->monitor != 0) && readwrite);
-	//return (loc->monitor != 0xC1346BAD) && (loc->monitor != 0);
 }
 
 static int trample_imminent_store(struct ttd_ring_channel *prod,
@@ -177,7 +179,7 @@ static int trample_imminent_store(struct ttd_ring_channel *prod,
 }
 
 
-static int wait_for_slot(struct ttd_ring_channel *chan, unsigned long bucket,
+static inline int wait_for_slot(struct ttd_ring_channel *chan, unsigned long bucket,
 			 struct ipc_message **imsg, unsigned int token,
 			 unsigned int readwrite)
 {
@@ -186,7 +188,7 @@ static int wait_for_slot(struct ttd_ring_channel *chan, unsigned long bucket,
 	unsigned long retry_count = 0;
 #endif
 	unsigned long ecx = 1; /*break of interrupt flag */
-	unsigned long cstate_wait = 0x0; /* 4 states, 0x1, 0x10, 0x20, 0x30 */
+	unsigned long cstate_wait = 0x0; /* 4 states, 0x0, 0x1 0x10 0x20 */
 
 
 	if(trample_imminent_store(chan, bucket, imsg, token, readwrite)) {
@@ -194,8 +196,8 @@ static int wait_for_slot(struct ttd_ring_channel *chan, unsigned long bucket,
 		do{
 			pr_debug("Waiting on CPU %d with %p\n",
 				 CPU_NUM, &(*imsg)->monitor);
-			mwaitcount++;
-			monitor_mwait(ecx, &(*imsg)->monitor, cstate_wait);
+			cpu_relax();
+			//mwait
 
 #if defined(DEBUG_MWAIT_RETRY)
 			if(retry_count > 50) {
@@ -204,6 +206,7 @@ static int wait_for_slot(struct ttd_ring_channel *chan, unsigned long bucket,
 			}
 			retry_count++;
 #endif
+
 		}while(trample_imminent(*imsg, token, readwrite));
 	}
 
@@ -220,12 +223,25 @@ static int wait_for_slot(struct ttd_ring_channel *chan, unsigned long bucket,
 }
 
 
+static unsigned long RDTSCL(void)
+{
+	unsigned long tsc;
+	__asm__ __volatile__(
+        "rdtscp;"
+        "shl $32, %%rdx;"
+        "or %%rdx, %%rax"
+        : "=a"(tsc)
+        :
+        : "%rcx", "%rdx");
+
+	return tsc;
+}
 
 static inline u64 rdtsc(void)
 {
          unsigned int low, high;
 
-         asm volatile("rdtsc" : "=a" (low), "=d" (high));
+         asm volatile("rdtscp" : "=a" (low), "=d" (high));
 
          return low | ((u64)high) << 32;
 }
@@ -241,13 +257,15 @@ static int ipc_thread_func(void *input)
 
 	struct ttd_ring_channel *prod_channel;
 	struct ttd_ring_channel *cons_channel;
-	int count = 0;
+	unsigned long count = 0;
 	unsigned int local_prod, local_cons;
 	struct ipc_message *imsg;
-	u64 start64, end64;
+	unsigned long  start64, end64, total64=0;
+	ktime_t start, end;
 	unsigned int pTok = 0xC1346BAD;
 	unsigned int cTok = 0xBADBEEF;
-	find_target_mwait();
+	//	int i;
+	//	find_target_mwait();
 	if (filep == NULL) {
 		pr_debug("Thread was sent a null filepointer!\n");
 		return -EINVAL;
@@ -270,40 +288,43 @@ static int ipc_thread_func(void *input)
 	ttd_ring_channel_set_prod(prod_channel, 1);
 	ttd_ring_channel_set_cons(prod_channel, 0);
 	/* 10 mil */
+	//find_target_mwait();
+	//start = ktime_get();
 
-	while(count < NUM_LOOPS) {
 
-		/* get slot to write */
-	  if (wait_for_slot(prod_channel, local_prod, &imsg, pTok, 1))
-	  		break;
-	  //	  wait_for_slot(prod_channel, local_prod, &imsg, pTok, 1);
+	while (count < NUM_LOOPS) {
+		start64 = RDTSCL();
+		//		for (i = 0; i < FLOOD_SIZE; i++) {
+			if (wait_for_slot(prod_channel, local_prod, &imsg, pTok, 1)){
+				pr_err("BREAKING AND RET EARLY!");
+				return 1;
+			}
+			pr_debug("Memcpying in CPU0 iter %d count to loc %p\n",
+				 count, imsg->message);
 
-		pr_debug("Memcpying in CPU0 iter %d count to loc %p\n",
-			 count, imsg->message);
-
-		imsg->message[0] = 'b';
-		imsg->message[1] = 'e';
-		imsg->message[2] = 't';
-		imsg->message[3] = '1';
-
-		start64 = rdtsc();
-
-		imsg->monitor = cTok;
-		pr_debug("Wrot to volatile var on CPU %d at loc %p\n",
-			 CPU_NUM, &imsg->monitor);
-
-		if (wait_for_slot(cons_channel, local_cons, &imsg, cTok, 0))
-			break;
-		//	wait_for_slot(cons_channel, local_cons, &imsg, pTok, 0);
-		/* ack the msg */
+			imsg->message[0] = 'b';
+			imsg->message[1] = 'e';
+			imsg->message[2] = 't';
+			imsg->message[3] = '1';
+			imsg->monitor = cTok;
+			local_prod++;
 		
-		if (imsg->message[3] != '2') {
-		  pr_err("didn't get message from other side, tok is %u and char is %c",imsg->monitor, imsg->message[3]);
-		}
-		imsg->monitor = pTok;
 
-		end64 = rdtsc();
-		
+	//for (i = 0; i < FLOOD_SIZE; i++) {
+			if (wait_for_slot(cons_channel, local_cons, &imsg, cTok, 0)){
+				pr_err("BREAKING AND RETURNING EAERLY BETA 0 ON RECV\n");
+				return 1;
+			}
+
+			/* ack the msg */
+			imsg->monitor = pTok;
+			local_cons++;
+			//}
+			//if (imsg->message[3] != '2') {
+			//pr_err("didn't get message from other side, tok is %u and char is %c",imsg->monitor, imsg->message[3]);
+			//}
+		end64 = RDTSCL();
+		count++;
 
 #if defined(TIMING)
 		timekeeper[count] = (end64 - start64);
@@ -313,12 +334,13 @@ static int ipc_thread_func(void *input)
 		assert_expect_and_zero(imsg,1);
 #endif
 
-
-		local_prod++;
-		local_cons++;
-		count++;
 	}
-
+		//pr_err("count is %lu for 1 second \n", count);
+		//pr_err("time for 16 million is %lu\n",(end64-start64));
+#if defined(TIMING)
+		//	pr_err("%lld - %lld\n", ktime_to_ns(end), ktime_to_ns(start));
+		//	pr_err("Time for fn was %lld\n", ktime_to_ns(ktime_sub(end,start)));
+#endif
 	return 1;
 }
 
@@ -336,12 +358,7 @@ static unsigned long beta_unpark_thread(struct ipc_container *container)
 	if (container->thread == NULL)
 		return -EINVAL;
 
-	/* FROM THIS POINT FORWARD, ATLEAST ONE OF THE THREADS
-	 * IS SITTING IN THE COMM CODE
-	 */
-
 	pr_debug("waking up process on CPU %d\n", CPU_NUM);
-	kthread_unpark(container->thread);
 	if (wake_up_process(container->thread) == 1)
 		pr_debug("Woke up process on cpu %d\n", CPU_NUM);
 
@@ -364,8 +381,10 @@ static unsigned long beta_connect_mem(struct ipc_container *container,
 
 	kland = (unsigned long *) kland_real;
 
-	if (kland == NULL)
+	if (kland == NULL) {
+		pr_err("returning efault in beta_connect_mem\n");
 		return -EFAULT;
+	}
 
 
 	/* todo talk about this bootstrap issue while we're beta testing */
@@ -403,10 +422,10 @@ static int beta_open(struct inode *nodp, struct file *filep)
 {
 
 	struct ipc_container *container;
-
+	struct cpumask cpu_core;
+	should_stop = 0;
 #if defined(TIMING)
 	timekeeper = kzalloc(sizeof(u64) * NUM_LOOPS, GFP_KERNEL);
-
 	if(!timekeeper) {
 		pr_err("could not alloc space for time keeping");
 		return -ENOMEM;
@@ -427,16 +446,23 @@ static int beta_open(struct inode *nodp, struct file *filep)
 		return -ENOMEM;
 	}
 
-	container->thread = kthread_create_on_cpu(&ipc_thread_func,
-						  (void *)filep, CPU_NUM,
-						  "betaIPC.%u");
+	container->thread = kthread_create(&ipc_thread_func,
+					   (void *)filep, "betaIPC.%u",CPU_NUM);
 
 	if (IS_ERR(container->thread)) {
 		pr_err("Error while creating kernel thread\n");
 		return PTR_ERR(container->thread);
 	}
 
+	get_task_struct(container->thread);
+
+	cpumask_clear(&cpu_core);
+	cpumask_set_cpu(CPU_NUM,&cpu_core);
+
+	set_cpus_allowed_ptr(container->thread, &cpu_core);
+
 	filep->private_data = container;
+
 	return 0;
 }
 
@@ -444,13 +470,18 @@ static int beta_close(struct inode *nodp, struct file *filep)
 {
 
 	struct ipc_container *container;
+	should_stop = 1;
+	container = filep->private_data;
 
-	//	container = filep->private_data;
-	//kfree(container);
+	put_task_struct(container->thread);
 
-	//	if (container->channel_tx)
-	//	ttd_ring_channel_free(container->channel_tx);
+	if (container->channel_tx)
+		ttd_ring_channel_free(container->channel_tx);
 
+	kfree(container);
+#if defined(TIMING)
+	kfree(timekeeper);
+#endif
 
 	return 0;
 }
@@ -464,6 +495,18 @@ static long beta_return_mem(struct ipc_container *container,
 }
 
 
+static int compare(const void *_a, const void *_b){
+	
+	u64 a = *((u64 *)_a);
+	u64 b = *((u64 *)_b);
+
+	if(a < b)
+		return -1;
+	if(a > b)
+		return 1;
+	return 0;
+}
+
 static void dump_time(void)
 {
 	int i;
@@ -474,18 +517,20 @@ static void dump_time(void)
 		pr_err("Time keeper was null, ret");
 		return;
 	}
-	min = timekeeper[0];
-	max = min;
 
-	for (i = 0; i < NUM_LOOPS; i++) {
+
+	
+	sort(timekeeper, NUM_LOOPS, sizeof(u64), compare, NULL);
+
+	min = timekeeper[1];
+	max = timekeeper[9999];
+	counter = min;
+	for (i = 1; i < NUM_LOOPS; i++) {
 	  counter+= timekeeper[i];
-	  if(timekeeper[i] > max)
-	    max = timekeeper[i];
-	  if(timekeeper[i] < min)
-	    min = timekeeper[i];
 	}
-	pr_err("TIME STATS MIN %u, MAX %u, AVG %u\n", min, max, counter/NUM_LOOPS);
-	pr_err("WE ENTERED MWAIT LOOP %lu times on CPU %d\n", mwaitcount, CPU_NUM);
+	pr_err("MIN\tMAX\tAVG\tMEDIAN\n");
+	pr_err("%llu & %llu & %llu & %llu\n", min, max, counter/NUM_LOOPS, timekeeper[4999]);
+       //pr_err("WE ENTERED MWAIT LOOP %lu times on CPU %d\n", mwaitcount, CPU_NUM);
 
 }
 

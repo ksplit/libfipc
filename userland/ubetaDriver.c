@@ -154,7 +154,7 @@ int main(int argc, char **argv)
 	/* PROBBALY KERNEL PANICKING HARD BY NOW OR STALLED 2 CPUS*/
 
 	printf_v("[*] THREADS UNPARKED, SLEEPING FOR 2 SEC \n");
-	sleep(10);
+	sleep(3);
 	print_stats(beta1);
 	//	sleep(3);
 	//	print_stats(beta2);

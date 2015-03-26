@@ -8,6 +8,7 @@
 #include <linux/sched.h>
 #include <linux/irqflags.h>
 #include <linux/kthread.h>
+#include <linux/cpumask.h>
 #include <asm/uaccess.h>
 #include <asm/mwait.h>
 #include <asm/page_types.h>
@@ -30,11 +31,7 @@ static char *msg = "12345678123456781234567812345678123456781234567812345678" \
 
 static unsigned long start;
 static unsigned long end;
-
-#if defined(TIMING)
-static u64 *timekeeper;
-#endif
-
+volatile unsigned int should_stop;
 
 
 /* Stolen and slightly modified from http://rosettacode.org/wiki/Rot-13 */
@@ -154,7 +151,7 @@ static int trample_imminent_store(struct ttd_ring_channel *prod,
 }
 
 
-static int wait_for_slot(struct ttd_ring_channel *chan, unsigned long bucket,
+static inline int wait_for_slot(struct ttd_ring_channel *chan, unsigned long bucket,
 			 struct ipc_message **imsg, unsigned int token,
 			 unsigned int readwrite)
 {
@@ -163,16 +160,19 @@ static int wait_for_slot(struct ttd_ring_channel *chan, unsigned long bucket,
 	unsigned long retry_count = 0;
 #endif
 	unsigned long ecx = 1; /*break of interrupt flag */
-	unsigned long cstate_wait = 0x0; /* 4 states, 0x1, 0x10, 0x20, 0x30 */
+	unsigned long cstate_wait = 0x20; /* 4 states, 0x0,  0x1, 0x10, 0x20 */
 
 
 	if(trample_imminent_store(chan, bucket, imsg, token, readwrite)) {
 
 		do{
+			//asm volatile("nop");
 			pr_debug("Waiting on CPU %d with %p\n",
 				 CPU_NUM, &(*imsg)->monitor);
-			monitor_mwait(ecx, &(*imsg)->monitor, cstate_wait);
-
+			//monitor_mwait(ecx, &(*imsg)->monitor, cstate_wait);
+			cpu_relax();
+			//if(unlikely(should_stop == 1))
+			//	return 1;
 #if defined(DEBUG_MWAIT_RETRY)
 			if(retry_count > 50) {
 				pr_err("RETRY COUNT FAILED! MORE THAN 50 WAITS on CPU %d\n", CPU_NUM);
@@ -223,6 +223,7 @@ static int ipc_thread_func(void *input)
 	u64 start64, end64;
 	unsigned int pTok = 0xC1346BAD;
 	unsigned int cTok = 0xBADBEEF;
+	int i;
 
 	if (filep == NULL) {
 		pr_debug("Thread was sent a null filepointer!\n");
@@ -246,7 +247,7 @@ static int ipc_thread_func(void *input)
 	ttd_ring_channel_set_cons(prod_channel, 0);
 	/* 10 mil */
 
-	while(count < NUM_LOOPS) {
+	while (count < NUM_LOOPS) {
 
 		/* wait and get message */
 		if (wait_for_slot(cons_channel, local_cons, &imsg, cTok, 0))
@@ -258,11 +259,11 @@ static int ipc_thread_func(void *input)
 			 CPU_NUM, &imsg->monitor);
 
 		if(imsg->message[3] != '1') {
-		  pr_err("message wasnt 1 it was %c and monitor is %u\n",
+ 		  pr_err("message wasnt 1 it was %c and monitor is %u\n",
 			 imsg->message[3], imsg->monitor);
 		}
 
-		start64 = rdtsc();
+		//		start64 = rdtsc();
 
 
 
@@ -276,11 +277,11 @@ static int ipc_thread_func(void *input)
 		imsg->message[3] = '2';
 		imsg->monitor = cTok;
 
-		end64 = rdtsc();
+		//end64 = rdtsc();
 
 
 #if defined(TIMING)
-		timekeeper[count] = (end64 - start64);
+
 #endif
 
 #if defined(DEBUG_VERIFY_MSG)
@@ -315,7 +316,7 @@ static unsigned long beta_unpark_thread(struct ipc_container *container)
 	 */
 
 	pr_debug("waking up process on CPU %d\n", CPU_NUM);
-	kthread_unpark(container->thread);
+	//	kthread_unpark(container->thread);
 	if (wake_up_process(container->thread) == 1)
 		pr_debug("Woke up process on cpu %d\n", CPU_NUM);
 
@@ -377,15 +378,9 @@ static int beta_open(struct inode *nodp, struct file *filep)
 {
 
 	struct ipc_container *container;
+	struct cpumask cpu_core;
 
-#if defined(TIMING)
-	timekeeper = kzalloc(sizeof(u64) * NUM_LOOPS, GFP_KERNEL);
-
-	if(!timekeeper) {
-		pr_err("could not alloc space for time keeping");
-		return -ENOMEM;
-	}
-#endif
+	should_stop = 0;
 	container = kzalloc(sizeof(*container), GFP_KERNEL);
 
 	if (!container) {
@@ -401,14 +396,22 @@ static int beta_open(struct inode *nodp, struct file *filep)
 		return -ENOMEM;
 	}
 
-	container->thread = kthread_create_on_cpu(&ipc_thread_func,
-						  (void *)filep, CPU_NUM,
-						  "betaIPC.%u");
+	container->thread = kthread_create(&ipc_thread_func,
+					   (void *)filep,"betaIPC.%u");
 
 	if (IS_ERR(container->thread)) {
 		pr_err("Error while creating kernel thread\n");
 		return PTR_ERR(container->thread);
 	}
+
+
+	get_task_struct(container->thread);
+
+	cpumask_clear(&cpu_core);
+	cpumask_set_cpu(CPU_NUM,&cpu_core);
+
+	set_cpus_allowed_ptr(container->thread, &cpu_core);
+
 
 	filep->private_data = container;
 	return 0;
@@ -418,13 +421,15 @@ static int beta_close(struct inode *nodp, struct file *filep)
 {
 
 	struct ipc_container *container;
+	should_stop = 1;
+       	container = filep->private_data;
 
-	//	container = filep->private_data;
-	//kfree(container);
+	put_task_struct(container->thread);
 
-	//	if (container->channel_tx)
-	//	ttd_ring_channel_free(container->channel_tx);
+	if (container->channel_tx)
+		ttd_ring_channel_free(container->channel_tx);
 
+	kfree(container);
 
 	return 0;
 }
@@ -441,14 +446,6 @@ static long beta_return_mem(struct ipc_container *container,
 
 static void dump_time(void)
 {
-	int i;
-	if (timekeeper == NULL) {
-		pr_err("Time keeper was null, ret");
-		return;
-	}
-
-	for (i = 0; i < NUM_LOOPS; i++)
-		pr_err("CPU %d RTT %lu\n", CPU_NUM, timekeeper[i]);
 
 }
 
@@ -504,7 +501,7 @@ static int __init bIPC_init(void)
 {
 	int ret = 0;
 
-	CPU_NUM = 3;
+	CPU_NUM = 2;
 	if (this_cpu_has(X86_FEATURE_MWAIT))
 		printk(KERN_DEBUG "HAS MWAIT\n");
 
