@@ -25,15 +25,16 @@ static int CPU_NUM;
 
 
 /* 124 byte message */
+#if 0
 static char *msg = "12345678123456781234567812345678123456781234567812345678" \
 	"1234567";
-
+#endif
 
 static unsigned long start;
 static unsigned long end;
 volatile unsigned int should_stop;
 
-
+#if 0
 /* Stolen and slightly modified from http://rosettacode.org/wiki/Rot-13 */
 static char *rot13(char *s, int amount)
 {
@@ -54,7 +55,9 @@ static char *rot13(char *s, int amount)
 	}
 	return s;
 }
+#endif
 
+#if defined(DEBUG_ASSERT_EXPECT)
 static void assert_expect_and_zero(struct ipc_message *i_msg, int need_rot)
 {
 	if (need_rot)
@@ -65,8 +68,9 @@ static void assert_expect_and_zero(struct ipc_message *i_msg, int need_rot)
 
 	i_msg->monitor = 0;
 }
+#endif
 
-
+#if defined(USE_MWAIT)
 static unsigned int find_target_mwait(void)
 {
         unsigned int eax, ebx, ecx, edx;
@@ -127,87 +131,57 @@ static inline void monitor_mwait(unsigned long rcx, volatile uint32_t *rax,
 	__mwait(wait_type, rcx);
 	//	local_irq_restore(flags);
 }
+#endif
 
-
-static inline int trample_imminent(struct ipc_message *loc, unsigned int token,
-				   unsigned int write)
+static inline int check_cons_slot_available(struct ipc_message *loc, unsigned int token)
 {
-	if(write)
-		return (loc->monitor != token) && (loc->monitor != 0);
-
 	return (loc->monitor != token);
 }
 
-static int trample_imminent_store(struct ttd_ring_channel *prod,
-				  unsigned int prod_loc,
-				  struct ipc_message **t_loc,
-				  unsigned int token,
-				  unsigned int readwrite)
+static inline int check_prod_slot_available(struct ipc_message *loc, unsigned int token)
 {
-	struct ipc_message *imsg;
-	imsg = (struct ipc_message *) ttd_ring_channel_get_rec_slow(prod, prod_loc);
-	*t_loc = imsg;
-	return trample_imminent(imsg, token, readwrite);
+	return (loc->monitor != token) && (loc->monitor != 0);
 }
 
-
-static inline int wait_for_slot(struct ttd_ring_channel *chan, unsigned long bucket,
-			 struct ipc_message **imsg, unsigned int token,
-			 unsigned int readwrite)
+static inline int wait_for_producer_slot(struct ttd_ring_channel *chan, unsigned long bucket,
+					 struct ipc_message **store, unsigned int token)
 {
 
-#if defined(DEBUG_MWAIT_RETRY)
-	unsigned long retry_count = 0;
-#endif
-	unsigned long ecx = 1; /*break of interrupt flag */
-	unsigned long cstate_wait = 0x20; /* 4 states, 0x0,  0x1, 0x10, 0x20 */
+	struct ipc_message *imsg;
+	imsg = (struct ipc_message *) ttd_ring_channel_get_rec_slow(chan, bucket);
+	*store = imsg;
 
+	while (check_prod_slot_available(imsg, token)) {
 
-	if(trample_imminent_store(chan, bucket, imsg, token, readwrite)) {
-
-		do{
-			//asm volatile("nop");
-			pr_debug("Waiting on CPU %d with %p\n",
-				 CPU_NUM, &(*imsg)->monitor);
-			//monitor_mwait(ecx, &(*imsg)->monitor, cstate_wait);
+#if defined(USE_MWAIT)
+		monitor_mwait(ecx, &(*imsg)->monitor, cstate_wait);
+#endif//usemwait
+#if defined(POLL)
 			cpu_relax();
-			//if(unlikely(should_stop == 1))
-			//	return 1;
-#if defined(DEBUG_MWAIT_RETRY)
-			if(retry_count > 50) {
-				pr_err("RETRY COUNT FAILED! MORE THAN 50 WAITS on CPU %d\n", CPU_NUM);
-				return 1;
-			}
-			retry_count++;
 #endif
-		}while(trample_imminent(*imsg, token, readwrite));
 	}
-
-
-	/* trample Location is now free for us to write */
-#if defined (DEBUG_BOUNDS_CHECK)
-	if((unsigned long)*imsg  > end || (unsigned long)*imsg < start) {
-		pr_err("OUT OF BOUNDS! with %p\n", imsg);
-		return 1;
-	}
-#endif
-
 	return 0;
 }
 
-
-
-static inline u64 rdtsc(void)
+static inline int wait_for_consumer_slot(struct ttd_ring_channel *chan, unsigned long bucket,
+					 struct ipc_message **store, unsigned int token)
 {
-         unsigned int low, high;
 
-         asm volatile("rdtsc" : "=a" (low), "=d" (high));
+	struct ipc_message *imsg;
+	imsg = (struct ipc_message *) ttd_ring_channel_get_rec_slow(chan, bucket);
+	*store = imsg;
 
-         return low | ((u64)high) << 32;
+	while (check_cons_slot_available(imsg, token)) {
+
+#if defined(USE_MWAIT)
+		monitor_mwait(ecx, &(*imsg)->monitor, cstate_wait);
+#endif//usemwait
+#if defined(POLL)
+			cpu_relax();
+#endif
+	}
+	return 0;
 }
-
-
-
 
 static int ipc_thread_func(void *input)
 {
@@ -220,7 +194,6 @@ static int ipc_thread_func(void *input)
 	int count = 0;
 	unsigned int local_prod, local_cons;
 	struct ipc_message *imsg;
-	u64 start64, end64;
 	unsigned int pTok = 0xC1346BAD;
 	unsigned int cTok = 0xBADBEEF;
 	int i;
@@ -250,7 +223,7 @@ static int ipc_thread_func(void *input)
 	while (count < NUM_LOOPS) {
 
 		/* wait and get message */
-		if (wait_for_slot(cons_channel, local_cons, &imsg, cTok, 0))
+		if (wait_for_consumer_slot(cons_channel, local_cons, &imsg, cTok))
 			break;
 
 		/* NOTIFY RECEVD */
@@ -263,12 +236,8 @@ static int ipc_thread_func(void *input)
 			 imsg->message[3], imsg->monitor);
 		}
 
-		//		start64 = rdtsc();
-
-
-
 		/* wait and get writer slot*/
-		if (wait_for_slot(prod_channel, local_prod, &imsg, pTok, 1))
+		if (wait_for_producer_slot(prod_channel, local_prod, &imsg, pTok))
 			break;
 
 		imsg->message[0] = 'b';
@@ -276,19 +245,6 @@ static int ipc_thread_func(void *input)
 		imsg->message[2] = 't';
 		imsg->message[3] = '2';
 		imsg->monitor = cTok;
-
-		//end64 = rdtsc();
-
-
-#if defined(TIMING)
-
-#endif
-
-#if defined(DEBUG_VERIFY_MSG)
-		assert_expect_and_zero(imsg,1);
-#endif
-
-
 		local_prod++;
 		local_cons++;
 		count++;
@@ -296,6 +252,7 @@ static int ipc_thread_func(void *input)
 
 	return 1;
 }
+
 
 static inline unsigned long beta_ret_cpu(unsigned long __arg)
 {
