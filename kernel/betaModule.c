@@ -28,9 +28,10 @@ static int CPU_NUM;
 
 
 /* 124 byte message */
+#if 0
 static char *msg = "12345678123456781234567812345678123456781234567812345678" \
 	"1234567";
-
+#endif
 
 static unsigned long start;
 static unsigned long end;
@@ -39,11 +40,10 @@ static volatile int should_stop;
 
 #if defined(TIMING)
 static u64 *timekeeper;
-static unsigned long mwaitcount;
 #endif
 
 
-
+#if 0
 /* Stolen and slightly modified from http://rosettacode.org/wiki/Rot-13 */
 static char *rot13(char *s, int amount)
 {
@@ -64,7 +64,10 @@ static char *rot13(char *s, int amount)
 	}
 	return s;
 }
+#endif
 
+
+#if defined(DEBUG_ASSERT_EXPECT)
 static void assert_expect_and_zero(struct ipc_message *i_msg, int need_rot)
 {
 	if (need_rot)
@@ -75,8 +78,10 @@ static void assert_expect_and_zero(struct ipc_message *i_msg, int need_rot)
 
 	i_msg->monitor = 0;
 }
+#endif
 
 
+#if defined(USE_MWAIT)
 static unsigned int find_target_mwait(void)
 {
         unsigned int eax, ebx, ecx, edx;
@@ -118,7 +123,7 @@ static inline void monitor_mwait(unsigned long rcx, volatile uint32_t *rax,
 	mb();
 	__mwait(wait_type, rcx);
 }
-
+#endif
 
 	//unsigned long flags;
 	//int cpu;
@@ -139,86 +144,53 @@ static inline void monitor_mwait(unsigned long rcx, volatile uint32_t *rax,
 
 
 
-static int trample_imminent(struct ipc_message *loc, unsigned int token,
-				   unsigned int write)
+static inline int check_cons_slot_available(struct ipc_message *loc, unsigned int token)
 {
-	/* this "readwrite" is so I don't have to dup functions
-	 * When we're the writer we want to check if we're gonna trample on a
-	 * unread slot, but we also need to see if we're on the first iteration
-	 * to check if we're on the first iteration we see if the slot is 0
-	 * if the slot is zero we WONT trample the location as it's free
-	 *
-	 * However, this function is used for the consumer as well.
-	 * The consumer will check if there is something to be read
-	 * and the monitor wont match the token, ie nothing is available to read
-	 * but, if that is the case there is the possibility that slot we want
-	 * to read is zero as well. The 2nd portion will trigger and we will
-	 * incorrectly read an empty slot. The fix is to "negate" the second
-	 * portion of the boolean statement so only the monitor != token is the
-	 * trigger
-	 */
-
-
-	if(write)
-	  return ((loc->monitor != token) && (loc->monitor != 0));
-
 	return (loc->monitor != token);
-
 }
 
-static int trample_imminent_store(struct ttd_ring_channel *prod,
-				  unsigned int prod_loc,
-				  struct ipc_message **t_loc,
-				  unsigned int token,
-				  unsigned int readwrite)
+static inline int check_prod_slot_available(struct ipc_message *loc, unsigned int token)
 {
+	return (loc->monitor != token) && (loc->monitor != 0);
+}
+
+static inline int wait_for_producer_slot(struct ttd_ring_channel *chan, unsigned long bucket,
+					 struct ipc_message **store, unsigned int token)
+{
+
 	struct ipc_message *imsg;
-	imsg = (struct ipc_message *) ttd_ring_channel_get_rec_slow(prod, prod_loc);
-	*t_loc = imsg;
-	return trample_imminent(imsg, token, readwrite);
+	imsg = (struct ipc_message *) ttd_ring_channel_get_rec_slow(chan, bucket);
+	*store = imsg;
+
+	while (check_prod_slot_available(imsg, token)) {
+
+#if defined(USE_MWAIT)
+		monitor_mwait(ecx, &(*imsg)->monitor, cstate_wait);
+#endif//usemwait
+#if defined(POLL)
+			cpu_relax();
+#endif
+	}
+	return 0;
 }
 
-
-static inline int wait_for_slot(struct ttd_ring_channel *chan, unsigned long bucket,
-			 struct ipc_message **imsg, unsigned int token,
-			 unsigned int readwrite)
+static inline int wait_for_consumer_slot(struct ttd_ring_channel *chan, unsigned long bucket,
+					 struct ipc_message **store, unsigned int token)
 {
 
-#if defined(DEBUG_MWAIT_RETRY)
-	unsigned long retry_count = 0;
-#endif
-	unsigned long ecx = 1; /*break of interrupt flag */
-	unsigned long cstate_wait = 0x0; /* 4 states, 0x0, 0x1 0x10 0x20 */
+	struct ipc_message *imsg;
+	imsg = (struct ipc_message *) ttd_ring_channel_get_rec_slow(chan, bucket);
+	*store = imsg;
 
+	while (check_cons_slot_available(imsg, token)) {
 
-	if(trample_imminent_store(chan, bucket, imsg, token, readwrite)) {
-
-		do{
-			pr_debug("Waiting on CPU %d with %p\n",
-				 CPU_NUM, &(*imsg)->monitor);
+#if defined(USE_MWAIT)
+		monitor_mwait(ecx, &(*imsg)->monitor, cstate_wait);
+#endif//usemwait
+#if defined(POLL)
 			cpu_relax();
-			//mwait
-
-#if defined(DEBUG_MWAIT_RETRY)
-			if(retry_count > 50) {
-				pr_err("RETRY COUNT FAILED! MORE THAN 50 WAITS on CPU %d\n", CPU_NUM);
-				return 1;
-			}
-			retry_count++;
 #endif
-
-		}while(trample_imminent(*imsg, token, readwrite));
 	}
-
-
-	/* trample Location is now free for us to write */
-#if defined (DEBUG_BOUNDS_CHECK)
-	if((unsigned long)*imsg  > end || (unsigned long)*imsg < start) {
-		pr_err("OUT OF BOUNDS! with %p\n", imsg);
-		return 1;
-	}
-#endif
-
 	return 0;
 }
 
@@ -252,20 +224,19 @@ static inline u64 rdtsc(void)
 static int ipc_thread_func(void *input)
 {
 
+#if defined(USE_FLOOD)
+	int i;
+#endif
  	struct file *filep = input;
 	struct ipc_container *container = NULL;
-
 	struct ttd_ring_channel *prod_channel;
 	struct ttd_ring_channel *cons_channel;
 	unsigned long count = 0;
 	unsigned int local_prod, local_cons;
 	struct ipc_message *imsg;
-	unsigned long  start64, end64, total64=0;
-	ktime_t start, end;
+	unsigned long  start64, end64;
 	unsigned int pTok = 0xC1346BAD;
 	unsigned int cTok = 0xBADBEEF;
-	//	int i;
-	//	find_target_mwait();
 	if (filep == NULL) {
 		pr_debug("Thread was sent a null filepointer!\n");
 		return -EINVAL;
@@ -279,23 +250,20 @@ static int ipc_thread_func(void *input)
 		return -EINVAL;
 	}
 
+
 	prod_channel = container->channel_tx;
 	cons_channel = container->channel_rx;
-
-	/* PRODUCER */
 	local_prod = 1;
 	local_cons = 1;
 	ttd_ring_channel_set_prod(prod_channel, 1);
 	ttd_ring_channel_set_cons(prod_channel, 0);
-	/* 10 mil */
-	//find_target_mwait();
-	//start = ktime_get();
-
 
 	while (count < NUM_LOOPS) {
 		start64 = RDTSCL();
-		//		for (i = 0; i < FLOOD_SIZE; i++) {
-			if (wait_for_slot(prod_channel, local_prod, &imsg, pTok, 1)){
+#if defined(USE_FLOOD)
+		for (i = 0; i < FLOOD_SIZE; i++) {
+#endif
+			if (wait_for_producer_slot(prod_channel, local_prod, &imsg, pTok)) {
 				pr_err("BREAKING AND RET EARLY!");
 				return 1;
 			}
@@ -308,10 +276,12 @@ static int ipc_thread_func(void *input)
 			imsg->message[3] = '1';
 			imsg->monitor = cTok;
 			local_prod++;
-		
+#if defined(USE_FLOOD)
+		}
 
-	//for (i = 0; i < FLOOD_SIZE; i++) {
-			if (wait_for_slot(cons_channel, local_cons, &imsg, cTok, 0)){
+	       for (i = 0; i < FLOOD_SIZE; i++) {
+#endif
+			if (wait_for_consumer_slot(cons_channel, local_cons, &imsg, cTok)){
 				pr_err("BREAKING AND RETURNING EAERLY BETA 0 ON RECV\n");
 				return 1;
 			}
@@ -319,6 +289,9 @@ static int ipc_thread_func(void *input)
 			/* ack the msg */
 			imsg->monitor = pTok;
 			local_cons++;
+#if defined(USE_FLOOD)
+	      }
+#endif
 			//}
 			//if (imsg->message[3] != '2') {
 			//pr_err("didn't get message from other side, tok is %u and char is %c",imsg->monitor, imsg->message[3]);
@@ -330,17 +303,8 @@ static int ipc_thread_func(void *input)
 		timekeeper[count] = (end64 - start64);
 #endif
 
-#if defined(DEBUG_VERIFY_MSG)
-		assert_expect_and_zero(imsg,1);
-#endif
 
 	}
-		//pr_err("count is %lu for 1 second \n", count);
-		//pr_err("time for 16 million is %lu\n",(end64-start64));
-#if defined(TIMING)
-		//	pr_err("%lld - %lld\n", ktime_to_ns(end), ktime_to_ns(start));
-		//	pr_err("Time for fn was %lld\n", ktime_to_ns(ktime_sub(end,start)));
-#endif
 	return 1;
 }
 
@@ -496,7 +460,7 @@ static long beta_return_mem(struct ipc_container *container,
 
 
 static int compare(const void *_a, const void *_b){
-	
+
 	u64 a = *((u64 *)_a);
 	u64 b = *((u64 *)_b);
 
@@ -518,8 +482,6 @@ static void dump_time(void)
 		return;
 	}
 
-
-	
 	sort(timekeeper, NUM_LOOPS, sizeof(u64), compare, NULL);
 
 	min = timekeeper[1];
@@ -530,7 +492,6 @@ static void dump_time(void)
 	}
 	pr_err("MIN\tMAX\tAVG\tMEDIAN\n");
 	pr_err("%llu & %llu & %llu & %llu\n", min, max, counter/NUM_LOOPS, timekeeper[4999]);
-       //pr_err("WE ENTERED MWAIT LOOP %lu times on CPU %d\n", mwaitcount, CPU_NUM);
 
 }
 
