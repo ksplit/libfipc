@@ -277,7 +277,7 @@ static int ipc_thread_func(void *input)
 
 			//ptok = 0xC1346BAD;
 			//__builtin_prefetch(cons_msg, 1, 1);
-			//wait_for_producer_slot(prod_msg, pTok);
+			wait_for_producer_slot(prod_msg, pTok);
 
 			//imsg->message[0] = 'b';
 			//imsg->message[1] = 'e';
