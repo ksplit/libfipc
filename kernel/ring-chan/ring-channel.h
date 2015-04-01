@@ -156,7 +156,9 @@ static inline void ttd_ring_channel_set_cons(struct ttd_ring_channel *ring_chann
 
 static inline char *ttd_ring_channel_get_rec_slow(struct ttd_ring_channel *ring_channel,
 						  unsigned long cons) {
-	return (ring_channel->recs
+
+	//return (ring_channel->recs + (cons % 1024) * 64);
+		return (ring_channel->recs
 		+ (cons % ring_channel->size_in_recs)
 		* ring_channel->size_of_a_rec);
 };

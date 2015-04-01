@@ -27,6 +27,10 @@ MODULE_LICENSE("GPL");
 static int CPU_NUM;
 
 
+static	unsigned int pTok = 0xC1346BAD;
+static	unsigned int cTok = 0xBADBEEF;
+
+
 /* 124 byte message */
 #if 0
 static char *msg = "12345678123456781234567812345678123456781234567812345678" \
@@ -146,56 +150,72 @@ static inline void monitor_mwait(unsigned long rcx, volatile uint32_t *rax,
 
 static inline int check_cons_slot_available(struct ipc_message *loc, unsigned int token)
 {
-	return (loc->monitor != token);
+	return (likely(loc->monitor != token));
 }
 
 static inline int check_prod_slot_available(struct ipc_message *loc, unsigned int token)
 {
-	return (loc->monitor != token) && (loc->monitor != 0);
+	return (unlikely(loc->monitor != token));
 }
 
-static inline int wait_for_producer_slot(struct ttd_ring_channel *chan, unsigned long bucket,
-					 struct ipc_message **store, unsigned int token)
+
+static struct ipc_message * get_next_available_slot(struct ttd_ring_channel *chan,
+					     unsigned long bucket)
+{
+	return (struct ipc_message *) ttd_ring_channel_get_rec_slow(chan,bucket);
+}
+
+
+static int wait_for_producer_slot(struct ipc_message *imsg, unsigned int token)
 {
 
-	struct ipc_message *imsg;
-	imsg = (struct ipc_message *) ttd_ring_channel_get_rec_slow(chan, bucket);
-	*store = imsg;
 
 	while (check_prod_slot_available(imsg, token)) {
 
 #if defined(USE_MWAIT)
-		monitor_mwait(ecx, &(*imsg)->monitor, cstate_wait);
+		monitor_mwait(ecx, &imsg->monitor, cstate_wait);
 #endif//usemwait
 #if defined(POLL)
 			cpu_relax();
+			asm volatile("pause" ::: "memory");
 #endif
 	}
 	return 0;
 }
 
-static inline int wait_for_consumer_slot(struct ttd_ring_channel *chan, unsigned long bucket,
-					 struct ipc_message **store, unsigned int token)
+static  int wait_for_consumer_slot(struct ipc_message *imsg, unsigned int token)
 {
 
-	struct ipc_message *imsg;
-	imsg = (struct ipc_message *) ttd_ring_channel_get_rec_slow(chan, bucket);
-	*store = imsg;
 
 	while (check_cons_slot_available(imsg, token)) {
 
 #if defined(USE_MWAIT)
-		monitor_mwait(ecx, &(*imsg)->monitor, cstate_wait);
+		monitor_mwait(ecx, &imsg->monitor, cstate_wait);
 #endif//usemwait
 #if defined(POLL)
 			cpu_relax();
+			asm volatile("pause" ::: "memory");
 #endif
 	}
 	return 0;
 }
 
 
-static unsigned long RDTSCL(void)
+static unsigned long RDTSC_START(void)
+{
+
+	unsigned cycles_low, cycles_high;
+
+	asm volatile ("CPUID\n\t"
+		      "RDTSC\n\t"
+		      "mov %%edx, %0\n\t"
+		      "mov %%eax, %1\n\t": "=r" (cycles_high), "=r" (cycles_low)::
+		      "%rax", "%rbx", "%rcx", "%rdx");
+	return ((unsigned long) cycles_high << 32) | cycles_low;
+
+}
+
+static unsigned long RDTSCP(void)
 {
 	unsigned long tsc;
 	__asm__ __volatile__(
@@ -208,17 +228,6 @@ static unsigned long RDTSCL(void)
 
 	return tsc;
 }
-
-static inline u64 rdtsc(void)
-{
-         unsigned int low, high;
-
-         asm volatile("rdtscp" : "=a" (low), "=d" (high));
-
-         return low | ((u64)high) << 32;
-}
-
-
 
 
 static int ipc_thread_func(void *input)
@@ -233,10 +242,8 @@ static int ipc_thread_func(void *input)
 	struct ttd_ring_channel *cons_channel;
 	unsigned long count = 0;
 	unsigned int local_prod, local_cons;
-	struct ipc_message *imsg;
+	struct ipc_message *prod_msg, *cons_msg;
 	unsigned long  start64, end64;
-	unsigned int pTok = 0xC1346BAD;
-	unsigned int cTok = 0xBADBEEF;
 	if (filep == NULL) {
 		pr_debug("Thread was sent a null filepointer!\n");
 		return -EINVAL;
@@ -258,53 +265,56 @@ static int ipc_thread_func(void *input)
 	ttd_ring_channel_set_prod(prod_channel, 1);
 	ttd_ring_channel_set_cons(prod_channel, 0);
 
+	prod_msg = get_next_available_slot(prod_channel, local_prod);
+	cons_msg = get_next_available_slot(cons_channel, local_cons);
+	start64 = RDTSC_START();
 	while (count < NUM_LOOPS) {
-		start64 = RDTSCL();
+
+
 #if defined(USE_FLOOD)
 		for (i = 0; i < FLOOD_SIZE; i++) {
 #endif
-			if (wait_for_producer_slot(prod_channel, local_prod, &imsg, pTok)) {
-				pr_err("BREAKING AND RET EARLY!");
-				return 1;
-			}
-			pr_debug("Memcpying in CPU0 iter %d count to loc %p\n",
-				 count, imsg->message);
 
-			imsg->message[0] = 'b';
-			imsg->message[1] = 'e';
-			imsg->message[2] = 't';
-			imsg->message[3] = '1';
-			imsg->monitor = cTok;
+			//ptok = 0xC1346BAD;
+			//__builtin_prefetch(cons_msg, 1, 1);
+			wait_for_producer_slot(prod_msg, pTok);
+
+			//imsg->message[0] = 'b';
+			//imsg->message[1] = 'e';
+			//imsg->message[2] = 't';
+			//imsg->message[3] = '1';
+			prod_msg->monitor = cTok;
 			local_prod++;
 #if defined(USE_FLOOD)
 		}
 
 	       for (i = 0; i < FLOOD_SIZE; i++) {
 #endif
-			if (wait_for_consumer_slot(cons_channel, local_cons, &imsg, cTok)){
-				pr_err("BREAKING AND RETURNING EAERLY BETA 0 ON RECV\n");
-				return 1;
-			}
+
+		       wait_for_consumer_slot(cons_msg, cTok);
 
 			/* ack the msg */
-			imsg->monitor = pTok;
+			//cons_msg->monitor = pTok;
 			local_cons++;
 #if defined(USE_FLOOD)
 	      }
 #endif
-			//}
-			//if (imsg->message[3] != '2') {
-			//pr_err("didn't get message from other side, tok is %u and char is %c",imsg->monitor, imsg->message[3]);
-			//}
-		end64 = RDTSCL();
-		count++;
 
+	       
+	       prod_msg = get_next_available_slot(prod_channel, local_prod);
+	       cons_msg = get_next_available_slot(cons_channel, local_cons);
+		
+
+		count++;
+	}
+	end64 = RDTSCP();
+	printk(KERN_DEBUG "%lu\n", (end64-start64));
 #if defined(TIMING)
 		timekeeper[count] = (end64 - start64);
 #endif
 
 
-	}
+	
 	return 1;
 }
 
@@ -323,6 +333,7 @@ static unsigned long beta_unpark_thread(struct ipc_container *container)
 		return -EINVAL;
 
 	pr_debug("waking up process on CPU %d\n", CPU_NUM);
+	kthread_unpark(container->thread);
 	if (wake_up_process(container->thread) == 1)
 		pr_debug("Woke up process on cpu %d\n", CPU_NUM);
 
@@ -350,7 +361,6 @@ static unsigned long beta_connect_mem(struct ipc_container *container,
 		return -EFAULT;
 	}
 
-
 	/* todo talk about this bootstrap issue while we're beta testing */
 	/* perhaps, we can use extern and export syms? */
 	container->channel_rx = (struct ttd_ring_channel *) kland;
@@ -359,7 +369,7 @@ static unsigned long beta_connect_mem(struct ipc_container *container,
 
 static unsigned long beta_alloc_mem(struct ipc_container *container)
 {
-	int ret;
+	int ret,i;
 	if (container->channel_tx == NULL)
 		return -EINVAL;
 
@@ -377,7 +387,9 @@ static unsigned long beta_alloc_mem(struct ipc_container *container)
 	start = (unsigned long) container->channel_tx->recs;
 	end = (unsigned long) container->channel_tx->recs + (CHAN_NUM_PAGES * PAGE_SIZE);
 
-	memset(container->channel_tx->recs, 0, (CHAN_NUM_PAGES * PAGE_SIZE));
+	for(i = 0; i < (CHAN_NUM_PAGES * PAGE_SIZE)/sizeof(int); i++)
+		*((int *)container->channel_tx->recs+i) = 0xC1346BAD;
+	//memset(container->channel_tx->recs, 0xFF, (CHAN_NUM_PAGES * PAGE_SIZE));
 
 	return 0;
 }
@@ -410,21 +422,22 @@ static int beta_open(struct inode *nodp, struct file *filep)
 		return -ENOMEM;
 	}
 
-	container->thread = kthread_create(&ipc_thread_func,
-					   (void *)filep, "betaIPC.%u",CPU_NUM);
+	container->thread = kthread_create_on_cpu(&ipc_thread_func,
+						  (void *)filep, CPU_NUM ,"betaIPC.%u");
 
 	if (IS_ERR(container->thread)) {
 		pr_err("Error while creating kernel thread\n");
 		return PTR_ERR(container->thread);
 	}
 
-	get_task_struct(container->thread);
 
+	get_task_struct(container->thread);
+	/*
 	cpumask_clear(&cpu_core);
 	cpumask_set_cpu(CPU_NUM,&cpu_core);
 
 	set_cpus_allowed_ptr(container->thread, &cpu_core);
-
+	*/
 	filep->private_data = container;
 
 	return 0;
@@ -481,14 +494,19 @@ static void dump_time(void)
 		pr_err("Time keeper was null, ret");
 		return;
 	}
-
+	for (i = 1; i < NUM_LOOPS; i++) {
+		pr_err("%llu\n", timekeeper[i]);
+		counter+= timekeeper[i];
+	}
+	
 	sort(timekeeper, NUM_LOOPS, sizeof(u64), compare, NULL);
 
 	min = timekeeper[1];
 	max = timekeeper[9999];
 	counter = min;
 	for (i = 1; i < NUM_LOOPS; i++) {
-	  counter+= timekeeper[i];
+		//pr_err("%llu\n", timekeeper[i]);
+		counter+= timekeeper[i];
 	}
 	pr_err("MIN\tMAX\tAVG\tMEDIAN\n");
 	pr_err("%llu & %llu & %llu & %llu\n", min, max, counter/NUM_LOOPS, timekeeper[4999]);
@@ -518,7 +536,7 @@ static long beta_ioctl(struct file *filep, unsigned int cmd,
 		ret = beta_return_mem(container, __arg);
 		break;
 	case BETA_DUMP_TIME:
-		dump_time();
+		//dump_time();
 		break;
 	default:
 		pr_debug("No such ioctl %d\n", cmd);
@@ -546,7 +564,7 @@ static int __init bIPC_init(void)
 {
 	int ret = 0;
 
-	CPU_NUM = 0;
+	CPU_NUM = 1;
 	if (this_cpu_has(X86_FEATURE_MWAIT))
 		printk(KERN_DEBUG "HAS MWAIT\n");
 

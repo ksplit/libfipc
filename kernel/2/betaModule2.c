@@ -133,55 +133,59 @@ static inline void monitor_mwait(unsigned long rcx, volatile uint32_t *rax,
 }
 #endif
 
+
 static inline int check_cons_slot_available(struct ipc_message *loc, unsigned int token)
 {
-	return (loc->monitor != token);
+	return (likely(loc->monitor != token));
 }
 
 static inline int check_prod_slot_available(struct ipc_message *loc, unsigned int token)
 {
-	return (loc->monitor != token) && (loc->monitor != 0);
+	return (unlikely(loc->monitor != token));// && (loc->monitor != 0);
 }
 
-static inline int wait_for_producer_slot(struct ttd_ring_channel *chan, unsigned long bucket,
-					 struct ipc_message **store, unsigned int token)
+
+static struct ipc_message * get_next_available_slot(struct ttd_ring_channel *chan,
+					     unsigned long bucket)
+{
+	return (struct ipc_message *) ttd_ring_channel_get_rec_slow(chan,bucket);
+}
+
+
+static int wait_for_producer_slot(struct ipc_message *imsg, unsigned int token)
 {
 
-	struct ipc_message *imsg;
-	imsg = (struct ipc_message *) ttd_ring_channel_get_rec_slow(chan, bucket);
-	*store = imsg;
 
 	while (check_prod_slot_available(imsg, token)) {
 
 #if defined(USE_MWAIT)
-		monitor_mwait(ecx, &(*imsg)->monitor, cstate_wait);
+		monitor_mwait(ecx, &imsg->monitor, cstate_wait);
 #endif//usemwait
 #if defined(POLL)
 			cpu_relax();
+			asm volatile("pause" ::: "memory");
 #endif
 	}
 	return 0;
 }
 
-static inline int wait_for_consumer_slot(struct ttd_ring_channel *chan, unsigned long bucket,
-					 struct ipc_message **store, unsigned int token)
+static  int wait_for_consumer_slot(struct ipc_message *imsg, unsigned int token)
 {
 
-	struct ipc_message *imsg;
-	imsg = (struct ipc_message *) ttd_ring_channel_get_rec_slow(chan, bucket);
-	*store = imsg;
 
-	while (check_cons_slot_available(imsg, token)) {
+	while (likely(check_cons_slot_available(imsg, token))) {
 
 #if defined(USE_MWAIT)
-		monitor_mwait(ecx, &(*imsg)->monitor, cstate_wait);
+		monitor_mwait(ecx, &imsg->monitor, cstate_wait);
 #endif//usemwait
 #if defined(POLL)
 			cpu_relax();
+			asm volatile("pause" ::: "memory");
 #endif
 	}
 	return 0;
 }
+
 
 static int ipc_thread_func(void *input)
 {
@@ -193,7 +197,7 @@ static int ipc_thread_func(void *input)
 	struct ttd_ring_channel *cons_channel;
 	int count = 0;
 	unsigned int local_prod, local_cons;
-	struct ipc_message *imsg;
+	struct ipc_message *prod_msg, *cons_msg;
 	unsigned int pTok = 0xC1346BAD;
 	unsigned int cTok = 0xBADBEEF;
 	int i;
@@ -220,33 +224,37 @@ static int ipc_thread_func(void *input)
 	ttd_ring_channel_set_cons(prod_channel, 0);
 	/* 10 mil */
 
+	prod_msg = get_next_available_slot(prod_channel, local_prod);
+	cons_msg = get_next_available_slot(cons_channel, local_cons);
+
 	while (count < NUM_LOOPS) {
 
 		/* wait and get message */
-		if (wait_for_consumer_slot(cons_channel, local_cons, &imsg, cTok))
-			break;
+		wait_for_consumer_slot(cons_msg, cTok);
+		//if (wait_for_consumer_slot(cons_channel, local_cons, &imsg, cTok))
+		//	break;
 
 		/* NOTIFY RECEVD */
-		imsg->monitor = pTok;
-		pr_debug("Notified recvd on CPU %d at volatile location %p\n",
-			 CPU_NUM, &imsg->monitor);
+		//cons_msg->monitor = pTok;
+		//pr_debug("Notified recvd on CPU %d at volatile location %p\n",
+		//	 CPU_NUM, &cons_msg->monitor);
 
-		if(imsg->message[3] != '1') {
- 		  pr_err("message wasnt 1 it was %c and monitor is %u\n",
-			 imsg->message[3], imsg->monitor);
-		}
+		//if(imsg->message[3] != '1') {
+ 		//  pr_err("message wasnt 1 it was %c and monitor is %u\n",
+		//			 imsg->message[3], imsg->monitor);
+		//}
 
 		/* wait and get writer slot*/
-		if (wait_for_producer_slot(prod_channel, local_prod, &imsg, pTok))
-			break;
-
-		imsg->message[0] = 'b';
-		imsg->message[1] = 'e';
-		imsg->message[2] = 't';
-		imsg->message[3] = '2';
-		imsg->monitor = cTok;
+		wait_for_producer_slot(prod_msg, pTok);
+		//imsg->message[0] = 'b';
+		//imsg->message[1] = 'e';
+		//imsg->message[2] = 't';
+		//imsg->message[3] = '2';
+		prod_msg->monitor = cTok;
 		local_prod++;
 		local_cons++;
+		prod_msg = get_next_available_slot(prod_channel, local_prod);
+		cons_msg = get_next_available_slot(cons_channel, local_cons);
 		count++;
 	}
 
@@ -273,7 +281,7 @@ static unsigned long beta_unpark_thread(struct ipc_container *container)
 	 */
 
 	pr_debug("waking up process on CPU %d\n", CPU_NUM);
-	//	kthread_unpark(container->thread);
+	kthread_unpark(container->thread);
 	if (wake_up_process(container->thread) == 1)
 		pr_debug("Woke up process on cpu %d\n", CPU_NUM);
 
@@ -326,8 +334,10 @@ static unsigned long beta_alloc_mem(struct ipc_container *container)
 	start = (unsigned long) container->channel_tx->recs;
 	end = (unsigned long) container->channel_tx->recs + (CHAN_NUM_PAGES * PAGE_SIZE);
 
-	memset(container->channel_tx->recs, 0, (CHAN_NUM_PAGES * PAGE_SIZE));
-
+	int i;
+	for(i = 0; i < (CHAN_NUM_PAGES * PAGE_SIZE)/sizeof(int); i++)
+		*((int *)container->channel_tx->recs+i) = 0xC1346BAD;
+	//memseta(container->channel_tx->recs, 0, (CHAN_NUM_PAGES * PAGE_SIZE));
 	return 0;
 }
 
@@ -353,8 +363,8 @@ static int beta_open(struct inode *nodp, struct file *filep)
 		return -ENOMEM;
 	}
 
-	container->thread = kthread_create(&ipc_thread_func,
-					   (void *)filep,"betaIPC.%u");
+	container->thread = kthread_create_on_cpu(&ipc_thread_func,
+						  (void *)filep, CPU_NUM, "betaIPC.%u");
 
 	if (IS_ERR(container->thread)) {
 		pr_err("Error while creating kernel thread\n");
@@ -364,11 +374,12 @@ static int beta_open(struct inode *nodp, struct file *filep)
 
 	get_task_struct(container->thread);
 
+	/*
 	cpumask_clear(&cpu_core);
 	cpumask_set_cpu(CPU_NUM,&cpu_core);
 
 	set_cpus_allowed_ptr(container->thread, &cpu_core);
-
+	*/
 
 	filep->private_data = container;
 	return 0;
@@ -458,7 +469,7 @@ static int __init bIPC_init(void)
 {
 	int ret = 0;
 
-	CPU_NUM = 2;
+	CPU_NUM = 3;
 	if (this_cpu_has(X86_FEATURE_MWAIT))
 		printk(KERN_DEBUG "HAS MWAIT\n");
 

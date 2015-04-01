@@ -1,7 +1,7 @@
 #include <linux/types.h>
 
 
-int CHAN_NUM_PAGES = 1;
+int CHAN_NUM_PAGES = 256;
 int BUF_SIZE = 60;
 int NUM_LOOPS = 10000;
 int FLOOD_SIZE = 64;
