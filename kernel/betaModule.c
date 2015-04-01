@@ -277,7 +277,7 @@ static int ipc_thread_func(void *input)
 
 			//ptok = 0xC1346BAD;
 			//__builtin_prefetch(cons_msg, 1, 1);
-			wait_for_producer_slot(prod_msg, pTok);
+			//wait_for_producer_slot(prod_msg, pTok);
 
 			//imsg->message[0] = 'b';
 			//imsg->message[1] = 'e';
@@ -300,14 +300,14 @@ static int ipc_thread_func(void *input)
 	      }
 #endif
 
-	       
+	       end64 = RDTSCP();
 	       prod_msg = get_next_available_slot(prod_channel, local_prod);
 	       cons_msg = get_next_available_slot(cons_channel, local_cons);
 		
 
 		count++;
 
-	end64 = RDTSCP();
+
 
 #if defined(TIMING)
 		timekeeper[count] = (end64 - start64);

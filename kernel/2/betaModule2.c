@@ -245,7 +245,7 @@ static int ipc_thread_func(void *input)
 		//}
 
 		/* wait and get writer slot*/
-		wait_for_producer_slot(prod_msg, pTok);
+		//wait_for_producer_slot(prod_msg, pTok);
 		//imsg->message[0] = 'b';
 		//imsg->message[1] = 'e';
 		//imsg->message[2] = 't';
