@@ -267,9 +267,9 @@ static int ipc_thread_func(void *input)
 
 	prod_msg = get_next_available_slot(prod_channel, local_prod);
 	cons_msg = get_next_available_slot(cons_channel, local_cons);
-	start64 = RDTSC_START();
-	while (count < NUM_LOOPS) {
 
+	while (count < NUM_LOOPS) {
+		start64 = RDTSC_START();
 
 #if defined(USE_FLOOD)
 		for (i = 0; i < FLOOD_SIZE; i++) {
@@ -306,14 +306,14 @@ static int ipc_thread_func(void *input)
 		
 
 		count++;
-	}
+
 	end64 = RDTSCP();
-	printk(KERN_DEBUG "%lu\n", (end64-start64));
+
 #if defined(TIMING)
 		timekeeper[count] = (end64 - start64);
 #endif
 
-
+	}
 	
 	return 1;
 }
@@ -536,7 +536,7 @@ static long beta_ioctl(struct file *filep, unsigned int cmd,
 		ret = beta_return_mem(container, __arg);
 		break;
 	case BETA_DUMP_TIME:
-		//dump_time();
+		dump_time();
 		break;
 	default:
 		pr_debug("No such ioctl %d\n", cmd);
