@@ -291,7 +291,7 @@ static int ipc_thread_func(void *input)
 	       for (i = 0; i < FLOOD_SIZE; i++) {
 #endif
 
-		       //wait_for_consumer_slot(cons_msg, cTok);
+		       wait_for_consumer_slot(cons_msg, cTok);
 
 			/* ack the msg */
 			//cons_msg->monitor = pTok;
