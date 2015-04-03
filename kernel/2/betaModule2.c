@@ -285,7 +285,7 @@ static unsigned long beta_unpark_thread(struct ipc_container *container)
 	 */
 
 	pr_debug("waking up process on CPU %d\n", CPU_NUM);
-	kthread_unpark(container->thread);
+	//	kthread_unpark(container->thread);
 	if (wake_up_process(container->thread) == 1)
 		pr_debug("Woke up process on cpu %d\n", CPU_NUM);
 
@@ -367,8 +367,10 @@ static int beta_open(struct inode *nodp, struct file *filep)
 		return -ENOMEM;
 	}
 
-	container->thread = kthread_create_on_cpu(&ipc_thread_func,
-						  (void *)filep, CPU_NUM, "betaIPC.%u");
+	container->thread = kthread_create(&ipc_thread_func, (void *)filep,
+					   "betaIPC.%u",CPU_NUM);
+	/*container->thread = kthread_create_on_cpu(&ipc_thread_func,
+	  (void *)filep, CPU_NUM, "betaIPC.%u");*/
 
 	if (IS_ERR(container->thread)) {
 		pr_err("Error while creating kernel thread\n");
@@ -378,12 +380,12 @@ static int beta_open(struct inode *nodp, struct file *filep)
 
 	get_task_struct(container->thread);
 
-	/*
+
 	cpumask_clear(&cpu_core);
 	cpumask_set_cpu(CPU_NUM,&cpu_core);
 
 	set_cpus_allowed_ptr(container->thread, &cpu_core);
-	*/
+
 
 	filep->private_data = container;
 	return 0;
