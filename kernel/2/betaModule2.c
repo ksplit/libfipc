@@ -227,15 +227,19 @@ static int ipc_thread_func(void *input)
 	prod_msg = get_next_available_slot(prod_channel, local_prod);
 	cons_msg = get_next_available_slot(cons_channel, local_cons);
 
+#if !defined(USE_FLOOD)
 	while (count < NUM_LOOPS) {
-
+#endif
+#if defined(USE_FLOOD)
+	while (count < NUM_LOOPS * FLOOD_SIZE) {
+#endif
 		/* wait and get message */
 		wait_for_consumer_slot(cons_msg, cTok);
 		//if (wait_for_consumer_slot(cons_channel, local_cons, &imsg, cTok))
 		//	break;
 
 		/* NOTIFY RECEVD */
-		//cons_msg->monitor = pTok;
+		cons_msg->monitor = pTok;
 		//pr_debug("Notified recvd on CPU %d at volatile location %p\n",
 		//	 CPU_NUM, &cons_msg->monitor);
 

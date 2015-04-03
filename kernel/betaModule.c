@@ -286,6 +286,7 @@ static int ipc_thread_func(void *input)
 			prod_msg->monitor = cTok;
 			local_prod++;
 #if defined(USE_FLOOD)
+		        prod_msg = get_next_available_slot(prod_channel, local_prod);
 		}
 
 	       for (i = 0; i < FLOOD_SIZE; i++) {
@@ -294,16 +295,18 @@ static int ipc_thread_func(void *input)
 		       wait_for_consumer_slot(cons_msg, cTok);
 
 			/* ack the msg */
-			//cons_msg->monitor = pTok;
-			//local_cons++;
+			cons_msg->monitor = pTok;
+			local_cons++;
 #if defined(USE_FLOOD)
+  		        cons_msg = get_next_available_slot(cons_channel, local_cons);
 	      }
 #endif
 
 	       end64 = RDTSCP();
+#if !defined(USE_FLOOD)
 	       prod_msg = get_next_available_slot(prod_channel, local_prod);
 	       cons_msg = get_next_available_slot(cons_channel, local_cons);
-		
+#endif
 
 		count++;
 
@@ -314,7 +317,7 @@ static int ipc_thread_func(void *input)
 #endif
 
 	}
-	
+
 	return 1;
 }
 
