@@ -176,8 +176,9 @@ static int wait_for_producer_slot(struct ipc_message *imsg, unsigned int token)
 		monitor_mwait(ecx, &imsg->monitor, cstate_wait);
 #endif//usemwait
 #if defined(POLL)
-			cpu_relax();
-			asm volatile("pause" ::: "memory");
+		cpu_relax();
+		//	asm volatile("pause" ::: "memory");
+			//__builting_ia32_pause();
 #endif
 	}
 	return 0;
@@ -193,8 +194,8 @@ static  int wait_for_consumer_slot(struct ipc_message *imsg, unsigned int token)
 		monitor_mwait(ecx, &imsg->monitor, cstate_wait);
 #endif//usemwait
 #if defined(POLL)
-			cpu_relax();
-			asm volatile("pause" ::: "memory");
+		cpu_relax();
+		//asm volatile("pause" ::: "memory");
 #endif
 	}
 	return 0;

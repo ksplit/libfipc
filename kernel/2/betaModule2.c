@@ -163,7 +163,7 @@ static int wait_for_producer_slot(struct ipc_message *imsg, unsigned int token)
 #endif//usemwait
 #if defined(POLL)
 			cpu_relax();
-			asm volatile("pause" ::: "memory");
+			//asm volatile("pause" ::: "memory");
 #endif
 	}
 	return 0;
@@ -180,7 +180,7 @@ static  int wait_for_consumer_slot(struct ipc_message *imsg, unsigned int token)
 #endif//usemwait
 #if defined(POLL)
 			cpu_relax();
-			asm volatile("pause" ::: "memory");
+			//asm volatile("pause" ::: "memory");
 #endif
 	}
 	return 0;
