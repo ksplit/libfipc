@@ -68,7 +68,7 @@ static int get_mem_region_beta(int fd, unsigned long **ptr)
 	return 0;
 }
 
-static int connect_mem_regions(int fd2, unsigned long *ptr)
+static int connect_mem_regions(int fd2, unsigned long **ptr)
 {
 	long ret = -1;
 	ret = ioctl(fd2, BETA_CONNECT_SHARED_MEM, ptr);
@@ -134,13 +134,13 @@ int main(int argc, char **argv)
 	if(get_mem_region_beta(beta1, &ptr))
 		goto cleanup;
 
-	printf_v("[*] Got ptr %lx asking kland to take ptr from uland: %lx\n", ptr, &ptr);
+	printf_v("[*] Got ptr %p asking kland to take ptr from uland: %p\n", ptr, &ptr);
 
 	printf_v("[*] Getting memory region of alloc'd kernel mem from IPCBeta (2)\n");
 	if(get_mem_region_beta(beta2, &ptr2))
 		goto cleanup;
 
-	printf_v("[*] Got ptr %lx asking kland to take ptr from uland: %lx\n", ptr2, &ptr2);
+	printf_v("[*] Got ptr %p asking kland to take ptr from uland: %p\n", ptr2, &ptr2);
 
 	if(connect_mem_regions(beta2, &ptr))
 		goto cleanup;
