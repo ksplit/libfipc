@@ -9,6 +9,7 @@
 #include <linux/irqflags.h>
 #include <linux/kthread.h>
 #include <linux/cpumask.h>
+#include <linux/preempt.h>
 #include <asm/uaccess.h>
 #include <asm/mwait.h>
 #include <asm/page_types.h>
@@ -241,7 +242,7 @@ static int ipc_thread_func(void *input)
 	struct ipc_container *container = NULL;
 	struct ttd_ring_channel *prod_channel;
 	struct ttd_ring_channel *cons_channel;
-	unsigned long count = 0;
+	unsigned long flags, count = 0;
 	unsigned int local_prod, local_cons;
 	struct ipc_message *prod_msg, *cons_msg;
 	unsigned long  start64, end64;
@@ -269,6 +270,9 @@ static int ipc_thread_func(void *input)
 	prod_msg = get_next_available_slot(prod_channel, local_prod);
 	cons_msg = get_next_available_slot(cons_channel, local_cons);
 
+	local_irq_save(flags);
+	preempt_disable();
+
 	while (count < NUM_LOOPS) {
 		start64 = RDTSC_START();
 
@@ -278,14 +282,18 @@ static int ipc_thread_func(void *input)
 
 			//ptok = 0xC1346BAD;
 			//__builtin_prefetch(cons_msg, 1, 1);
-			wait_for_producer_slot(prod_msg, pTok);
+			//wait_for_producer_slot(prod_msg, pTok);
+			while(prod_msg->monitor != pTok)
+				cpu_relax();
+
 
 			//imsg->message[0] = 'b';
 			//imsg->message[1] = 'e';
 			//imsg->message[2] = 't';
 			//imsg->message[3] = '1';
+
 			prod_msg->monitor = cTok;
-			local_prod++;
+			//local_prod++;
 #if defined(USE_FLOOD)
 		        prod_msg = get_next_available_slot(prod_channel, local_prod);
 		}
@@ -293,11 +301,13 @@ static int ipc_thread_func(void *input)
 	       for (i = 0; i < FLOOD_SIZE; i++) {
 #endif
 
-		       wait_for_consumer_slot(cons_msg, cTok);
+		       //wait_for_consumer_slot(cons_msg, cTok);
+		       while(cons_msg->monitor != cTok)
+			       cpu_relax();
 
 			/* ack the msg */
-			cons_msg->monitor = pTok;
-			local_cons++;
+			//cons_msg->monitor = pTok;
+			//			local_cons++;
 #if defined(USE_FLOOD)
   		        cons_msg = get_next_available_slot(cons_channel, local_cons);
 	      }
@@ -305,8 +315,10 @@ static int ipc_thread_func(void *input)
 
 	       end64 = RDTSCP();
 #if !defined(USE_FLOOD)
-	       prod_msg = get_next_available_slot(prod_channel, local_prod);
-	       cons_msg = get_next_available_slot(cons_channel, local_cons);
+	       //prod_msg = get_next_available_slot(prod_channel, local_prod);
+	       //cons_msg = get_next_available_slot(cons_channel, local_cons);
+	       prod_msg++;
+	       cons_msg++;
 #endif
 
 		count++;
@@ -318,6 +330,8 @@ static int ipc_thread_func(void *input)
 #endif
 
 	}
+	preempt_enable();
+	local_irq_restore(flags);
 
 	return 1;
 }

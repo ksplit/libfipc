@@ -9,6 +9,7 @@
 #include <linux/irqflags.h>
 #include <linux/kthread.h>
 #include <linux/cpumask.h>
+#include <linux/preempt.h>
 #include <asm/uaccess.h>
 #include <asm/mwait.h>
 #include <asm/page_types.h>
@@ -195,6 +196,7 @@ static int ipc_thread_func(void *input)
 
 	struct ttd_ring_channel *prod_channel;
 	struct ttd_ring_channel *cons_channel;
+	unsigned long flags;
 	int count = 0;
 	unsigned int local_prod, local_cons;
 	struct ipc_message *prod_msg, *cons_msg;
@@ -227,6 +229,10 @@ static int ipc_thread_func(void *input)
 	prod_msg = get_next_available_slot(prod_channel, local_prod);
 	cons_msg = get_next_available_slot(cons_channel, local_cons);
 
+	local_irq_save(flags);
+	preempt_disable();
+
+
 #if !defined(USE_FLOOD)
 	while (count < NUM_LOOPS) {
 #endif
@@ -234,12 +240,15 @@ static int ipc_thread_func(void *input)
 	while (count < NUM_LOOPS * FLOOD_SIZE) {
 #endif
 		/* wait and get message */
-		wait_for_consumer_slot(cons_msg, cTok);
+		//wait_for_consumer_slot(cons_msg, cTok);
 		//if (wait_for_consumer_slot(cons_channel, local_cons, &imsg, cTok))
 		//	break;
 
 		/* NOTIFY RECEVD */
-		cons_msg->monitor = pTok;
+		while(cons_msg->monitor != cTok)
+			cpu_relax();
+
+		//cons_msg->monitor = pTok;
 		//pr_debug("Notified recvd on CPU %d at volatile location %p\n",
 		//	 CPU_NUM, &cons_msg->monitor);
 
@@ -249,18 +258,24 @@ static int ipc_thread_func(void *input)
 		//}
 
 		/* wait and get writer slot*/
-		wait_for_producer_slot(prod_msg, pTok);
+		//wait_for_producer_slot(prod_msg, pTok);
+		while(prod_msg->monitor != pTok)
+		      cpu_relax();
 		//imsg->message[0] = 'b';
 		//imsg->message[1] = 'e';
 		//imsg->message[2] = 't';
 		//imsg->message[3] = '2';
 		prod_msg->monitor = cTok;
-		local_prod++;
-		local_cons++;
-		prod_msg = get_next_available_slot(prod_channel, local_prod);
-		cons_msg = get_next_available_slot(cons_channel, local_cons);
+		//local_prod++;
+		//local_cons++;
+		//prod_msg = get_next_available_slot(prod_channel, local_prod);
+		//cons_msg = get_next_available_slot(cons_channel, local_cons);
+		prod_msg++;
+		cons_msg++;
 		count++;
 	}
+	preempt_enable();
+	local_irq_restore(flags);
 
 	return 1;
 }
