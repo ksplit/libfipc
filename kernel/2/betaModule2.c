@@ -202,7 +202,7 @@ static int ipc_thread_func(void *input)
 	struct ipc_message *prod_msg, *cons_msg;
 	unsigned int pTok = 0xC1346BAD;
 	unsigned int cTok = 0xBADBEEF;
-	int i;
+
 
 	if (filep == NULL) {
 		pr_debug("Thread was sent a null filepointer!\n");
@@ -240,39 +240,32 @@ static int ipc_thread_func(void *input)
 	while (count < NUM_LOOPS * FLOOD_SIZE) {
 #endif
 		/* wait and get message */
-		//wait_for_consumer_slot(cons_msg, cTok);
+		wait_for_consumer_slot(cons_msg, cTok);
 		//if (wait_for_consumer_slot(cons_channel, local_cons, &imsg, cTok))
 		//	break;
 
 		/* NOTIFY RECEVD */
-		while(cons_msg->monitor != cTok)
-			cpu_relax();
-
-		//cons_msg->monitor = pTok;
+		cons_msg->monitor = pTok;
 		//pr_debug("Notified recvd on CPU %d at volatile location %p\n",
 		//	 CPU_NUM, &cons_msg->monitor);
 
-		//if(imsg->message[3] != '1') {
- 		//  pr_err("message wasnt 1 it was %c and monitor is %u\n",
-		//			 imsg->message[3], imsg->monitor);
-		//}
+		//if(cons_msg->message[3] != '1')
+		//	pr_err("message on slave wasnt whjat we expected \n");
+
 
 		/* wait and get writer slot*/
-		//wait_for_producer_slot(prod_msg, pTok);
-		while(prod_msg->monitor != pTok)
-		      cpu_relax();
-		//imsg->message[0] = 'b';
-		//imsg->message[1] = 'e';
-		//imsg->message[2] = 't';
-		//imsg->message[3] = '2';
+		wait_for_producer_slot(prod_msg, pTok);
+		//prod_msg->message[0] = 'b';
+		//prod_msg->message[1] = 'e';
+		//prod_msg->message[2] = 't';
+		//prod_msg->message[3] = '2';
 		prod_msg->monitor = cTok;
-		//local_prod++;
-		//local_cons++;
-		//prod_msg = get_next_available_slot(prod_channel, local_prod);
-		//cons_msg = get_next_available_slot(cons_channel, local_cons);
-		prod_msg++;
-		cons_msg++;
+		local_prod++;
+		local_cons++;
+		prod_msg = get_next_available_slot(prod_channel, local_prod);
+		cons_msg = get_next_available_slot(cons_channel, local_cons);
 		count++;
+
 	}
 	preempt_enable();
 	local_irq_restore(flags);
@@ -336,6 +329,7 @@ static unsigned long beta_connect_mem(struct ipc_container *container,
 static unsigned long beta_alloc_mem(struct ipc_container *container)
 {
 	int ret;
+	int i;
 	if (container->channel_tx == NULL)
 		return -EINVAL;
 
@@ -353,7 +347,7 @@ static unsigned long beta_alloc_mem(struct ipc_container *container)
 	start = (unsigned long) container->channel_tx->recs;
 	end = (unsigned long) container->channel_tx->recs + (CHAN_NUM_PAGES * PAGE_SIZE);
 
-	int i;
+	
 	for(i = 0; i < (CHAN_NUM_PAGES * PAGE_SIZE)/sizeof(int); i++)
 		*((int *)container->channel_tx->recs+i) = 0xC1346BAD;
 	//memseta(container->channel_tx->recs, 0, (CHAN_NUM_PAGES * PAGE_SIZE));

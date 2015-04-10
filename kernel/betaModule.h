@@ -1,10 +1,10 @@
 #include <linux/types.h>
 
 
-int CHAN_NUM_PAGES = 256;
-int BUF_SIZE = 60;
+int CHAN_NUM_PAGES = 16;
+int BUF_SIZE = 124;
 int NUM_LOOPS = 10000;
-int FLOOD_SIZE = 64;
+int FLOOD_SIZE = 1;
 
 #if defined(USE_MWAIT)
 	unsigned long ecx = 1; /*break of interrupt flag */
@@ -21,7 +21,7 @@ struct ipc_container{
 
 /*Don't let gcc do anything cute, we need this to be 128 bytes */
 struct ipc_message{
-	char message[60];
+	char message[124];
 	volatile uint32_t monitor;
 }__attribute__((packed));
 

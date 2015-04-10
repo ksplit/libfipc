@@ -279,21 +279,15 @@ static int ipc_thread_func(void *input)
 #if defined(USE_FLOOD)
 		for (i = 0; i < FLOOD_SIZE; i++) {
 #endif
+			wait_for_producer_slot(prod_msg, pTok);
 
-			//ptok = 0xC1346BAD;
-			//__builtin_prefetch(cons_msg, 1, 1);
-			//wait_for_producer_slot(prod_msg, pTok);
-			while(prod_msg->monitor != pTok)
-				cpu_relax();
-
-
-			//imsg->message[0] = 'b';
-			//imsg->message[1] = 'e';
-			//imsg->message[2] = 't';
-			//imsg->message[3] = '1';
+			//prod_msg->message[0] = 'b';
+			//prod_msg->message[1] = 'e';
+			//prod_msg->message[2] = 't';
+			//prod_msg->message[3] = '1';
 
 			prod_msg->monitor = cTok;
-			//local_prod++;
+			local_prod++;
 #if defined(USE_FLOOD)
 		        prod_msg = get_next_available_slot(prod_channel, local_prod);
 		}
@@ -301,24 +295,21 @@ static int ipc_thread_func(void *input)
 	       for (i = 0; i < FLOOD_SIZE; i++) {
 #endif
 
-		       //wait_for_consumer_slot(cons_msg, cTok);
-		       while(cons_msg->monitor != cTok)
-			       cpu_relax();
-
-			/* ack the msg */
-			//cons_msg->monitor = pTok;
-			//			local_cons++;
+		       wait_for_consumer_slot(cons_msg, cTok);
+		       //if(cons_msg->message[3] != '2')
+		       //pr_err("MESSAGE WASNT WHAT WE WANTED ON BETA 1\n");
+		       /* ack the msg */
+		       cons_msg->monitor = pTok;
+		       local_cons++;
 #if defined(USE_FLOOD)
-  		        cons_msg = get_next_available_slot(cons_channel, local_cons);
+		       cons_msg = get_next_available_slot(cons_channel, local_cons);
 	      }
 #endif
 
 	       end64 = RDTSCP();
 #if !defined(USE_FLOOD)
-	       //prod_msg = get_next_available_slot(prod_channel, local_prod);
-	       //cons_msg = get_next_available_slot(cons_channel, local_cons);
-	       prod_msg++;
-	       cons_msg++;
+	       prod_msg = get_next_available_slot(prod_channel, local_prod);
+	       cons_msg = get_next_available_slot(cons_channel, local_cons);
 #endif
 
 		count++;
@@ -531,7 +522,7 @@ static void dump_time(void)
 		counter+= timekeeper[i];
 	}
 	pr_err("MIN\tMAX\tAVG\tMEDIAN\n");
-	pr_err("%llu & %llu & %llu & %llu\n", min, max, counter/NUM_LOOPS, timekeeper[4999]);
+	pr_err("%llu & %llu & %llu & %llu \n", min, max, counter/NUM_LOOPS, timekeeper[4999]);
 
 }
 
