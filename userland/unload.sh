@@ -1,10 +1,10 @@
 #!/bin/bash
 
 echo "UNLOADING DRIVERS"
-rmmod betaModule
-rmmod betaModule2
+rmmod betaModule1
+rmmod test
 
-cd /home/scotty/research/xcap/norepo/kernel;
+cd /users/sbauer/ipc/xcap/xcap/kernel
 make clean;
 make | grep "error" 
 
@@ -13,7 +13,7 @@ if [ $? == 0 ]; then
     exit
 fi
 
-insmod betaModule.ko;
+insmod betaModule1.ko;
 
 cd 2
 make clean
@@ -25,7 +25,9 @@ if [ $? == 0 ]; then
     exit
 fi
 
-insmod betaModule2.ko
-
+insmod test.ko
+cd ../
 
 ls /dev/ --color | grep beta
+
+../userland/uland 1

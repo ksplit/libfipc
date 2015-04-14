@@ -2,13 +2,13 @@
 
 
 int CHAN_NUM_PAGES = 16;
-int BUF_SIZE = 124;
+int BUF_SIZE = 60;
 int NUM_LOOPS = 10000;
 int FLOOD_SIZE = 1;
 
 #if defined(USE_MWAIT)
 	unsigned long ecx = 1; /*break of interrupt flag */
-	unsigned long cstate_wait = 0x0; /* 4 states, 0x0, 0x1 0x10 0x20 */
+	unsigned long cstate_wait = 0x20; /* 4 states, 0x0, 0x1 0x10 0x20 */
 #endif
 
 
@@ -21,7 +21,7 @@ struct ipc_container{
 
 /*Don't let gcc do anything cute, we need this to be 128 bytes */
 struct ipc_message{
-	char message[124];
+	char message[60];
 	volatile uint32_t monitor;
 }__attribute__((packed));
 

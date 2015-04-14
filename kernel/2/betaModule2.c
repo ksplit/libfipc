@@ -177,6 +177,7 @@ static  int wait_for_consumer_slot(struct ipc_message *imsg, unsigned int token)
 	while (likely(check_cons_slot_available(imsg, token))) {
 
 #if defined(USE_MWAIT)
+		cpu_relax();
 		monitor_mwait(ecx, &imsg->monitor, cstate_wait);
 #endif//usemwait
 #if defined(POLL)
