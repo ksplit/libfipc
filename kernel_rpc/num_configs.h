@@ -1,0 +1,4 @@
+int CHAN_NUM_PAGES = 16;
+int BUF_SIZE = 60;
+int NUM_LOOPS = 10000;
+int FLOOD_SIZE = 1;
