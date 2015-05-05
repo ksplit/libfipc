@@ -48,17 +48,13 @@ int ttd_ring_channel_alloc(struct ttd_ring_channel *ring_channel,
 
 void ttd_ring_channel_free(struct ttd_ring_channel *ring_channel) {
 
-	if (ring_channel->recs) {
-		free_pages((unsigned long) ring_channel->recs,
+	if (ring_channel->tx.recs) {
+		free_pages((unsigned long) ring_channel->tx.recs,
 			   ring_channel->buf_order);
-		ring_channel->recs = NULL;
+		ring_channel->tx.recs = NULL;
 	}
 
-	if (ring_channel->buf) {
-		free_pages((unsigned long) ring_channel->buf,
-			   ring_channel->header_order);
-		ring_channel->buf = NULL;
-	}
+
 }
 
 
@@ -79,88 +75,43 @@ int ttd_ring_channel_alloc_with_metadata(struct ttd_ring_channel *ring_channel,
 					    sizeof(struct ttd_buf));
 
 
-	if ( (ring_channel->buf = (void *)  __get_free_pages(GFP_KERNEL, header_order)) == NULL ) {
-		pr_err("Xen deterministic time-travel buffers: memory allocation failed\n");
-		return -EINVAL;
-	}
-
-
 	size_of_header_in_pages = 1 << header_order;
 	pr_debug("Allocating ring channel: header area size:%lu, in pages:%lu\n",
 		 priv_metadata_size + sizeof(struct ttd_buf), size_of_header_in_pages);
 
 	order = get_order_from_pages(size_in_pages);
-	if ( (ring_channel->recs = (char *) __get_free_pages(GFP_KERNEL, order)) == NULL ) {
+	if ( (ring_channel->tx.recs = (char *) __get_free_pages(GFP_KERNEL, order)) == NULL ) {
 		pr_err("Xen deterministic time-travel buffers: memory allocationcd failed, "
 		       "size in pages:%lu, order:%lu\n", size_in_pages, order);
 		ret = -EINVAL; goto cleanup;
 	}
 
 
-	ring_channel->priv_metadata = (char *) (ring_channel->buf + 1);
-	ring_channel->buf->cons = ring_channel->buf->prod = 0;
 
-	ttd_ring_channel_reinit_stats(ring_channel->buf);
+	ring_channel->tx.cons = ring_channel->tx.prod = 0;
 
-	ring_channel->size_of_a_rec = size_of_a_rec;
+
+	ring_channel->tx.size_of_a_rec = size_of_a_rec;
 	pr_debug("Size of a rec is %lu\n", size_of_a_rec);
 
 
 	/* ring_channel->size_in_recs  = (lower_power_of_two(size_in_pages * PAGE_SIZE))
 		/ ring_channel->size_of_a_rec;
 	*/
-	ring_channel->size_in_recs = (size_in_pages * PAGE_SIZE) /
+	ring_channel->tx.size_in_recs = (size_in_pages * PAGE_SIZE) /
 		ring_channel->size_of_a_rec;
-
+	ring_channel->tx.size_in_pages = size_in_pages;
 
 	pr_debug("size in recs is %lu lower_power_of_two returned %lu and in hex %lxwith input %lu and hex %lx\n",
 		 ring_channel->size_in_recs,
 		 lower_power_of_two(size_in_pages * PAGE_SIZE),
 		 lower_power_of_two(size_in_pages * PAGE_SIZE),
 		 (size_in_pages * PAGE_SIZE), (size_in_pages * PAGE_SIZE));
-	if (ring_channel->size_in_recs == 0) {
+	if (ring_channel->tx.size_in_recs == 0) {
 		pr_err(" Size_in_recs was incorrectly 0\n");
 		ret = -EINVAL; goto cleanup;
 	}
 
-	/* Init shared buffer structures */
-
-	ring_channel->buf->payload_buffer_mfn =
-		(unsigned long) ring_channel->recs; /*NOTE*/
-
-
-	ring_channel->buf->payload_buffer_size = size_in_pages * PAGE_SIZE;
-	ring_channel->buf->size_of_a_rec = ring_channel->size_of_a_rec;
-
-	ring_channel->buf->size_in_recs = ring_channel->size_in_recs;
-
-	//ring_channel->highwater = ring_channel->size_in_recs >> 2; /* 25% high water */
-	ring_channel->highwater = ring_channel->size_in_recs >> 1; /* 50% high water */
-	ring_channel->emergency_margin = ring_channel->size_in_recs >> 4; /* 5% we are very close */
-
-	pr_debug("New ring channel: payload area {requested:%lu, allocated:%lu, wasted on allocation:%lu (order:%lu), \n"
-		 "metadata area {size:%lu, buffer size: %lu, full header: %lu, "
-		 "allocated:%lu, wasted on allocation:%lu (order:%lu)} \n"
-		 "rec: {requested size:%lu, size ^2:%lu, rownded down size in recs:%lu, "
-		 "possible size in recs:%lu, wasted:%lu} "
-		 "highwater: %lu, emergency margin: %lu\n",
-		 size_in_pages * PAGE_SIZE,
-		 ((unsigned long)1 << order) * PAGE_SIZE,
-		 ((1 << order) * PAGE_SIZE) - size_in_pages * PAGE_SIZE, order,
-		 priv_metadata_size, (unsigned long) sizeof(struct ttd_buf),
-		 priv_metadata_size + sizeof(struct ttd_buf),
-		 ((unsigned long)1 << header_order) * PAGE_SIZE,
-		 ((1 << header_order)* PAGE_SIZE) - priv_metadata_size - sizeof(struct ttd_buf),
-		 header_order, size_of_a_rec,
-		 ttd_ring_channel_size_of_a_rec(ring_channel),
-		 ttd_ring_channel_size_in_recs(ring_channel),
-		 (size_in_pages * PAGE_SIZE)/ring_channel->size_of_a_rec,
-		 (size_in_pages * PAGE_SIZE)/ring_channel->size_of_a_rec - ttd_ring_channel_size_in_recs(ring_channel),
-		 ttd_ring_channel_highwater(ring_channel),
-		 ttd_ring_channel_emergency_margin(ring_channel));
-
-	ring_channel->header_order = header_order;
-	ring_channel->buf_order = order;
 
 	return 0;
 

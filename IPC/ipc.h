@@ -1,26 +1,15 @@
+
 #ifndef _INCL_GUARD
 #define _INCL_GUARD
 
 #include <linux/types.h>
-
-
-
-
-typedef enum { FOO, BAR, BAZ } ftype;
+#include <ring-chan/ring-channel.h>
 
 
 #if defined(USE_MWAIT)
 	unsigned long ecx = 1; /*break of interrupt flag */
 	unsigned long cstate_wait = 0x0; /* 4 states, 0x0, 0x1 0x10 0x20 */
 #endif
-
-
-
-struct ipc_container{
-	struct task_struct *thread;
-	struct ttd_ring_channel *channel_tx;
-	struct ttd_ring_channel *channel_rx;
-};
 
 /*Don't let gcc do anything cute, we need this to be 128 bytes */
 
@@ -38,13 +27,10 @@ struct ipc_message{
 	volatile uint32_t msg_status;
 }__attribute__((packed));
 
-
-
-#define BETA_GET_CPU_AFFINITY 1<<1
-#define BETA_CONNECT_SHARED_MEM 1<<2
-#define BETA_UNPARK_THREAD 1<<3
-#define BETA_ALLOC_MEM 1<<4
-#define BETA_GET_MEM 1<<5
-#define BETA_DUMP_TIME 1<<6
+struct ttd_ring_channel *create_channel(unsigned long size_pages, unsigned CPU);
+void free_channel(struct ttd_ring_channel *channel);
+void send(struct ttd_ring_channel *tx, struct ipc_message *trans);
+struct ipc_message *recv(struct ttd_ring_channel *rx);
+struct ipc_message *get_send_slot(struct ttd_ring_channel *tx);
 
 #endif
