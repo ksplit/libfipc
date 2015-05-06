@@ -3,7 +3,7 @@
 #define _INCL_GUARD
 
 #include <linux/types.h>
-#include <ring-chan/ring-channel.h>
+#include <../ring-chan/ring-channel.h>
 
 
 #if defined(USE_MWAIT)
@@ -16,7 +16,7 @@
 /* TODO CONFIRM ALIGNMENT REQUIREMENTS FOR ULONG! */
 
 struct ipc_message{
-	ftype type; /* 4 */
+	int fn_type; /* looks like standard converts ENUM members to ints */
 	unsigned long reg1;
 	unsigned long reg2;
 	unsigned long reg3;
@@ -32,5 +32,7 @@ void free_channel(struct ttd_ring_channel *channel);
 void send(struct ttd_ring_channel *tx, struct ipc_message *trans);
 struct ipc_message *recv(struct ttd_ring_channel *rx);
 struct ipc_message *get_send_slot(struct ttd_ring_channel *tx);
+void transaction_complete(struct ipc_message *msg);
+void start_thread(struct ttd_ring_channel *chan);
 
 #endif

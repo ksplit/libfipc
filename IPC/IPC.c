@@ -198,7 +198,15 @@ EXPORT_SYMBOL(connect_channels);
 
 
 /* Notify the buffer that the message slot is available and can be re-used */
-void complete_transaction(struct ipc_message *msg)
+void transaction_complete(struct ipc_message *msg)
 {
 	msg->msg_satus = transaction_complete;
 }
+EXPORT_SYMBOL(complete_transaction);
+
+
+int start_thread(struct ttd_ring_channel *chan)
+{
+       return wake_up_process(chan->thread)
+}
+EXPORT_SYMBOL(start_thread);
