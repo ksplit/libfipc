@@ -38,7 +38,7 @@ static inline void monitor_mwait(unsigned long rcx, volatile uint32_t *rax,
 	__mwait(wait_type, rcx);
 }
 
-static inline int check_rx_slot_available(struct ipc_message *loc, unsigned int token)
+static inline int check_rx_slot_available(struct ipc_message *loc)
 {
 	return (likely(loc->msg_status != rx_msg_avail));
 }
@@ -66,7 +66,7 @@ static int wait_for_tx_slot(struct ipc_message *imsg)
 	return 0;
 }
 
-static int wait_for_rx_slot(struct ipc_message *imsg, unsigned int token)
+static int wait_for_rx_slot(struct ipc_message *imsg)
 {
 
 
