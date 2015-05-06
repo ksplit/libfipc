@@ -53,10 +53,7 @@ void ttd_ring_channel_free(struct ttd_ring_channel *ring_channel) {
 			   ring_channel->buf_order);
 		ring_channel->tx.recs = NULL;
 	}
-
-
 }
-
 
 int ttd_ring_channel_alloc_with_metadata(struct ttd_ring_channel *ring_channel,
                                          unsigned long size_in_pages,
@@ -86,20 +83,13 @@ int ttd_ring_channel_alloc_with_metadata(struct ttd_ring_channel *ring_channel,
 		ret = -EINVAL; goto cleanup;
 	}
 
-
-
-	ring_channel->tx.cons = ring_channel->tx.prod = 0;
-
+	ring_channel->tx.slot = 0;
 
 	ring_channel->tx.size_of_a_rec = size_of_a_rec;
 	pr_debug("Size of a rec is %lu\n", size_of_a_rec);
 
 
-	/* ring_channel->size_in_recs  = (lower_power_of_two(size_in_pages * PAGE_SIZE))
-		/ ring_channel->size_of_a_rec;
-	*/
-	ring_channel->tx.size_in_recs = (size_in_pages * PAGE_SIZE) /
-		ring_channel->size_of_a_rec;
+	ring_channel->tx.order_two_mask = (size_in_pages * PAGE_SIZE)-1;
 	ring_channel->tx.size_in_pages = size_in_pages;
 
 	pr_debug("size in recs is %lu lower_power_of_two returned %lu and in hex %lxwith input %lu and hex %lx\n",

@@ -19,10 +19,13 @@
 #include <asm/tsc.h>
 
 
-#include "ring-chan/ring-channel.h"
-#include "betaModule.h"
-#include "num_configs.h"
+#include "../ring-chan/ring-channel.h"
+#include "IPC.h"
 
+static unsigned int tx_slot_avail = 0xC1346BAD;
+static unsigned int send_message = 0xBADBEEF;
+static unsigned int rx_msg_avail = 0xBADBEEF;
+static unsigned int transaction_complete = 0xC1346BAD;
 
 
 static inline void monitor_mwait(unsigned long rcx, volatile uint32_t *rax,
@@ -35,29 +38,22 @@ static inline void monitor_mwait(unsigned long rcx, volatile uint32_t *rax,
 	__mwait(wait_type, rcx);
 }
 
-static inline int check_cons_slot_available(struct ipc_message *loc, unsigned int token)
+static inline int check_rx_slot_available(struct ipc_message *loc, unsigned int token)
 {
-	return (likely(loc->msg_status != token));
+	return (likely(loc->msg_status != rx_msg_avail));
 }
 
-static inline int check_prod_slot_available(struct ipc_message *loc, unsigned int token)
+static inline int check_tx_slot_available(struct ipc_message *loc)
 {
-	return (unlikely(loc->msg_status != token));
-}
-
-
-static struct ipc_message * get_next_available_slot(struct ttd_ring_channel *chan,
-					     unsigned long bucket)
-{
-	return (struct ipc_message *) ttd_ring_channel_get_rec_slow(chan,bucket);
+	return (unlikely(loc->msg_status != tx_slot_avail));
 }
 
 
-static int wait_for_producer_slot(struct ipc_message *imsg, unsigned int token)
+static int wait_for_tx_slot(struct ipc_message *imsg)
 {
 
 
-	while (check_prod_slot_available(imsg, token)) {
+	while (check_tx_slot_available(imsg)) {
 
 #if defined(USE_MWAIT)
 		cpu_relax();
@@ -65,25 +61,23 @@ static int wait_for_producer_slot(struct ipc_message *imsg, unsigned int token)
 #endif//usemwait
 #if defined(POLL)
 		cpu_relax();
-		//	asm volatile("pause" ::: "memory");
-			//__builting_ia32_pause();
 #endif
 	}
 	return 0;
 }
 
-static int wait_for_consumer_slot(struct ipc_message *imsg, unsigned int token)
+static int wait_for_rx_slot(struct ipc_message *imsg, unsigned int token)
 {
 
 
-	while (check_cons_slot_available(imsg, token)) {
+	while (check_rx_slot_available(imsg)) {
 
 #if defined(USE_MWAIT)
 		monitor_mwait(ecx, &imsg->msg_status, cstate_wait);
 #endif//usemwait
 #if defined(POLL)
 		cpu_relax();
-		//asm volatile("pause" ::: "memory");
+
 #endif
 	}
 	return 0;
@@ -100,7 +94,16 @@ struct ttd_ring_channel *create_channel(unsigned long size_pages, unsigned CPU)
 
 	int i,ret;
 	struct cpumask cpu_core;
-	struct ttd_ring_channel *channel = kzalloc(sizeof(*channel), GFP_KERNEL);
+	struct ttd_ring_channel *channel;
+
+
+
+	if ((__builtin_clzl(size_pages*PAGE_SIZE)-1) % 2 != 0) {
+		pr_err("buffers _MUST_ be on order 2 size, ie 2^2 or 2^4 etc");
+		return NULL;
+	}
+
+	channel = kzalloc(sizeof(*channel), GFP_KERNEL);
 
 	if (!channel) {
 		pr_err("could not alloc space for channel");
@@ -117,11 +120,12 @@ struct ttd_ring_channel *create_channel(unsigned long size_pages, unsigned CPU)
 	}
 
 	pr_debug("Channel is at %p, recs are %p to %p\n", (void*)channel,
-		 channel->recs,
-		 channel->recs + (size_pages * PAGE_SIZE));
+		 channel->tx.recs,
+		 channel->tx.recs + (size_pages * PAGE_SIZE));
 
-	for(i = 0; i < (size_pages * PAGE_SIZE)/sizeof(int); i++)
-		*((int *)channel->recs+i) = send_slot_avail;
+	/* We init the buffer to say each slot is free */
+	for (i = 0; i < (size_pages * PAGE_SIZE)/sizeof(int); i++)
+		*((int *)channel->tx.recs+i) = tx_slot_avail;
 
 	channel->thread = kthread_create(&dispatch, (void *)channel,
 					   "betaIPC.%u", CPU);
@@ -158,7 +162,7 @@ EXPORT_SYMBOL(free_channel);
 void send(struct ttd_ring_channel *tx, struct ipc_message *trans)
 {
 	trans->msg_status = send_message;
-	ttd_ring_channel_set_prod(tx, ttd_ring_channel_get_prod(tx)++);
+	inc_tx_slot(tx);
 }
 EXPORT_SYMBOL(send);
 
@@ -166,17 +170,34 @@ struct ipc_message *recv(struct ttd_ring_channel *rx)
 {
 	struct ipc_message *recv_msg;
 
-	recv_msg = get_next_available_slot(rx, ttd_ring_channel_get_cons(rx));
-	ttd_ring_channel_set_cons(rx,ttd_ring_channel_get_cons(rx)++);
-	wait_for_consumer_slot(recv_msg, recv_message_token);
+	recv_msg = get_rx_rec(rx);
+	inc_rx_slot(rx);
+	wait_for_rx_slot(recv_msg);
 	return recv_msg;
 }
 EXPORT_SYMBOL(recv);
 
 struct ipc_message *get_send_slot(struct ttd_ring_channel *tx)
 {
-	struct ipc_message *msg = get_next_available_slot(tx, ttd_channel_get_prod(tx));
-	wait_for_producer_slot(msg, send_slot_avail);
+	struct ipc_message *msg =
+		(struct ipc_message *) get_tx_rec(tx);
+	wait_for_tx_slot(msg);
 	return msg;
 }
 EXPORT_SYMBOL(get_send_slot);
+
+void connect_channels(struct ttd_ring_channel *chan1,
+		      struct ttd_ring_channel *chan2)
+{
+	/* exchange pointers and sizes */
+	memcpy(&chan1->rx_buf, &chan2->tx_buf, sizeof(struct ttd_buf));
+	memcpy(&chan2->rx_buf, &chan1->tx_buf, sizeof(struct ttd_buf));
+}
+EXPORT_SYMBOL(connect_channels);
+
+
+/* Notify the buffer that the message slot is available and can be re-used */
+void complete_transaction(struct ipc_message *msg)
+{
+	msg->msg_satus = transaction_complete;
+}

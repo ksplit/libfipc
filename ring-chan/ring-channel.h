@@ -16,14 +16,13 @@
 #define __XEN_RING_CHANNEL_H__
 
 #include <linux/string.h>
-
+#include <../IPC/IPC.h>
 
 struct ttd_buf {
 	/* PRODUCER */
-	unsigned long      cons;      /* Next item to be consumed by control tools. */
-	unsigned long      prod;      /* Next item to be produced by Xen.           */
+	unsigned long      slot;
 	unsigned long      size_of_a_rec;        /* size of a single record */
-	unsigned long      size_in_recs;         /* size of the buffer in recs */
+	unsigned long      order_two_mask;
 	unsigned long      size_in_pages;
 	char               *recs;                 /* pointer to buffer data areas      */
 	uint_8             padding[16]; /* pad the struct up to cache line size */
@@ -57,76 +56,62 @@ int ttd_ring_channel_alloc_with_metadata(struct ttd_ring_channel *ring_channel,
 
 void ttd_ring_channel_free(struct ttd_ring_channel *ring_channel);
 
-static inline void
 
-static inline unsigned long
-ttd_ring_channel_get_prod(struct ttd_ring_channel *ring_channel) {
-	return ring_channel->buf->prod;
-};
+static inline unsigned long get_tx_slot(struct ttd_ring_channel *rc)
+{
+	return rc->tx.slot;
+}
 
-static inline unsigned long
-ttd_ring_channel_inc_prod(struct ttd_ring_channel *ring_channel) {
-	return (ring_channel->buf->prod++);
-};
+static inline unsigned long get_rx_slot(struct ttd_ring_channel *rc)
+{
+	return rc->rx.slot;
+}
 
-static inline void
-ttd_ring_channel_set_prod(struct ttd_ring_channel *ring_channel, unsigned long prod) {
-	ring_channel->buf->prod = prod;
-	return;
-};
+static inline unsigned long inc_tx_slot(struct ttd_ring_channel *rc)
+{
+	return (rc->tx.slot++);
+}
 
-static inline unsigned long
-ttd_ring_channel_get_cons(struct ttd_ring_channel *ring_channel) {
-	return ring_channel->buf->cons;
-};
+static inline unsigned long inc_rx_slot(struct ttd_ring_channel *rc)
+{
+	return (rc->rx.slot++);
+}
 
-static inline unsigned long
-ttd_ring_channel_inc_cons(struct ttd_ring_channel *ring_channel) {
-	return (ring_channel->buf->cons++);
-};
+static inline void set_tx_slot(struct ttd_ring_channel *rc, unsigned long num)
+{
+	rc->tx.slot = num;
+}
 
+static inline void set_rx_slot(struct ttd_ring_channel *rc, unsigned long num)
+{
+	rc->rx.slot = num;
+}
 
-static inline void ttd_ring_channel_set_cons(struct ttd_ring_channel *ring_channel,
-					     unsigned long cons) {
-	ring_channel->buf->cons = cons;
-	return;
-};
+/*
+  If we can set a constant buffer size we can constant fold more.
+*/
+static inline char* tx_get_rec(struct ttd_ring_channel *rc)
+{
+	return (rc->tx.recs +
+		((rc->tx.slot & rc->tx.order_two_mask) *
+		 sizeof(struct ipc_message)));
+}
 
-static inline char *ttd_ring_channel_get_rec_slow(struct ttd_ring_channel *ring_channel,
-						  unsigned long cons) {
+static inline char* tx_get_rec(struct ttd_ring_channel *rc)
+{
+	return (rc->tx.recs +
+		((rc->tx.slot & rc->tx.order_two_mask) *
+		 sizeof(struct ipc_message)));
+}
 
-	return (ring_channel->recs + (cons % 1024) * 64);
-	//	return (ring_channel->recs
-	//	+ (cons % ring_channel->size_in_recs)
-	//	* ring_channel->size_of_a_rec);
-};
-
-
-static inline unsigned long ttd_ring_channel_get_index_mod_slow(struct ttd_ring_channel *ring_channel, unsigned long index) {
-	return (index % ring_channel->size_in_recs);
+static inline char* rx_get_rec(struct ttd_ring_channel *rc)
+{
+	return (rc->rx.recs +
+		((rc->rx.slot & rc->rx.order_two_mask) *
+		 sizeof(struct ipc_message)));
 }
 
 
-static inline unsigned long ttd_ring_channel_size_in_recs(struct ttd_ring_channel *ring_channel) {
-	return ring_channel->size_in_recs;
-}
-
-static inline unsigned long ttd_ring_channel_size_of_a_rec(struct ttd_ring_channel *ring_channel) {
-	return ring_channel->size_of_a_rec;
-}
-
-static inline unsigned long ttd_ring_channel_size(struct ttd_ring_channel *ring_channel) {
-	return ring_channel->size_in_recs * ring_channel->size_of_a_rec;
-}
-
-
-static inline unsigned long ttd_ring_channel_highwater(struct ttd_ring_channel *ring_channel) {
-	return ring_channel->highwater;
-}
-
-static inline unsigned long ttd_ring_channel_emergency_margin(struct ttd_ring_channel *ring_channel) {
-	return ring_channel->emergency_margin;
-}
 
 #endif
 
