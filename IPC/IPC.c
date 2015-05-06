@@ -98,7 +98,8 @@ struct ttd_ring_channel *create_channel(unsigned long size_pages, unsigned CPU)
 
 
 
-	if ((__builtin_clzl(size_pages*PAGE_SIZE)-1) % 2 != 0) {
+	if (((sizeof(unsigned long) * CHAR_BITS) -
+	     (__builtin_clzl(size_pages*PAGE_SIZE)-1)) % 2 != 0) {
 		pr_err("buffers _MUST_ be on order 2 size, ie 2^2 or 2^4 etc");
 		return NULL;
 	}
