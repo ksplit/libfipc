@@ -91,7 +91,7 @@ int ttd_ring_channel_alloc_with_metadata(struct ttd_ring_channel *ring_channel,
 	pr_debug("Size of a rec is %lu\n", size_of_a_rec);
 
 
-	ring_channel->tx.order_two_mask = (size_in_pages * PAGE_SIZE)-1;
+	ring_channel->tx.order_two_mask = ((size_in_pages * PAGE_SIZE)/size_of_a_rec)-1;
 	ring_channel->tx.size_in_pages = size_in_pages;
 
 

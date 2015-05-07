@@ -91,7 +91,7 @@ static unsigned long add_5_nums(unsigned long trans, unsigned long res1,
 	unsigned long result;
 
 	msg = get_send_slot(channel);
-	msg->fn_type = ADD_4_NUMS;
+	msg->fn_type = ADD_5_NUMS;
 	msg->reg1 = trans;
 	msg->reg2 = res1;
 	msg->reg3 = res2;
@@ -116,7 +116,7 @@ static unsigned long add_6_nums(unsigned long trans, unsigned long res1,
 	unsigned long result;
 
 	msg = get_send_slot(channel);
-	msg->fn_type = ADD_4_NUMS;
+	msg->fn_type = ADD_6_NUMS;
 	msg->reg1 = trans;
 	msg->reg2 = res1;
 	msg->reg3 = res2;
@@ -125,8 +125,8 @@ static unsigned long add_6_nums(unsigned long trans, unsigned long res1,
 	msg->reg6 = res5;
 	send(channel,msg);
 	msg = recv(channel);
-	if (msg->fn_type != ADD_5_NUMS)
-		pr_err("Response was not ADD_5_NUMS");
+	if (msg->fn_type != ADD_6_NUMS)
+		pr_err("Response was not ADD_6_NUMS");
 
 	result = msg->reg1;
 	transaction_complete(msg);
@@ -146,6 +146,7 @@ void callee(struct ttd_ring_channel *chan)
 		res5 = add_5_nums(num_transactions,res1,res2,res3,res4);
 		res6 = add_6_nums(num_transactions,res1,res2,res3,res4,res5);
 		num_transactions += 6;
-		pr_err("res6 is %lu\n",res6);
+		//pr_err("res6 is %lu\n on iteration, %lu",res6, num_transactions);
 	}
+	pr_err("Complete\n");
 }

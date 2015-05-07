@@ -23,6 +23,8 @@
 static struct ttd_ring_channel *chan1;
 static struct ttd_ring_channel *chan2;
 
+MODULE_LICENSE("GPL");
+
 static void setup_tests(void)
 {
 	chan1 = create_channel(4,0);

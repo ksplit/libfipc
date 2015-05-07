@@ -21,11 +21,13 @@ int dispatch(void *data)
 	if(migrate == 0) {
 		migrate = 1;
 		spin_unlock(&lock);
-		callee((struct ttd_ring_channel *)data);
+		callee(data);
+		free_channel(data);
 		return 1;
 	}
 	spin_unlock(&lock);
-	caller((struct ttd_ring_channel *)data);
+	caller(data);
+	free_channel(data);
 	return 1;
 }
 

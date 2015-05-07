@@ -96,6 +96,8 @@ static inline void set_rx_slot(struct ttd_ring_channel *rc, unsigned long num)
 static inline void *get_tx_rec(struct ttd_ring_channel *rc,
 			      const unsigned long rec_size)
 {
+	//	pr_err("math for tx & comes out to be %lu, with slot %lu and mask %lx\n", (rc->tx.slot & rc->tx.order_two_mask), rc->tx.slot, rc->tx.order_two_mask);
+
 	return (void*) (rc->tx.recs +
 		((rc->tx.slot & rc->tx.order_two_mask) *
 		 rec_size));
@@ -105,6 +107,7 @@ static inline void *get_tx_rec(struct ttd_ring_channel *rc,
 static inline void* get_rx_rec(struct ttd_ring_channel *rc,
 			       const unsigned long rec_size)
 {
+	//	pr_err("math for rx & comes out to be %lu, with slot %lu and mask %lx\n", rc->rx.slot & rc->rx.order_two_mask, rc->rx.slot, rc->tx.order_two_mask);
 	return (void*) (rc->rx.recs +
 			((rc->rx.slot & rc->rx.order_two_mask) *
 			 rec_size));
