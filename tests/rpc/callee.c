@@ -1,6 +1,6 @@
 #include "rpc.h"
 
-static ttd_ring_channel *channel;
+static struct ttd_ring_channel *channel;
 
 static unsigned long add_constant(unsigned long trans)
 {
@@ -10,7 +10,7 @@ static unsigned long add_constant(unsigned long trans)
 	msg = get_send_slot(channel);
 	msg->fn_type = ADD_CONSTANT;
 	msg->reg1 = trans;
-	send_message(msg);
+	send(channel,msg);
 	msg = recv(channel);
 	if (msg->fn_type != ADD_CONSTANT)
 		pr_err("Response was not ADD_CONSTANT");
@@ -29,7 +29,7 @@ static unsigned long add_nums(unsigned long trans, unsigned long res1)
 	msg->fn_type = ADD_NUMS;
 	msg->reg1 = trans;
 	msg->reg2 = res1;
-	send_message(msg);
+	send(channel,msg);
 	msg = recv(channel);
 	if (msg->fn_type != ADD_NUMS)
 		pr_err("Response was not ADD_NUMS");
@@ -51,7 +51,7 @@ static unsigned long add_3_nums(unsigned long trans, unsigned long res1,
 	msg->reg1 = trans;
 	msg->reg2 = res1;
 	msg->reg3 = res2;
-	send_message(msg);
+	send(channel,msg);
 	msg = recv(channel);
 	if (msg->fn_type != ADD_3_NUMS)
 		pr_err("Response was not ADD_3_NUMS");
@@ -73,7 +73,7 @@ static unsigned long add_4_nums(unsigned long trans, unsigned long res1,
 	msg->reg2 = res1;
 	msg->reg3 = res2;
 	msg->reg4 = res3;
-	send_message(msg);
+	send(channel,msg);
 	msg = recv(channel);
 	if (msg->fn_type != ADD_4_NUMS)
 		pr_err("Response was not ADD_4_NUMS");
@@ -97,7 +97,7 @@ static unsigned long add_5_nums(unsigned long trans, unsigned long res1,
 	msg->reg3 = res2;
 	msg->reg4 = res3;
 	msg->reg5 = res4;
-	send_message(msg);
+	send(channel,msg);
 	msg = recv(channel);
 	if (msg->fn_type != ADD_5_NUMS)
 		pr_err("Response was not ADD_5_NUMS");
@@ -123,7 +123,7 @@ static unsigned long add_6_nums(unsigned long trans, unsigned long res1,
 	msg->reg4 = res3;
 	msg->reg5 = res4;
 	msg->reg6 = res5;
-	send_message(msg);
+	send(channel,msg);
 	msg = recv(channel);
 	if (msg->fn_type != ADD_5_NUMS)
 		pr_err("Response was not ADD_5_NUMS");

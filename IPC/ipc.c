@@ -155,6 +155,8 @@ EXPORT_SYMBOL(create_channel);
 
 void free_channel(struct ttd_ring_channel *channel)
 {
+
+	
 	put_task_struct(channel->thread);
 	ttd_ring_channel_free(channel);
 	kfree(channel);
@@ -173,7 +175,7 @@ struct ipc_message *recv(struct ttd_ring_channel *rx)
 {
 	struct ipc_message *recv_msg;
 
-	recv_msg = get_rx_rec(rx);
+	recv_msg = get_rx_rec(rx, sizeof(struct ipc_message));
 	inc_rx_slot(rx);
 	wait_for_rx_slot(recv_msg);
 	return recv_msg;
@@ -183,7 +185,7 @@ EXPORT_SYMBOL(recv);
 struct ipc_message *get_send_slot(struct ttd_ring_channel *tx)
 {
 	struct ipc_message *msg =
-		(struct ipc_message *) get_tx_rec(tx);
+		(struct ipc_message *) get_tx_rec(tx, sizeof(struct ipc_message));
 	wait_for_tx_slot(msg);
 	return msg;
 }

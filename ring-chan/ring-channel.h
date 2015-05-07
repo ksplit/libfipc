@@ -29,7 +29,6 @@ struct ttd_buf {
 	uint8_t             padding[16]; /* pad the struct up to cache line size */
 };
 
-
 struct ttd_ring_channel {
 	struct ttd_buf tx;
 	struct ttd_buf rx;
@@ -90,20 +89,25 @@ static inline void set_rx_slot(struct ttd_ring_channel *rc, unsigned long num)
 
 /*
   If we can set a constant buffer size we can constant fold more.
+  We have to const the rec_size because for some reason I cannot put
+  sizeof (struct IPC_message) gcc will _usually_ constant fold this
+  since it realizes rec_size is const and is available at compile time
 */
-static inline void*get_tx_rec(struct ttd_ring_channel *rc)
+static inline void *get_tx_rec(struct ttd_ring_channel *rc,
+			      const unsigned long rec_size)
 {
 	return (void*) (rc->tx.recs +
 		((rc->tx.slot & rc->tx.order_two_mask) *
-		 sizeof(struct ipc_message)));
+		 rec_size));
 }
 
 
-static inline void* get_rx_rec(struct ttd_ring_channel *rc)
+static inline void* get_rx_rec(struct ttd_ring_channel *rc,
+			       const unsigned long rec_size)
 {
 	return (void*) (rc->rx.recs +
-		((rc->rx.slot & rc->rx.order_two_mask) *
-		 sizeof(struct ipc_message)));
+			((rc->rx.slot & rc->rx.order_two_mask) *
+			 rec_size));
 }
 
 

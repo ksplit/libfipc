@@ -9,7 +9,7 @@ CFLAGS_ring-channel.o = -I$(INC_DIR)
 DEPS= $(INC_DIR)/ipc.h
 
 
-rpc_testing-objs := ../../ring-chan/ring-channel.o ../../IPC/ipc.o callee.o caller.o rpc_setup.o rpc_test.o
+rpc_testing-objs :=  ../../IPC/ipc.o ../../ring-chan/ring-channel.o callee.o caller.o rpc_setup.o rpc_test.o
 
 KDIR := /lib/modules/`uname -r`/build
 

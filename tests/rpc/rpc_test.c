@@ -18,7 +18,7 @@
 #include <linux/sort.h>
 #include <asm/tsc.h>
 
-#inclde "rpc.h"
+#include "rpc.h"
 
 static struct ttd_ring_channel *chan1;
 static struct ttd_ring_channel *chan2;
@@ -42,9 +42,7 @@ static void setup_tests(void)
 	ipc_start_thread(chan2);
 }
 
-
-
-static int __init bIPC_init(void)
+static int __init rpc_init(void)
 {
 	int ret = 0;
 
@@ -55,18 +53,11 @@ static int __init bIPC_init(void)
 
 	return ret;
 }
-static int __exit bIPC_rmmod(void)
+static int __exit rpc_rmmod(void)
 {
-	int ret = 0;
-
-	ret = misc_deregister(&dev);
-	if (ret) {
-		pr_debug("Failed to de-reg dev in eudy!\n");
-		return ret;
-	}
 
 	return 0;
 }
 
-module_init(bIPC_init);
-module_exit(bIPC_rmmod);
+module_init(rpc_init);
+module_exit(rpc_rmmod);

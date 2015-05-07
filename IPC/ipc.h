@@ -35,5 +35,6 @@ struct ipc_message *recv(struct ttd_ring_channel *rx);
 struct ipc_message *get_send_slot(struct ttd_ring_channel *tx);
 void transaction_complete(struct ipc_message *msg);
 int ipc_start_thread(struct ttd_ring_channel *chan);
+void connect_channels(struct ttd_ring_channel *c1, struct ttd_ring_channel *t2);
 
 #endif

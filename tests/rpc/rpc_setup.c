@@ -1,9 +1,9 @@
 #include "rpc.h"
-#include <linux/spinlock.h>.
+#include <linux/spinlock.h>
 
 
 static volatile int migrate;
-static spinlock_t lock = SPIN_LOCK_UNLOCKED;
+static spinlock_t lock = __SPIN_LOCK_UNLOCKED();
 
 
 int dispatch(void *data)
@@ -21,7 +21,7 @@ int dispatch(void *data)
 	if(migrate == 0) {
 		migrate = 1;
 		spin_unlock(&lock);
-		calle((struct ttd_ring_channel *)data);
+		callee((struct ttd_ring_channel *)data);
 		return 1;
 	}
 	spin_unlock(&lock);
