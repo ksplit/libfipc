@@ -18,7 +18,7 @@
 #include <linux/sort.h>
 #include <asm/tsc.h>
 
-#include <../IPC/IPC.h>
+#inclde "rpc.h"
 
 static struct ttd_ring_channel *chan1;
 static struct ttd_ring_channel *chan2;
@@ -38,8 +38,8 @@ static void setup_tests(void)
 		return;
 	}
 	connect_channels(chan1,chan2);
-	start_thread(chan1);
-	start_thread(chan2);
+	ipc_start_thread(chan1);
+	ipc_start_thread(chan2);
 }
 
 

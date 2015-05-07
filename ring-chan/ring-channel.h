@@ -16,7 +16,8 @@
 #define __XEN_RING_CHANNEL_H__
 
 #include <linux/string.h>
-#include <../IPC/IPC.h>
+#include <linux/types.h>
+#include "ipc.h"
 
 struct ttd_buf {
 	/* PRODUCER */
@@ -25,16 +26,16 @@ struct ttd_buf {
 	unsigned long      order_two_mask;
 	unsigned long      size_in_pages;
 	char               *recs;                 /* pointer to buffer data areas      */
-	uint_8             padding[16]; /* pad the struct up to cache line size */
-}
+	uint8_t             padding[16]; /* pad the struct up to cache line size */
+};
 
 
 struct ttd_ring_channel {
-	struct ttd_buf tx_buf;
-	struct ttd_buf rx_buf;
+	struct ttd_buf tx;
+	struct ttd_buf rx;
 	struct task_struct *thread;
 	/* TODO NECESSARY? */
-	uint_8 padding[56]; /* pad the struct to cacheline size */
+	uint8_t padding[56]; /* pad the struct to cacheline size */
 };
 
 
@@ -90,23 +91,17 @@ static inline void set_rx_slot(struct ttd_ring_channel *rc, unsigned long num)
 /*
   If we can set a constant buffer size we can constant fold more.
 */
-static inline char* tx_get_rec(struct ttd_ring_channel *rc)
+static inline void*get_tx_rec(struct ttd_ring_channel *rc)
 {
-	return (rc->tx.recs +
+	return (void*) (rc->tx.recs +
 		((rc->tx.slot & rc->tx.order_two_mask) *
 		 sizeof(struct ipc_message)));
 }
 
-static inline char* tx_get_rec(struct ttd_ring_channel *rc)
-{
-	return (rc->tx.recs +
-		((rc->tx.slot & rc->tx.order_two_mask) *
-		 sizeof(struct ipc_message)));
-}
 
-static inline char* rx_get_rec(struct ttd_ring_channel *rc)
+static inline void* get_rx_rec(struct ttd_ring_channel *rc)
 {
-	return (rc->rx.recs +
+	return (void*) (rc->rx.recs +
 		((rc->rx.slot & rc->rx.order_two_mask) *
 		 sizeof(struct ipc_message)));
 }

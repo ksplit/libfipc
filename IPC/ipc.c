@@ -20,12 +20,14 @@
 
 
 #include "../ring-chan/ring-channel.h"
-#include "IPC.h"
+#include "ipc.h"
 
 static unsigned int tx_slot_avail = 0xC1346BAD;
 static unsigned int send_message = 0xBADBEEF;
 static unsigned int rx_msg_avail = 0xBADBEEF;
-static unsigned int transaction_complete = 0xC1346BAD;
+static unsigned int trans_complete = 0xC1346BAD;
+
+extern int dispatch(void *data);
 
 
 static inline void monitor_mwait(unsigned long rcx, volatile uint32_t *rax,
@@ -112,7 +114,7 @@ struct ttd_ring_channel *create_channel(unsigned long size_pages, unsigned CPU)
 	}
 
 	ret = ttd_ring_channel_alloc(channel,
-				     CHAN_NUM_PAGES,
+				     size_pages,
 				     sizeof(struct ipc_message));
 
 	if (ret != 0) {
@@ -191,8 +193,8 @@ void connect_channels(struct ttd_ring_channel *chan1,
 		      struct ttd_ring_channel *chan2)
 {
 	/* exchange pointers and sizes */
-	memcpy(&chan1->rx_buf, &chan2->tx_buf, sizeof(struct ttd_buf));
-	memcpy(&chan2->rx_buf, &chan1->tx_buf, sizeof(struct ttd_buf));
+	memcpy(&chan1->rx, &chan2->tx, sizeof(struct ttd_buf));
+	memcpy(&chan2->rx, &chan1->tx, sizeof(struct ttd_buf));
 }
 EXPORT_SYMBOL(connect_channels);
 
@@ -200,13 +202,13 @@ EXPORT_SYMBOL(connect_channels);
 /* Notify the buffer that the message slot is available and can be re-used */
 void transaction_complete(struct ipc_message *msg)
 {
-	msg->msg_satus = transaction_complete;
+	msg->msg_status = trans_complete;
 }
-EXPORT_SYMBOL(complete_transaction);
+EXPORT_SYMBOL(transaction_complete);
 
 
-int start_thread(struct ttd_ring_channel *chan)
+int ipc_start_thread(struct ttd_ring_channel *chan)
 {
-       return wake_up_process(chan->thread)
+	return wake_up_process(chan->thread);
 }
-EXPORT_SYMBOL(start_thread);
+EXPORT_SYMBOL(ipc_start_thread);

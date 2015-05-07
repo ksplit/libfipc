@@ -5,6 +5,7 @@
 #include <linux/types.h>
 #include <../ring-chan/ring-channel.h>
 
+#define CHAR_BITS 8
 
 #if defined(USE_MWAIT)
 	unsigned long ecx = 1; /*break of interrupt flag */
@@ -33,6 +34,6 @@ void send(struct ttd_ring_channel *tx, struct ipc_message *trans);
 struct ipc_message *recv(struct ttd_ring_channel *rx);
 struct ipc_message *get_send_slot(struct ttd_ring_channel *tx);
 void transaction_complete(struct ipc_message *msg);
-void start_thread(struct ttd_ring_channel *chan);
+int ipc_start_thread(struct ttd_ring_channel *chan);
 
 #endif

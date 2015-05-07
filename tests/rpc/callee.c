@@ -1,4 +1,3 @@
-#include <../../IPC.h>
 #include "rpc.h"
 
 static ttd_ring_channel *channel;
