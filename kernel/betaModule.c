@@ -512,7 +512,7 @@ static void dump_time(void)
 		pr_err("%llu\n", timekeeper[i]);
 		counter+= timekeeper[i];
 	}
-	
+
 	sort(timekeeper, NUM_LOOPS, sizeof(u64), compare, NULL);
 
 	min = timekeeper[1];

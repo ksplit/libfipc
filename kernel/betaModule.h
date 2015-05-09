@@ -4,7 +4,7 @@
 int CHAN_NUM_PAGES = 16;
 int BUF_SIZE = 60;
 int NUM_LOOPS = 10000;
-int FLOOD_SIZE = 1;
+int FLOOD_SIZE = 8;
 
 #if defined(USE_MWAIT)
 	unsigned long ecx = 1; /*break of interrupt flag */

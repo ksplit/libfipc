@@ -36,7 +36,6 @@ static void setup_tests(void)
 	if (!chan2) {
 		pr_err("Failed to create channel 2");
 		free_channel(chan1);
-		kfree(chan1);
 		return;
 	}
 	connect_channels(chan1,chan2);

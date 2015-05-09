@@ -156,9 +156,10 @@ EXPORT_SYMBOL(create_channel);
 void free_channel(struct ttd_ring_channel *channel)
 {
 
-	put_task_struct(channel->thread);
 	ttd_ring_channel_free(channel);
+	put_task_struct(channel->thread);
 	kfree(channel);
+
 }
 EXPORT_SYMBOL(free_channel);
 
