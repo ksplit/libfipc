@@ -1,15 +1,15 @@
-obj-m := timing.o
+obj-m := rpc_testing.o
 
-ccflags-y += -O2 -I/users/sbauer/ipc/ramstore/fast-ipc-module/IPC
+ccflags-y += -O2 -I/users/sbauer/ipc/ramstore/fast-ipc-module/current/IPC
 
 INC_DIR = ../../IPC
 
-CFLAGS_ipc.o = -O2 -DPOLL 
+CFLAGS_ipc.o = -O2 -DPOLL
 CFLAGS_ring-channel.o = -I$(INC_DIR)
 DEPS= $(INC_DIR)/ipc.h
 
 
-timing-objs :=  ../../IPC/ipc.o ../../ring-chan/ring-channel.o timing_setup.o
+rpc_testing-objs :=  ../../IPC/ipc.o ../../ring-chan/ring-channel.o callee.o caller.o rpc_setup.o rpc_test.o
 
 KDIR := /lib/modules/`uname -r`/build
 
