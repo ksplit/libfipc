@@ -12,7 +12,7 @@
 	unsigned long cstate_wait = 0x0; /* 4 states, 0x0, 0x1 0x10 0x20 */
 #endif
 
-/*Don't let gcc do anything cute, we need this to be 128 bytes */
+/*Don't let gcc do anything cute, we need this to be 64 bytes */
 
 /* TODO CONFIRM ALIGNMENT REQUIREMENTS FOR ULONG! */
 
