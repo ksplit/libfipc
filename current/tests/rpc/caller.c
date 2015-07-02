@@ -1,5 +1,12 @@
 #include "rpc.h"
 
+
+/* don't let gcc opt this into a  mov 9 memaddr */
+static unsigned long noinline null_invocation(void)
+{
+	return 9;
+}
+
 static unsigned long add_constant(unsigned long trans)
 {
 	return trans + 50;
@@ -47,6 +54,14 @@ void caller(struct ttd_ring_channel *chan)
 		msg = recv(chan);
 
 		switch(msg->fn_type) {
+		case NULL_INVOCATION:
+			temp_res = null_invocation();
+			transaction_complete(msg);
+			msg = get_send_slot(chan);
+			msg->fn_type = NULL_INVOCATION;
+			msg->reg1 = temp_res;
+			send(chan, msg);
+			break;
 		case ADD_CONSTANT:
 			temp_res = add_constant(msg->reg1);
 			transaction_complete(msg);

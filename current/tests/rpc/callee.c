@@ -1,3 +1,4 @@
+#include <linux/random.h>
 #include "rpc.h"
 
 static struct ttd_ring_channel *channel;
@@ -31,7 +32,19 @@ static unsigned long RDTSCP(void)
 	return tsc;
 }
 
+static unsigned long null_invocation(void)
+{
+	struct ipc_message *msg;
+	unsigned long result;
 
+	msg = get_send_slot(channel);
+	msg->fn_type = NULL_INVOCATION;
+	send(channel,msg);
+	msg = recv(channel);
+	result = msg->reg1;
+	transaction_complete(msg);
+	return result;
+}
 
 static unsigned long add_constant(unsigned long trans)
 {
@@ -155,18 +168,29 @@ void callee(struct ttd_ring_channel *chan)
 	unsigned long res1, res2, res3, res4, res5, res6;
 	unsigned long start,end;
 	channel = chan;
+
+	get_random_bytes(&res1, sizeof(res1));
+	res2 = res1+res1;
+	res3 = res1 + res2;
+	res4 = res3 + res2;
+	res5 = res4 + res3;
+
+	while (num_transactions < TRANSACTIONS/2) {
+		start = RDTSC_START();
+		null_invocation();
+//res6 = add_6_nums(num_transactions,res1,res2,res3,res4,res5);
+		end = RDTSCP();
+		pr_err("%lu\n", end-start);
+		num_transactions++;
+		//pr_err("res6 is %lu\n on iteration, %lu",res6, num_transactions);
+	}
+	pr_err("6 regis\n");
 	while (num_transactions < TRANSACTIONS) {
 		start = RDTSC_START();
-		res1 = add_constant(num_transactions);
-		res2 = add_nums(num_transactions,res1);
-		res3 = add_3_nums(num_transactions,res1,res2);
-		res4 = add_4_nums(num_transactions,res1,res2,res3);
-		res5 = add_5_nums(num_transactions,res1,res2,res3,res4);
 		res6 = add_6_nums(num_transactions,res1,res2,res3,res4,res5);
 		end = RDTSCP();
 		pr_err("%lu\n", end-start);
-		num_transactions += 6;
-		//pr_err("res6 is %lu\n on iteration, %lu",res6, num_transactions);
+		num_transactions++;
 	}
 	pr_err("Complete\n");
 }
