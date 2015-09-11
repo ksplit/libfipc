@@ -18,6 +18,7 @@
 #include <linux/sort.h>
 #include <asm/tsc.h>
 
+#include <lcd-domains/thc.h>
 
 #include "../ring-chan/ring-channel.h"
 #include "ipc.h"
@@ -68,19 +69,22 @@ static int wait_for_tx_slot(struct ipc_message *imsg)
 	return 0;
 }
 
-static int wait_for_rx_slot(struct ipc_message *imsg)
+static int wait_for_rx_slot(struct ipc_message *imsg)//, bool is_async)
 {
-
-
-	while (check_rx_slot_available(imsg)) {
-
-#if defined(USE_MWAIT)
-		monitor_mwait(ecx, &imsg->msg_status, cstate_wait);
-#endif//usemwait
-#if defined(POLL)
-		cpu_relax();
-
-#endif
+	while (check_rx_slot_available(imsg)) { //while a slot is not available
+//		if( is_async )
+//		{
+//			THCYield();
+//		}	
+//		else
+//		{
+			#if defined(USE_MWAIT)
+				monitor_mwait(ecx, &imsg->msg_status, cstate_wait);
+			#endif//usemwait
+			#if defined(POLL)
+				cpu_relax();
+			#endif
+//		}
 	}
 	return 0;
 }
@@ -177,10 +181,22 @@ struct ipc_message *recv(struct ttd_ring_channel *rx)
 
 	recv_msg = get_rx_rec(rx, sizeof(struct ipc_message));
 	inc_rx_slot(rx);
-	wait_for_rx_slot(recv_msg);
+//	wait_for_rx_slot(recv_msg, false);
 	return recv_msg;
 }
 EXPORT_SYMBOL(recv);
+
+struct ipc_message *async_recv(struct ttd_ring_channel *rx, unsigned long msg_id)
+{
+	struct ipc_message *recv_msg;
+
+	recv_msg = get_rx_rec(rx, sizeof(struct ipc_message));
+	inc_rx_slot(rx);
+//	wait_for_rx_slot(recv_msg, true);
+	
+	return recv_msg;
+}
+EXPORT_SYMBOL(async_recv);
 
 struct ipc_message *get_send_slot(struct ttd_ring_channel *tx)
 {

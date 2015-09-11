@@ -4,7 +4,7 @@
 
 MODULE_INFO(vermagic, VERMAGIC_STRING);
 
-__visible struct module __this_module
+struct module __this_module
 __attribute__((section(".gnu.linkonce.this_module"))) = {
 	.name = KBUILD_MODNAME,
 	.init = init_module,
@@ -17,22 +17,21 @@ __attribute__((section(".gnu.linkonce.this_module"))) = {
 static const struct modversion_info ____versions[]
 __used
 __attribute__((section("__versions"))) = {
-	{ 0x2453e971, __VMLINUX_SYMBOL_STR(module_layout) },
-	{ 0x46c8c7d0, __VMLINUX_SYMBOL_STR(kmalloc_caches) },
-	{ 0xda3e43d1, __VMLINUX_SYMBOL_STR(_raw_spin_unlock) },
-	{ 0x44b1d426, __VMLINUX_SYMBOL_STR(__dynamic_pr_debug) },
-	{ 0x7855bd8f, __VMLINUX_SYMBOL_STR(cpu_info) },
-	{ 0x48e6980b, __VMLINUX_SYMBOL_STR(kthread_create_on_node) },
+	{ 0x6f3cc8d6, __VMLINUX_SYMBOL_STR(module_layout) },
+	{ 0x4cd715f4, __VMLINUX_SYMBOL_STR(kmalloc_caches) },
+	{ 0x34083a97, __VMLINUX_SYMBOL_STR(_raw_spin_unlock) },
+	{ 0x79aa04a2, __VMLINUX_SYMBOL_STR(get_random_bytes) },
+	{ 0x846f59a, __VMLINUX_SYMBOL_STR(cpu_info) },
+	{ 0x3ff3952e, __VMLINUX_SYMBOL_STR(kthread_create_on_node) },
 	{ 0x27e1a049, __VMLINUX_SYMBOL_STR(printk) },
-	{ 0x92a69153, __VMLINUX_SYMBOL_STR(set_cpus_allowed_ptr) },
+	{ 0x8693c29f, __VMLINUX_SYMBOL_STR(set_cpus_allowed_ptr) },
+	{ 0xb6029609, __VMLINUX_SYMBOL_STR(kmem_cache_alloc) },
 	{ 0x93fca811, __VMLINUX_SYMBOL_STR(__get_free_pages) },
-	{ 0xea8e42de, __VMLINUX_SYMBOL_STR(wake_up_process) },
-	{ 0xbdfb6dbb, __VMLINUX_SYMBOL_STR(__fentry__) },
-	{ 0x7b50c6d, __VMLINUX_SYMBOL_STR(kmem_cache_alloc_trace) },
-	{ 0xd52bf1ce, __VMLINUX_SYMBOL_STR(_raw_spin_lock) },
+	{ 0x3c30ace4, __VMLINUX_SYMBOL_STR(wake_up_process) },
+	{ 0x58bec661, __VMLINUX_SYMBOL_STR(_raw_spin_lock) },
 	{ 0x4302d0eb, __VMLINUX_SYMBOL_STR(free_pages) },
 	{ 0x37a0cba, __VMLINUX_SYMBOL_STR(kfree) },
-	{ 0x20b570e1, __VMLINUX_SYMBOL_STR(__put_task_struct) },
+	{ 0x141b2c50, __VMLINUX_SYMBOL_STR(__put_task_struct) },
 };
 
 static const char __module_depends[]
@@ -41,4 +40,4 @@ __attribute__((section(".modinfo"))) =
 "depends=";
 
 
-MODULE_INFO(srcversion, "26F906D0E804F32E1985E97");
+MODULE_INFO(srcversion, "008C0F0599B0C1F40356D4B");

@@ -46,7 +46,6 @@ static void setup_tests(void)
 static int __init rpc_init(void)
 {
 	int ret = 0;
-
 	if (!this_cpu_has(X86_FEATURE_MWAIT))
 		return -EPERM;
 

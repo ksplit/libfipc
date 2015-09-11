@@ -1,2 +1,0 @@
-/users/sbauer/ipc/ramstore/fast-ipc-module/tests/rpc/rpc_testing.ko
-/users/sbauer/ipc/ramstore/fast-ipc-module/tests/rpc/../../IPC/ipc.o /users/sbauer/ipc/ramstore/fast-ipc-module/tests/rpc/../../ring-chan/ring-channel.o /users/sbauer/ipc/ramstore/fast-ipc-module/tests/rpc/callee.o /users/sbauer/ipc/ramstore/fast-ipc-module/tests/rpc/caller.o /users/sbauer/ipc/ramstore/fast-ipc-module/tests/rpc/rpc_setup.o /users/sbauer/ipc/ramstore/fast-ipc-module/tests/rpc/rpc_test.o
