@@ -162,7 +162,7 @@ static unsigned long add_6_nums(unsigned long trans, unsigned long res1,
 	return result;
 }
 
-void callee(struct ttd_ring_channel *chan)
+int callee(void *chan)
 {
 	unsigned long num_transactions = 0;
 	unsigned long res1, res2, res3, res4, res5, res6;
@@ -193,4 +193,5 @@ void callee(struct ttd_ring_channel *chan)
 		num_transactions++;
 	}
 	pr_err("Complete\n");
+        return 1;
 }

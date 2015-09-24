@@ -9,5 +9,5 @@ typedef enum {NULL_INVOCATION, ADD_CONSTANT, ADD_NUMS, ADD_3_NUMS,
 #define TRANSACTIONS 12000
 
 
-void callee(struct ttd_ring_channel *chan);
-void caller(struct ttd_ring_channel *chan);
+int callee(void *chan);
+int caller(void *chan);

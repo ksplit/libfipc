@@ -27,9 +27,6 @@ static unsigned int send_message = 0xBADBEEF;
 static unsigned int rx_msg_avail = 0xBADBEEF;
 static unsigned int trans_complete = 0xC1346BAD;
 
-extern int dispatch(void *data);
-
-
 static inline void monitor_mwait(unsigned long rcx, volatile uint32_t *rax,
 				 unsigned long wait_type)
 {
@@ -86,16 +83,47 @@ static int wait_for_rx_slot(struct ipc_message *imsg)
 }
 
 
-/*
-  Create a channel with a ring-buffer of size pages
-  Create a communication thread on CPU
-*/
 
-struct ttd_ring_channel *create_channel(unsigned long size_pages, unsigned CPU)
+struct task_struct *attach_thread_to_channel(struct ttd_ring_channel *chan,
+                                             int CPU_PIN,
+                                             int (*threadfn)(void *data)) {
+
+	struct cpumask cpu_core;
+
+        if (!chan)
+                return NULL;
+
+        if (CPU_PIN > num_online_cpus()) {
+                pr_err("Trying to pin on cpu > than avail # cpus\n");
+                return NULL;
+        }
+
+	chan->thread = kthread_create(threadfn, (void *)chan,
+					   "AsyncIPC.%u", CPU_PIN);
+
+	if (IS_ERR(chan->thread)) {
+		pr_err("Error while creating kernel thread\n");
+		return NULL;
+	}
+
+	get_task_struct(chan->thread);
+
+	cpumask_clear(&cpu_core);
+	cpumask_set_cpu(CPU_PIN ,&cpu_core);
+
+	set_cpus_allowed_ptr(chan->thread, &cpu_core);
+
+        return chan->thread;
+}
+
+/*
+ *  Create a channel with a ring-buffer of size pages
+ */
+
+struct ttd_ring_channel *create_channel(unsigned long size_pages)
 {
 
 	int i,ret;
-	struct cpumask cpu_core;
 	struct ttd_ring_channel *channel;
 
 
@@ -129,25 +157,6 @@ struct ttd_ring_channel *create_channel(unsigned long size_pages, unsigned CPU)
 	/* We init the buffer to say each slot is free */
 	for (i = 0; i < (size_pages * PAGE_SIZE)/sizeof(int); i++)
 		*((int *)channel->tx.recs+i) = tx_slot_avail;
-
-	channel->thread = kthread_create(&dispatch, (void *)channel,
-					   "betaIPC.%u", CPU);
-
-	if (IS_ERR(channel->thread)) {
-		ttd_ring_channel_free(channel);
-		kfree(channel);
-		pr_err("Error while creating kernel thread\n");
-		return NULL;
-	}
-
-
-	get_task_struct(channel->thread);
-
-	cpumask_clear(&cpu_core);
-	cpumask_set_cpu(CPU,&cpu_core);
-
-	set_cpus_allowed_ptr(channel->thread, &cpu_core);
-
 
 	return channel;
 }
