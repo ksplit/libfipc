@@ -41,6 +41,7 @@ static void setup_tests(void)
 	connect_channels(chan1,chan2);
 	ipc_start_thread(chan1);
 	ipc_start_thread(chan2);
+	//callee(NULL);
 }
 
 static int __init rpc_init(void)
