@@ -82,10 +82,8 @@ static unsigned long add_nums(unsigned long trans, unsigned long res1)
 
 static unsigned long add_nums_async(unsigned long trans, unsigned long res1, awe_t* awe)
 {
-
-	THCYield();
 	struct ipc_message *msg;
-	int i = 0;
+	//int i = 0;
 	unsigned long result;
 	unsigned long msg_id = (unsigned long)awe;
 	
@@ -96,8 +94,8 @@ static unsigned long add_nums_async(unsigned long trans, unsigned long res1, awe
 	msg->reg2    = res1;
 	msg->msg_id  = msg_id;
 	send(channel,msg);
-	msg = recv(channel);
-	//msg = async_recv(channel, msg_id);
+	//msg = recv(channel);
+	msg = async_recv(channel, msg_id);
 	result = msg->reg1;
 	transaction_complete(msg);
 	
@@ -191,7 +189,7 @@ static unsigned long add_6_nums(unsigned long trans, unsigned long res1,
 
 
 
-static void test_async_ipc(struct ttd_ring_channel *chan)
+static void test_async_ipc(void* chan)
 {
 	unsigned long num_transactions = 0;
 	unsigned long res1, res2, res3, res4, res5, res6;
@@ -209,7 +207,7 @@ static void test_async_ipc(struct ttd_ring_channel *chan)
 	res4 = res3 + res2;
 	res5 = res4 + res3;
 	DO_FINISH(
-//	while (num_transactions < TRANSACTIONS) {
+//	while (num_transactions < ASYNC_TRANSACTIONS) {
 //		start = RDTSC_START();
 		ASYNC(add_nums_async(num_transactions, res1, awe););
 //		printk(KERN_ERR "middle of async");
@@ -225,7 +223,7 @@ static void test_async_ipc(struct ttd_ring_channel *chan)
 	kfree(current->ptstate);
 }
 
-static void test_sync_ipc(struct ttd_ring_channel *chan)
+static void test_sync_ipc(void* chan)
 {
 	unsigned long num_transactions = 0;
 	unsigned long res1, res2, res3, res4, res5, res6;
@@ -255,6 +253,7 @@ static void test_sync_ipc(struct ttd_ring_channel *chan)
 		num_transactions++;
 	}
 	pr_err("Complete\n");
+        return 1;
 }
 
 void foo3(void);
@@ -279,11 +278,11 @@ noinline void foo4(void) {
 
 
 
-void callee(struct ttd_ring_channel *chan)
+void callee(void *chan)
 {
-	test_async_ipc(chan);
+//	test_async_ipc(chan);
 
-//	test_sync_ipc(chan);
+	test_sync_ipc(chan);
 /*
 	current->ptstate = kzalloc(sizeof(struct ptstate_t), GFP_KERNEL);
 	thc_latch_init(&(current->ptstate->latch));

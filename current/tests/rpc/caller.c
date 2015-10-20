@@ -46,11 +46,12 @@ static unsigned long add_6_nums(unsigned long trans, unsigned long res1,
 
 
 
-void caller(struct ttd_ring_channel *chan)
+int caller(void *channel)
 {
 
 	unsigned long num_transactions = 0;
 	unsigned long temp_res = 0;
+        struct ttd_ring_channel *chan = channel;
 	struct ipc_message *msg;
 	while (num_transactions < TRANSACTIONS) {
 		msg = recv(chan);
@@ -118,4 +119,5 @@ void caller(struct ttd_ring_channel *chan)
 		}
 		num_transactions++;
 	}
+        return 1;
 }
