@@ -20,10 +20,6 @@
 
 #include "rpc.h"
 
-#define CHAN1_CPU 1
-#define CHAN2_CPU 3
-#define CHAN_NUM_PAGES 4
-
 static struct ttd_ring_channel *chan1;
 static struct ttd_ring_channel *chan2;
 
@@ -31,31 +27,18 @@ MODULE_LICENSE("GPL");
 
 static void setup_tests(void)
 {
-	chan1 = create_channel(CHAN_NUM_PAGES);
+	chan1 = create_channel(4,0);
 	if (!chan1) {
 		pr_err("Failed to create channel 1");
 		return;
 	}
-	chan2 = create_channel(CHAN_NUM_PAGES);
+	chan2 = create_channel(4,3);
 	if (!chan2) {
 		pr_err("Failed to create channel 2");
 		free_channel(chan1);
 		return;
 	}
-	connect_channels(chan1, chan2);
-
-        /* Create a thread for each channel to utilize, pin it to a core.
-         * Pass a function pointer to call on wakeup.
-         */
-        if (attach_thread_to_channel(chan1, CHAN1_CPU, callee) == NULL ||
-            attach_thread_to_channel(chan2, CHAN2_CPU, caller) == NULL ) {
-                ttd_ring_channel_free(chan1);
-                ttd_ring_channel_free(chan2);
-                kfree(chan1);
-                kfree(chan2);
-                return;
-        }
-
+	connect_channels(chan1,chan2);
 	ipc_start_thread(chan1);
 	ipc_start_thread(chan2);
 	//callee(NULL);

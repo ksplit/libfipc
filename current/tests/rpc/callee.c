@@ -1,8 +1,5 @@
 #include <linux/random.h>
-#include <linux/slab.h>
 #include "rpc.h"
-#include <lcd-domains/thc.h>
-#include <lcd-domains/thcinternal.h>
 
 static struct ttd_ring_channel *channel;
 
@@ -77,28 +74,6 @@ static unsigned long add_nums(unsigned long trans, unsigned long res1)
 	msg = recv(channel);
 	result = msg->reg1;
 	transaction_complete(msg);
-	return result;
-}
-
-static unsigned long add_nums_async(unsigned long trans, unsigned long res1, awe_t* awe)
-{
-	struct ipc_message *msg;
-	//int i = 0;
-	unsigned long result;
-	unsigned long msg_id = (unsigned long)awe;
-	
-	pr_err("msg id = %lx\n", msg_id);
-	msg = get_send_slot(channel);
-	msg->fn_type = ADD_NUMS;
-	msg->reg1    = trans;
-	msg->reg2    = res1;
-	msg->msg_id  = msg_id;
-	send(channel,msg);
-	//msg = recv(channel);
-	msg = async_recv(channel, msg_id);
-	result = msg->reg1;
-	transaction_complete(msg);
-	
 	return result;
 }
 
@@ -187,43 +162,7 @@ static unsigned long add_6_nums(unsigned long trans, unsigned long res1,
 	return result;
 }
 
-
-
-static void test_async_ipc(void* chan)
-{
-	unsigned long num_transactions = 0;
-	unsigned long res1, res2, res3, res4, res5, res6;
-	unsigned long start,end;
-
-	channel = chan;
-	
-	current->ptstate = kzalloc(sizeof(struct ptstate_t), GFP_KERNEL);
-	thc_latch_init(&(current->ptstate->latch));
-	thc_init();
-
-	get_random_bytes(&res1, sizeof(res1));
-	res2 = res1+res1;
-	res3 = res1 + res2;
-	res4 = res3 + res2;
-	res5 = res4 + res3;
-	DO_FINISH(
-//	while (num_transactions < ASYNC_TRANSACTIONS) {
-//		start = RDTSC_START();
-		ASYNC(add_nums_async(num_transactions, res1, awe););
-//		printk(KERN_ERR "middle of async");
-//		ASYNC(add_nums_async(num_transactions + 1, res1, awe););
-//		end = RDTSCP();
-//		pr_err("%lu\n", end-start);
-//		num_transactions++;
-//	});
-	);
-	pr_err("Complete\n");
-	printk(KERN_ERR "lcd async exiting module and deleting ptstate");
-	thc_done();
-	kfree(current->ptstate);
-}
-
-static void test_sync_ipc(void* chan)
+int callee(void *chan)
 {
 	unsigned long num_transactions = 0;
 	unsigned long res1, res2, res3, res4, res5, res6;
@@ -239,12 +178,13 @@ static void test_sync_ipc(void* chan)
 	while (num_transactions < TRANSACTIONS/2) {
 		start = RDTSC_START();
 		null_invocation();
+//res6 = add_6_nums(num_transactions,res1,res2,res3,res4,res5);
 		end = RDTSCP();
 		pr_err("%lu\n", end-start);
 		num_transactions++;
+		//pr_err("res6 is %lu\n on iteration, %lu",res6, num_transactions);
 	}
 	pr_err("6 regis\n");
-
 	while (num_transactions < TRANSACTIONS) {
 		start = RDTSC_START();
 		res6 = add_6_nums(num_transactions,res1,res2,res3,res4,res5);
@@ -254,44 +194,4 @@ static void test_sync_ipc(void* chan)
 	}
 	pr_err("Complete\n");
         return 1;
-}
-
-void foo3(void);
-void foo4(void);
-
-noinline void foo3(void) {
-	printk(KERN_ERR "lcd async entering foo1\n");
-	printk(KERN_ERR "lcd async yielding to foo2\n");
-	int count = 0;
-	while (count < 2) {
-	 printk(KERN_ERR "lcd async Yielding\n");
-	 THCYield();	
-	 count++;
-	}
-	printk(KERN_ERR "lcd async foo3 complete\n");
-}
-
-noinline void foo4(void) {
-	printk(KERN_ERR "lcd async entering foo2\n");
-	printk(KERN_ERR "lcd async foo2 Complete\n");
-}
-
-
-
-void callee(void *chan)
-{
-//	test_async_ipc(chan);
-
-	test_sync_ipc(chan);
-/*
-	current->ptstate = kzalloc(sizeof(struct ptstate_t), GFP_KERNEL);
-	thc_latch_init(&(current->ptstate->latch));
-	thc_init();
-    //assert((PTS() == NULL) && "PTS already initialized");
-	printk(KERN_ERR "lcd async entering module ptstate allocated");
-	DO_FINISH(ASYNC(foo3();); printk(KERN_ERR "lcd async apit_init coming back\n"); ASYNC(foo4();););
-    printk(KERN_ERR "lcd async end of DO_FINISH");
-	printk(KERN_ERR "lcd async exiting module and deleting ptstate");
-	thc_done();
-	kfree(current->ptstate);*/
 }

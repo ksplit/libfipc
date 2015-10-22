@@ -28,10 +28,7 @@ struct ipc_message{
 	volatile uint32_t msg_status;
 }__attribute__((packed));
 
-struct ttd_ring_channel *create_channel(unsigned long size_pages);
-struct task_struct *attach_thread_to_channel(struct ttd_ring_channel *chan,
-                                             int CPU_PIN,
-                                             int (*threadfn)(void *data));
+struct ttd_ring_channel *create_channel(unsigned long size_pages, unsigned CPU);
 void free_channel(struct ttd_ring_channel *channel);
 void send(struct ttd_ring_channel *tx, struct ipc_message *trans);
 struct ipc_message *recv(struct ttd_ring_channel *rx);

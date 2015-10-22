@@ -18,8 +18,6 @@
 #include <linux/sort.h>
 #include <asm/tsc.h>
 
-#include <lcd-domains/thc.h>
-#include <lcd-domains/thcinternal.h>
 
 #include "../ring-chan/ring-channel.h"
 #include "ipc.h"
@@ -28,14 +26,6 @@ static unsigned int tx_slot_avail = 0xC1346BAD;
 static unsigned int send_message = 0xBADBEEF;
 static unsigned int rx_msg_avail = 0xBADBEEF;
 static unsigned int trans_complete = 0xC1346BAD;
-
-awe_t* get_awe_from_msg_id(unsigned long msg_id)
-{
-	if( sizeof(unsigned long) != sizeof(awe_t*) )
-		printk(KERN_WARNING "mismatched sizes in get_awe_from_msg_id\n");
-
-	return (awe_t*)msg_id;
-}
 
 static inline void monitor_mwait(unsigned long rcx, volatile uint32_t *rax,
 				 unsigned long wait_type)
@@ -75,22 +65,19 @@ static int wait_for_tx_slot(struct ipc_message *imsg)
 	return 0;
 }
 
-static int wait_for_rx_slot(struct ipc_message *imsg, bool is_async)
+static int wait_for_rx_slot(struct ipc_message *imsg)
 {
-	while (check_rx_slot_available(imsg)) { //while a slot is not available
-		if( is_async )
-		{
-			THCYield();
-		}	
-		else
-		{
-			#if defined(USE_MWAIT)
-				monitor_mwait(ecx, &imsg->msg_status, cstate_wait);
-			#endif//usemwait
-			#if defined(POLL)
-				cpu_relax();
-			#endif
-		}
+
+
+	while (check_rx_slot_available(imsg)) {
+
+#if defined(USE_MWAIT)
+		monitor_mwait(ecx, &imsg->msg_status, cstate_wait);
+#endif//usemwait
+#if defined(POLL)
+		cpu_relax();
+
+#endif
 	}
 	return 0;
 }
@@ -122,7 +109,7 @@ struct task_struct *attach_thread_to_channel(struct ttd_ring_channel *chan,
 	get_task_struct(chan->thread);
 
 	cpumask_clear(&cpu_core);
-	cpumask_set_cpu(CPU_PIN , &cpu_core);
+	cpumask_set_cpu(CPU_PIN ,&cpu_core);
 
 	set_cpus_allowed_ptr(chan->thread, &cpu_core);
 
@@ -199,43 +186,10 @@ struct ipc_message *recv(struct ttd_ring_channel *rx)
 
 	recv_msg = get_rx_rec(rx, sizeof(struct ipc_message));
 	inc_rx_slot(rx);
-	wait_for_rx_slot(recv_msg, false);
+	wait_for_rx_slot(recv_msg);
 	return recv_msg;
 }
 EXPORT_SYMBOL(recv);
-
-noinline struct ipc_message *async_recv(struct ttd_ring_channel *rx, unsigned long msg_id)
-{
-	struct ipc_message *recv_msg;
-
-
-	while( true )
-	{
-		recv_msg = get_rx_rec(rx, sizeof(struct ipc_message));
-
-		if( !check_rx_slot_available(recv_msg) ) //if slot is available
-		{
-			if( recv_msg->msg_id == msg_id )
-			{
-				break;
-			}		
-			else
-			{
-				awe_t* other_awe = get_awe_from_msg_id(msg_id);
-				THCYield(); //THCYieldTo(other_awe);		
-			}
-		}
-		else
-		{
-			THCYield();
-		}
-	}	
-
-	inc_rx_slot(rx);
-
-	return recv_msg;
-}
-EXPORT_SYMBOL(async_recv);
 
 struct ipc_message *get_send_slot(struct ttd_ring_channel *tx)
 {

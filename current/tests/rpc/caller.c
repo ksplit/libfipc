@@ -44,8 +44,6 @@ static unsigned long add_6_nums(unsigned long trans, unsigned long res1,
 	return add_3_nums(trans,res1,res2) + add_3_nums(res3,res4,res5);
 }
 
-
-
 int caller(void *channel)
 {
 
