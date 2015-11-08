@@ -334,7 +334,7 @@ static void setup_tests(void)
 	connect_channels(prod,cons);
 
         if (attach_thread_to_channel(prod, 28, dispatch) == NULL ||
-            attach_thread_to_channel(cons, 30, dispatch) == NULL ) {
+            attach_thread_to_channel(cons, 31, dispatch) == NULL ) {
                 ttd_ring_channel_free(prod);
                 ttd_ring_channel_free(cons);
                 kfree(prod);
