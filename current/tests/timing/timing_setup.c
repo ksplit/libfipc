@@ -106,7 +106,7 @@ static void consumer_iops(struct ttd_ring_channel *chan)
 		sen->reg6 = 0x6666666666666666;
 		sen->reg7 = 0x5555555555555555;
 		send(chan,sen);
-		//		prefetch_rx(chan);
+		prefetch_rx(chan);
 		count++;
 	}
 }
@@ -118,7 +118,7 @@ static void producer(struct ttd_ring_channel *chan)
 	unsigned long start,end;
 	struct ipc_message *msg;
 
-	while (count < TRANSACTIONS/4) {
+	while (count < TRANSACTIONS/8) {
 		start = RDTSC_START();
 
 		//prefetch_tx(chan);
@@ -133,7 +133,6 @@ static void producer(struct ttd_ring_channel *chan)
 		msg->reg6 = 0x6666666666666666;
 		msg->reg7 = 0x5555555555555555;
 		send(chan,msg);
-		//		prefetch_rx(chan);
 		msg = get_send_slot(chan);
 		msg->fn_type = 0x31337;
 		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
@@ -165,6 +164,58 @@ static void producer(struct ttd_ring_channel *chan)
 		msg->reg7 = 0x5555555555555555;
 		send(chan,msg);
 
+		/* 4 */
+		msg = get_send_slot(chan);
+		//		prefetch_tx(chan);
+		msg->fn_type = 0x31337;
+		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
+		msg->reg2 = 0x0;
+		msg->reg3 = 0x9999999999999999;
+		msg->reg4 = 0x8888888888888888;
+		msg->reg5 = 0x7777777777777777;
+		msg->reg6 = 0x6666666666666666;
+		msg->reg7 = 0x5555555555555555;
+		send(chan,msg);
+		msg = get_send_slot(chan);
+		msg->fn_type = 0x31337;
+		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
+		msg->reg2 = 0x0;
+		msg->reg3 = 0x9999999999999999;
+		msg->reg4 = 0x8888888888888888;
+		msg->reg5 = 0x7777777777777777;
+		msg->reg6 = 0x6666666666666666;
+		msg->reg7 = 0x5555555555555555;
+		send(chan,msg);
+		msg = get_send_slot(chan);
+		msg->fn_type = 0x31337;
+		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
+		msg->reg2 = 0x0;
+		msg->reg3 = 0x9999999999999999;
+		msg->reg4 = 0x8888888888888888;
+		msg->reg5 = 0x7777777777777777;
+		msg->reg6 = 0x6666666666666666;
+		msg->reg7 = 0x5555555555555555;
+		send(chan,msg);
+		msg = get_send_slot(chan);
+		msg->fn_type = 0x31337;
+		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
+		msg->reg2 = 0x0;
+		msg->reg3 = 0x9999999999999999;
+		msg->reg4 = 0x8888888888888888;
+		msg->reg5 = 0x7777777777777777;
+		msg->reg6 = 0x6666666666666666;
+		msg->reg7 = 0x5555555555555555;
+		send(chan,msg);
+		/* 8 */
+
+		msg = recv(chan);
+		transaction_complete(msg);
+		msg = recv(chan);
+		transaction_complete(msg);
+		msg = recv(chan);
+		transaction_complete(msg);
+		msg = recv(chan);
+		transaction_complete(msg);
 		msg = recv(chan);
 		transaction_complete(msg);
 		msg = recv(chan);
@@ -227,18 +278,18 @@ static void dump_time(void)
         unsigned long min;
 	unsigned long max;
 
-	for (i = 0; i < TRANSACTIONS/4; i++) {
+	for (i = 0; i < TRANSACTIONS/8; i++) {
 		counter+= time[i];
 	}
 
-	sort(time, TRANSACTIONS/4, sizeof(unsigned long), compare, NULL);
+	sort(time, TRANSACTIONS/8, sizeof(unsigned long), compare, NULL);
 
 	min = time[0];
-	max = time[(TRANSACTIONS/4) - 1];
+	max = time[(TRANSACTIONS/8) - 1];
 	counter = min;
 
 	pr_err("MIN\tMAX\tAVG\tMEDIAN\n");
-	pr_err("%lu & %lu & %llu & %lu \n", min, max, counter/TRANSACTIONS, time[((TRANSACTIONS/4))/2]);
+	pr_err("%lu & %lu & %llu & %lu \n", min, max, counter/TRANSACTIONS, time[((TRANSACTIONS/8))/2]);
 
 }
 
