@@ -21,6 +21,8 @@ MODULE_LICENSE("GPL");
 #define TRANSACTIONS 10000
 #define _35_MILLION 35000000
 
+//void prefetch_tx(struct ttd_ring_channel *rx);
+//void prefetch_rx(struct ttd_ring_channel *rx);
 
 /* Timing is used via serializing instructios because this white paper says so:
  *
@@ -65,6 +67,7 @@ static void  producer_iops(struct ttd_ring_channel *chan)
 	start = RDTSC_START();
 	while (count < _35_MILLION) {
 		msg = get_send_slot(chan);
+		prefetch_tx(chan);
 		msg->fn_type = 0x31337;
 		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
 		msg->reg2 = 0x0;
@@ -74,6 +77,7 @@ static void  producer_iops(struct ttd_ring_channel *chan)
 		msg->reg6 = 0x6666666666666666;
 		msg->reg7 = 0x5555555555555555;
 		send(chan,msg);
+		//		prefetch_rx(chan);
 		msg = recv(chan);
 		transaction_complete(msg);
 		count++;
@@ -86,20 +90,23 @@ static void consumer_iops(struct ttd_ring_channel *chan)
 {
 	unsigned long count = 0;
 	struct ipc_message *msg;
+	struct ipc_message *sen;
 
 	while (count < _35_MILLION) {
 		msg = recv(chan);
 		transaction_complete(msg);
-		msg = get_send_slot(chan);
-		msg->fn_type = 0x1C0DEBAD;
-		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
-		msg->reg2 = 0x0;
-		msg->reg3 = 0x9999999999999999;
-		msg->reg4 = 0x8888888888888888;
-		msg->reg5 = 0x7777777777777777;
-		msg->reg6 = 0x6666666666666666;
-		msg->reg7 = 0x5555555555555555;
-		send(chan,msg);
+		sen = get_send_slot(chan);
+		//		prefetch_tx(chan);
+		sen->fn_type = 0x1C0DEBAD;
+		sen->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
+		sen->reg2 = 0x0;
+		sen->reg3 = 0x9999999999999999;
+		sen->reg4 = 0x8888888888888888;
+		sen->reg5 = 0x7777777777777777;
+		sen->reg6 = 0x6666666666666666;
+		sen->reg7 = 0x5555555555555555;
+		send(chan,sen);
+		//		prefetch_rx(chan);
 		count++;
 	}
 }
@@ -114,6 +121,29 @@ static void producer(struct ttd_ring_channel *chan)
 	while (count < TRANSACTIONS) {
 		start = RDTSC_START();
 
+		//prefetch_tx(chan);
+		msg = get_send_slot(chan);
+		//		prefetch_tx(chan);
+		msg->fn_type = 0x31337;
+		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
+		msg->reg2 = 0x0;
+		msg->reg3 = 0x9999999999999999;
+		msg->reg4 = 0x8888888888888888;
+		msg->reg5 = 0x7777777777777777;
+		msg->reg6 = 0x6666666666666666;
+		msg->reg7 = 0x5555555555555555;
+		send(chan,msg);
+		prefetch_rx(chan);
+		/*		msg = get_send_slot(chan);
+		msg->fn_type = 0x31337;
+		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
+		msg->reg2 = 0x0;
+		msg->reg3 = 0x9999999999999999;
+		msg->reg4 = 0x8888888888888888;
+		msg->reg5 = 0x7777777777777777;
+		msg->reg6 = 0x6666666666666666;
+		msg->reg7 = 0x5555555555555555;
+		send(chan,msg);
 		msg = get_send_slot(chan);
 		msg->fn_type = 0x31337;
 		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
@@ -124,8 +154,26 @@ static void producer(struct ttd_ring_channel *chan)
 		msg->reg6 = 0x6666666666666666;
 		msg->reg7 = 0x5555555555555555;
 		send(chan,msg);
+		msg = get_send_slot(chan);
+		msg->fn_type = 0x31337;
+		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
+		msg->reg2 = 0x0;
+		msg->reg3 = 0x9999999999999999;
+		msg->reg4 = 0x8888888888888888;
+		msg->reg5 = 0x7777777777777777;
+		msg->reg6 = 0x6666666666666666;
+		msg->reg7 = 0x5555555555555555;
+		send(chan,msg);
+
 		msg = recv(chan);
 		transaction_complete(msg);
+		msg = recv(chan);
+		transaction_complete(msg);
+		msg = recv(chan);
+		transaction_complete(msg);*/
+		msg = recv(chan);
+		transaction_complete(msg);
+
 
 		end = RDTSCP();
 		time[count] = end-start;
@@ -137,20 +185,23 @@ static void consumer(struct ttd_ring_channel *chan)
 {
 	unsigned long count = 0;
 	struct ipc_message *msg;
+	struct ipc_message *sen;
 
 	while (count < TRANSACTIONS) {
 		msg = recv(chan);
 		transaction_complete(msg);
-		msg = get_send_slot(chan);
-		msg->fn_type = 0x1C0DEBAD;
-		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
-		msg->reg2 = 0x0;
-		msg->reg3 = 0x9999999999999999;
-		msg->reg4 = 0x8888888888888888;
-		msg->reg5 = 0x7777777777777777;
-		msg->reg6 = 0x6666666666666666;
-		msg->reg7 = 0x5555555555555555;
-		send(chan,msg);
+		sen = get_send_slot(chan);
+		prefetch_tx(chan);
+		sen->fn_type = 0x1C0DEBAD;
+		sen->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
+		sen->reg2 = 0x0;
+		sen->reg3 = 0x9999999999999999;
+		sen->reg4 = 0x8888888888888888;
+		sen->reg5 = 0x7777777777777777;
+		sen->reg6 = 0x6666666666666666;
+		sen->reg7 = 0x5555555555555555;
+		send(chan, sen);
+		prefetch_rx(chan);
 		count++;
 	}
 }
@@ -183,11 +234,11 @@ static void dump_time(void)
 	sort(time, TRANSACTIONS, sizeof(unsigned long), compare, NULL);
 
 	min = time[0];
-	max = time[TRANSACTIONS-1];
+	max = time[(TRANSACTIONS) - 1];
 	counter = min;
 
 	pr_err("MIN\tMAX\tAVG\tMEDIAN\n");
-	pr_err("%lu & %lu & %llu & %lu \n", min, max, counter/TRANSACTIONS, time[4999]);
+	pr_err("%lu & %lu & %llu & %lu \n", min, max, counter/TRANSACTIONS, time[(TRANSACTIONS)/2]);
 
 }
 
@@ -197,11 +248,11 @@ int dispatch(void *data)
 		producer(data);
 		dump_time();
 		kfree(time);
-	        producer_iops(data);
+		//	        producer_iops(data);
 	}
 	else {
 		consumer(data);
-		consumer_iops(data);
+		//consumer_iops(data);
 	}
 
 	free_channel(data);
@@ -218,18 +269,29 @@ static void setup_tests(void)
 		return;
 
 	pr_err("mem fine\n");
-	prod = create_channel(4,0);
+	prod = create_channel(4);
 	if (!prod) {
 		pr_err("Failed to create channel 1");
 		return;
 	}
-	cons = create_channel(4,3);
+	cons = create_channel(4);
 	if (!cons) {
 		pr_err("Failed to create channel 2");
 		free_channel(prod);
 		return;
 	}
 	connect_channels(prod,cons);
+
+        if (attach_thread_to_channel(prod, 28, dispatch) == NULL ||
+            attach_thread_to_channel(cons, 30, dispatch) == NULL ) {
+                ttd_ring_channel_free(prod);
+                ttd_ring_channel_free(cons);
+                kfree(prod);
+                kfree(cons);
+                return;
+        }
+
+
 	ipc_start_thread(prod);
 	ipc_start_thread(cons);
 }

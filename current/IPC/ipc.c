@@ -55,7 +55,6 @@ static int wait_for_tx_slot(struct ipc_message *imsg)
 	while (check_tx_slot_available(imsg)) {
 
 #if defined(USE_MWAIT)
-		cpu_relax();
 		monitor_mwait(ecx, &imsg->msg_status, cstate_wait);
 #endif//usemwait
 #if defined(POLL)
@@ -223,3 +222,12 @@ int ipc_start_thread(struct ttd_ring_channel *chan)
 	return wake_up_process(chan->thread);
 }
 EXPORT_SYMBOL(ipc_start_thread);
+
+
+void prefetch_rx(struct ttd_ring_channel *rx) {
+	__builtin_prefetch((void *)get_rx_rec(rx, sizeof(struct ipc_message)), 1, 1);
+}
+
+void prefetch_tx(struct ttd_ring_channel *rx) {
+	__builtin_prefetch((void *)get_tx_rec(rx, sizeof(struct ipc_message)), 1, 1);
+}
