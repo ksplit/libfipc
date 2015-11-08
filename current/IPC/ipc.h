@@ -24,7 +24,7 @@ struct ipc_message{
 	unsigned long reg4;
 	unsigned long reg5;
 	unsigned long reg6;
-	unsigned long msg_id;
+	unsigned long reg7;
 	volatile uint32_t msg_status;
 }__attribute__((packed));
 

@@ -118,7 +118,7 @@ static void producer(struct ttd_ring_channel *chan)
 	unsigned long start,end;
 	struct ipc_message *msg;
 
-	while (count < TRANSACTIONS) {
+	while (count < TRANSACTIONS/4) {
 		start = RDTSC_START();
 
 		//prefetch_tx(chan);
@@ -133,8 +133,8 @@ static void producer(struct ttd_ring_channel *chan)
 		msg->reg6 = 0x6666666666666666;
 		msg->reg7 = 0x5555555555555555;
 		send(chan,msg);
-		prefetch_rx(chan);
-		/*		msg = get_send_slot(chan);
+		//		prefetch_rx(chan);
+		msg = get_send_slot(chan);
 		msg->fn_type = 0x31337;
 		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
 		msg->reg2 = 0x0;
@@ -170,7 +170,7 @@ static void producer(struct ttd_ring_channel *chan)
 		msg = recv(chan);
 		transaction_complete(msg);
 		msg = recv(chan);
-		transaction_complete(msg);*/
+		transaction_complete(msg);
 		msg = recv(chan);
 		transaction_complete(msg);
 
@@ -191,7 +191,7 @@ static void consumer(struct ttd_ring_channel *chan)
 		msg = recv(chan);
 		transaction_complete(msg);
 		sen = get_send_slot(chan);
-		prefetch_tx(chan);
+		//		prefetch_tx(chan);
 		sen->fn_type = 0x1C0DEBAD;
 		sen->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
 		sen->reg2 = 0x0;
@@ -201,7 +201,7 @@ static void consumer(struct ttd_ring_channel *chan)
 		sen->reg6 = 0x6666666666666666;
 		sen->reg7 = 0x5555555555555555;
 		send(chan, sen);
-		prefetch_rx(chan);
+		//		prefetch_rx(chan);
 		count++;
 	}
 }
@@ -227,18 +227,18 @@ static void dump_time(void)
         unsigned long min;
 	unsigned long max;
 
-	for (i = 0; i < TRANSACTIONS; i++) {
+	for (i = 0; i < TRANSACTIONS/4; i++) {
 		counter+= time[i];
 	}
 
-	sort(time, TRANSACTIONS, sizeof(unsigned long), compare, NULL);
+	sort(time, TRANSACTIONS/4, sizeof(unsigned long), compare, NULL);
 
 	min = time[0];
-	max = time[(TRANSACTIONS) - 1];
+	max = time[(TRANSACTIONS/4) - 1];
 	counter = min;
 
 	pr_err("MIN\tMAX\tAVG\tMEDIAN\n");
-	pr_err("%lu & %lu & %llu & %lu \n", min, max, counter/TRANSACTIONS, time[(TRANSACTIONS)/2]);
+	pr_err("%lu & %lu & %llu & %lu \n", min, max, counter/TRANSACTIONS, time[((TRANSACTIONS/4))/2]);
 
 }
 
