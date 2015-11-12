@@ -117,7 +117,7 @@ static void producer(struct ttd_ring_channel *chan)
 	while (count < TRANSACTIONS) {
 		start = RDTSC_START();
 		msg = get_send_slot(chan);
-		prefetch_tx(chan);
+		//prefetch_tx(chan);
 		msg->fn_type = 0x31337;
 		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
 		msg->reg2 = 0x0;
@@ -236,7 +236,7 @@ static void consumer(struct ttd_ring_channel *chan)
 		msg = recv(chan);
 		transaction_complete(msg);
 		sen = get_send_slot(chan);
-		prefetch_tx(chan);
+		//prefetch_tx(chan);
 		sen->fn_type = 0x1C0DEBAD;
 		sen->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
 		sen->reg2 = 0x0;
@@ -327,7 +327,7 @@ static void setup_tests(void)
 	connect_channels(prod,cons);
 
         if (attach_thread_to_channel(prod, 28, dispatch) == NULL ||
-            attach_thread_to_channel(cons, 30, dispatch) == NULL ) {
+            attach_thread_to_channel(cons, 31, dispatch) == NULL ) {
                 ttd_ring_channel_free(prod);
                 ttd_ring_channel_free(cons);
                 kfree(prod);
