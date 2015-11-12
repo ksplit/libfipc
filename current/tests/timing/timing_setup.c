@@ -131,7 +131,7 @@ static void producer(struct ttd_ring_channel *chan)
 		msg->reg6 = 0x6666666666666666;
 		msg->reg7 = 0x5555555555555555;
 		send(chan,msg);
-		//prefetch_rx(chan);
+		prefetch_rx(chan);
 		/*		msg = get_send_slot(chan);
 		msg->fn_type = 0x31337;
 		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
@@ -251,7 +251,7 @@ static void consumer(struct ttd_ring_channel *chan)
 		sen->reg6 = 0x6666666666666666;
 		sen->reg7 = 0x5555555555555555;
 		send(chan, sen);
-		//prefetch_rx(chan);
+		prefetch_rx(chan);
 		count++;
 	}
 }
