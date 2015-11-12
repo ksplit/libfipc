@@ -96,7 +96,6 @@ static void consumer_iops(struct ttd_ring_channel *chan)
 		msg = recv(chan);
 		transaction_complete(msg);
 		sen = get_send_slot(chan);
-		//		prefetch_tx(chan);
 		sen->fn_type = 0x1C0DEBAD;
 		sen->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
 		sen->reg2 = 0x0;
@@ -106,7 +105,6 @@ static void consumer_iops(struct ttd_ring_channel *chan)
 		sen->reg6 = 0x6666666666666666;
 		sen->reg7 = 0x5555555555555555;
 		send(chan,sen);
-		prefetch_rx(chan);
 		count++;
 	}
 }
@@ -118,12 +116,23 @@ static void producer(struct ttd_ring_channel *chan)
 	unsigned long start,end;
 	struct ipc_message *msg;
 
-	while (count < TRANSACTIONS/8) {
+	while (count < TRANSACTIONS) {
 		start = RDTSC_START();
 
 		//prefetch_tx(chan);
 		msg = get_send_slot(chan);
-		//		prefetch_tx(chan);
+		//prefetch_tx(chan);
+		msg->fn_type = 0x31337;
+		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
+		msg->reg2 = 0x0;
+		msg->reg3 = 0x9999999999999999;
+		msg->reg4 = 0x8888888888888888;
+		msg->reg5 = 0x7777777777777777;
+		msg->reg6 = 0x6666666666666666;
+		msg->reg7 = 0x5555555555555555;
+		send(chan,msg);
+		//prefetch_rx(chan);
+		/*		msg = get_send_slot(chan);
 		msg->fn_type = 0x31337;
 		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
 		msg->reg2 = 0x0;
@@ -152,19 +161,9 @@ static void producer(struct ttd_ring_channel *chan)
 		msg->reg5 = 0x7777777777777777;
 		msg->reg6 = 0x6666666666666666;
 		msg->reg7 = 0x5555555555555555;
-		send(chan,msg);
-		msg = get_send_slot(chan);
-		msg->fn_type = 0x31337;
-		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
-		msg->reg2 = 0x0;
-		msg->reg3 = 0x9999999999999999;
-		msg->reg4 = 0x8888888888888888;
-		msg->reg5 = 0x7777777777777777;
-		msg->reg6 = 0x6666666666666666;
-		msg->reg7 = 0x5555555555555555;
-		send(chan,msg);
+		send(chan,msg); 
+		
 
-		/* 4 */
 		msg = get_send_slot(chan);
 		//		prefetch_tx(chan);
 		msg->fn_type = 0x31337;
@@ -205,10 +204,10 @@ static void producer(struct ttd_ring_channel *chan)
 		msg->reg5 = 0x7777777777777777;
 		msg->reg6 = 0x6666666666666666;
 		msg->reg7 = 0x5555555555555555;
-		send(chan,msg);
+		send(chan,msg);*/
 		/* 8 */
 
-		msg = recv(chan);
+		/*		msg = recv(chan);
 		transaction_complete(msg);
 		msg = recv(chan);
 		transaction_complete(msg);
@@ -221,7 +220,7 @@ static void producer(struct ttd_ring_channel *chan)
 		msg = recv(chan);
 		transaction_complete(msg);
 		msg = recv(chan);
-		transaction_complete(msg);
+		transaction_complete(msg);*/
 		msg = recv(chan);
 		transaction_complete(msg);
 
@@ -242,7 +241,7 @@ static void consumer(struct ttd_ring_channel *chan)
 		msg = recv(chan);
 		transaction_complete(msg);
 		sen = get_send_slot(chan);
-		//		prefetch_tx(chan);
+		//prefetch_tx(chan);
 		sen->fn_type = 0x1C0DEBAD;
 		sen->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
 		sen->reg2 = 0x0;
@@ -252,7 +251,7 @@ static void consumer(struct ttd_ring_channel *chan)
 		sen->reg6 = 0x6666666666666666;
 		sen->reg7 = 0x5555555555555555;
 		send(chan, sen);
-		//		prefetch_rx(chan);
+		//prefetch_rx(chan);
 		count++;
 	}
 }
@@ -278,18 +277,18 @@ static void dump_time(void)
         unsigned long min;
 	unsigned long max;
 
-	for (i = 0; i < TRANSACTIONS/8; i++) {
+	for (i = 0; i < TRANSACTIONS; i++) {
 		counter+= time[i];
 	}
 
-	sort(time, TRANSACTIONS/8, sizeof(unsigned long), compare, NULL);
+	sort(time, TRANSACTIONS, sizeof(unsigned long), compare, NULL);
 
 	min = time[0];
-	max = time[(TRANSACTIONS/8) - 1];
+	max = time[(TRANSACTIONS) - 1];
 	counter = min;
 
 	pr_err("MIN\tMAX\tAVG\tMEDIAN\n");
-	pr_err("%lu & %lu & %llu & %lu \n", min, max, counter/TRANSACTIONS, time[((TRANSACTIONS/8))/2]);
+	pr_err("%lu & %lu & %llu & %lu \n", min, max, counter/TRANSACTIONS, time[((TRANSACTIONS))/2]);
 
 }
 
@@ -334,7 +333,7 @@ static void setup_tests(void)
 	connect_channels(prod,cons);
 
         if (attach_thread_to_channel(prod, 28, dispatch) == NULL ||
-            attach_thread_to_channel(cons, 4, dispatch) == NULL ) {
+            attach_thread_to_channel(cons, 24, dispatch) == NULL ) {
                 ttd_ring_channel_free(prod);
                 ttd_ring_channel_free(cons);
                 kfree(prod);
