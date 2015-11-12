@@ -67,7 +67,6 @@ static void  producer_iops(struct ttd_ring_channel *chan)
 	start = RDTSC_START();
 	while (count < _35_MILLION) {
 		msg = get_send_slot(chan);
-		prefetch_tx(chan);
 		msg->fn_type = 0x31337;
 		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
 		msg->reg2 = 0x0;
@@ -77,7 +76,6 @@ static void  producer_iops(struct ttd_ring_channel *chan)
 		msg->reg6 = 0x6666666666666666;
 		msg->reg7 = 0x5555555555555555;
 		send(chan,msg);
-		//		prefetch_rx(chan);
 		msg = recv(chan);
 		transaction_complete(msg);
 		count++;
@@ -118,8 +116,6 @@ static void producer(struct ttd_ring_channel *chan)
 
 	while (count < TRANSACTIONS) {
 		start = RDTSC_START();
-
-		//prefetch_tx(chan);
 		msg = get_send_slot(chan);
 		//prefetch_tx(chan);
 		msg->fn_type = 0x31337;
@@ -131,7 +127,6 @@ static void producer(struct ttd_ring_channel *chan)
 		msg->reg6 = 0x6666666666666666;
 		msg->reg7 = 0x5555555555555555;
 		send(chan,msg);
-		prefetch_rx(chan);
 		/*		msg = get_send_slot(chan);
 		msg->fn_type = 0x31337;
 		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
@@ -251,7 +246,6 @@ static void consumer(struct ttd_ring_channel *chan)
 		sen->reg6 = 0x6666666666666666;
 		sen->reg7 = 0x5555555555555555;
 		send(chan, sen);
-		prefetch_rx(chan);
 		count++;
 	}
 }
@@ -333,7 +327,7 @@ static void setup_tests(void)
 	connect_channels(prod,cons);
 
         if (attach_thread_to_channel(prod, 28, dispatch) == NULL ||
-            attach_thread_to_channel(cons, 24, dispatch) == NULL ) {
+            attach_thread_to_channel(cons, 29, dispatch) == NULL ) {
                 ttd_ring_channel_free(prod);
                 ttd_ring_channel_free(cons);
                 kfree(prod);
