@@ -278,7 +278,7 @@ noinline void foo4(void) {
 
 
 
-void callee(void *chan)
+int callee(void *chan)
 {
 //	test_async_ipc(chan);
 
@@ -294,4 +294,5 @@ void callee(void *chan)
 	printk(KERN_ERR "lcd async exiting module and deleting ptstate");
 	thc_done();
 	kfree(current->ptstate);*/
+	return 1;
 }
