@@ -63,13 +63,12 @@ static void setup_tests(void)
 
 static int __init rpc_init(void)
 {
-	int ret = 0;
-	if (!this_cpu_has(X86_FEATURE_MWAIT))
-		return -EPERM;
-
 	setup_tests();
 
-	return ret;
+
+
+
+	return 0;
 }
 static int __exit rpc_rmmod(void)
 {

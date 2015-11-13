@@ -1,6 +1,6 @@
 #include <linux/kernel.h>
 
-#include "ipc.h"
+#include "../../IPC/ipc.h"
 
 typedef enum {NULL_INVOCATION, ADD_CONSTANT, ADD_NUMS, ADD_3_NUMS,
 	      ADD_4_NUMS, ADD_5_NUMS, ADD_6_NUMS} fn_types;

@@ -3,7 +3,7 @@
 #define _INCL_GUARD
 
 #include <linux/types.h>
-#include <../ring-chan/ring-channel.h>
+#include "../ring-chan/ring-channel.h"
 
 #define CHAR_BITS 8
 

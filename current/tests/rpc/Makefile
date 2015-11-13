@@ -1,13 +1,8 @@
 obj-m := rpc_testing.o
 
-#ccflags-y += -O2 -I/users/mquigley/fast-ipc-module/current/IPC
-
-
-ccflags-y += -O2 -I/users/mquigley/fast-ipc-module/current/IPC 
-#-I/local/sda4/async/xcap-capability-linux/include
+ccflags-y += -O2 -I/users/mquigley/fast-ipc-module/current/IPC
 
 INC_DIR = ../../IPC
-
 CFLAGS_ipc.o = -O2 -DPOLL
 CFLAGS_ring-channel.o = -I$(INC_DIR) 
 DEPS= $(INC_DIR)/ipc.h

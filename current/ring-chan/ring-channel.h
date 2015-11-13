@@ -17,7 +17,7 @@
 
 #include <linux/string.h>
 #include <linux/types.h>
-#include "ipc.h"
+#include "../IPC/ipc.h"
 
 struct ttd_buf {
 	/* PRODUCER */
