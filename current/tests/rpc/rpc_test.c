@@ -63,12 +63,18 @@ static void setup_tests(void)
 
 static int __init rpc_init(void)
 {
-	setup_tests();
+	int ret = 0;
 
+	#if defined(USE_MWAIT)
+        	if (!this_cpu_has(X86_FEATURE_MWAIT))
+		{
+			printk(KERN_ERR "CPU does not have X86_FEATURE_MWAIT ");
+                	return -EPERM;
+		}
+	#endif
+        setup_tests();
 
-
-
-	return 0;
+        return ret;
 }
 static int __exit rpc_rmmod(void)
 {
