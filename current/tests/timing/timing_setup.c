@@ -18,7 +18,8 @@ static unsigned long *time;
 
 MODULE_LICENSE("GPL");
 
-#define TRANSACTIONS 1000
+#define TRANSACTIONS 10000/2
+#define CONS_TRANSACTIONS 10000
 #define _35_MILLION 35000000
 
 //void prefetch_tx(struct ttd_ring_channel *rx);
@@ -126,6 +127,19 @@ static void producer(struct ttd_ring_channel *chan)
 		msg->reg7 = 0x5555555555555555;
 		send(chan,msg);
 
+		msg = get_send_slot(chan);
+		msg->fn_type = 0x99;
+		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
+		msg->reg2 = 0x0;
+		msg->reg3 = 0x9999999999999999;
+		msg->reg4 = 0x8888888888888888;
+		msg->reg5 = 0x7777777777777777;
+		msg->reg6 = 0x6666666666666666;
+		msg->reg7 = 0x5555555555555555;
+		send(chan,msg);
+
+		msg = recv(chan);
+		transaction_complete(msg);
 		msg = recv(chan);
 		transaction_complete(msg);
 
@@ -141,7 +155,7 @@ static void consumer(struct ttd_ring_channel *chan)
 	struct ipc_message *msg;
 	struct ipc_message *sen;
 
-	while (count < TRANSACTIONS) {
+	while (count < CONS_TRANSACTIONS) {
 		msg = recv(chan);
 		transaction_complete(msg);
 		sen = get_send_slot(chan);
@@ -183,7 +197,7 @@ static void dump_time(void)
 
 	for (i = 0; i < TRANSACTIONS; i++) {
 		counter+= time[i];
-		pr_err("%d\n", time[i]);
+		//pr_err("%d\n", time[i]);
 	}
 
 	sort(time, TRANSACTIONS, sizeof(unsigned long), compare, NULL);
