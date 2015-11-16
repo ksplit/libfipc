@@ -51,10 +51,13 @@ int caller(void *channel)
 
 	unsigned long num_transactions = 0;
 	unsigned long temp_res = 0;
+	unsigned long msg_id   = 0;
         struct ttd_ring_channel *chan = channel;
 	struct ipc_message *msg;
 	while (num_transactions < TRANSACTIONS) {
 		msg = recv(chan);
+		msg_id = msg->msg_id;
+		printk(KERN_ERR "recv regs:\n 0x%lx\n 0x%lx\n 0x%lx\n 0x%lx\n 0x%lx\n 0x%lx\n status = 0x%lx\n", msg->reg1, msg->reg2, msg->reg3, msg->reg4, msg->reg5, msg->reg6, msg->msg_status);
 
 		switch(msg->fn_type) {
 		case NULL_INVOCATION:
@@ -78,6 +81,7 @@ int caller(void *channel)
 			transaction_complete(msg);
 			msg = get_send_slot(chan);
 			msg->fn_type = ADD_NUMS;
+			msg->msg_id = msg_id;
 			msg->reg1 = temp_res;
 			send(chan, msg);
 			break;

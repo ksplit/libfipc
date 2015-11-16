@@ -227,7 +227,7 @@ noinline struct ipc_message *async_recv(struct ttd_ring_channel *rx, unsigned lo
 		}
 		else
 		{
-			THCYield();
+			//THCYield();
 		}
 	}	
 

@@ -92,10 +92,15 @@ static unsigned long add_nums_async(unsigned long trans, unsigned long res1, awe
 	msg->fn_type = ADD_NUMS;
 	msg->reg1    = trans;
 	msg->reg2    = res1;
+	msg->reg3    = res1;
+	msg->reg4    = res1;
+	msg->reg5    = res1;
+	msg->reg6    = res1;
 	msg->msg_id  = msg_id;
 	send(channel,msg);
 	//msg = recv(channel);
 	msg = async_recv(channel, msg_id);
+	printk(KERN_ERR "result = %lx\n", msg->reg1);
 	result = msg->reg1;
 	transaction_complete(msg);
 	
@@ -201,22 +206,21 @@ static void test_async_ipc(void* chan)
 	thc_latch_init(&(current->ptstate->latch));
 	thc_init();
 
-	get_random_bytes(&res1, sizeof(res1));
+	res1 = 1;
 	res2 = res1+res1;
 	res3 = res1 + res2;
 	res4 = res3 + res2;
 	res5 = res4 + res3;
 	DO_FINISH(
-//	while (num_transactions < ASYNC_TRANSACTIONS) {
-//		start = RDTSC_START();
-		ASYNC(add_nums_async(num_transactions, res1, awe););
-//		printk(KERN_ERR "middle of async");
-//		ASYNC(add_nums_async(num_transactions + 1, res1, awe););
-//		end = RDTSCP();
-//		pr_err("%lu\n", end-start);
-//		num_transactions++;
-//	});
-	);
+		while (num_transactions < TRANSACTIONS) {
+		start = RDTSC_START();
+
+		ASYNC(add_nums_async(num_transactions, 1, awe););
+
+		end = RDTSCP();
+		pr_err("%lu\n", end-start);
+		num_transactions++;
+	});
 	pr_err("Complete\n");
 	printk(KERN_ERR "lcd async exiting module and deleting ptstate");
 	thc_done();
@@ -280,9 +284,9 @@ noinline void foo4(void) {
 
 int callee(void *chan)
 {
-//	test_async_ipc(chan);
+	test_async_ipc(chan);
 
-	test_sync_ipc(chan);
+//	test_sync_ipc(chan);
 /*
 	current->ptstate = kzalloc(sizeof(struct ptstate_t), GFP_KERNEL);
 	thc_latch_init(&(current->ptstate->latch));
