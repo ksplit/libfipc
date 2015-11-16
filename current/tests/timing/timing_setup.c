@@ -18,7 +18,7 @@ static unsigned long *time;
 
 MODULE_LICENSE("GPL");
 
-#define TRANSACTIONS 10000
+#define TRANSACTIONS 1000
 #define _35_MILLION 35000000
 
 //void prefetch_tx(struct ttd_ring_channel *rx);
@@ -53,7 +53,6 @@ static unsigned long RDTSCP(void)
         : "=a"(tsc)
         :
         : "%rcx", "%rdx");
-
 	return tsc;
 }
 
@@ -117,8 +116,7 @@ static void producer(struct ttd_ring_channel *chan)
 	while (count < TRANSACTIONS) {
 		start = RDTSC_START();
 		msg = get_send_slot(chan);
-		prefetch_tx(chan);
-		msg->fn_type = 0x31337;
+		msg->fn_type = 0x99;
 		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
 		msg->reg2 = 0x0;
 		msg->reg3 = 0x9999999999999999;
@@ -127,98 +125,9 @@ static void producer(struct ttd_ring_channel *chan)
 		msg->reg6 = 0x6666666666666666;
 		msg->reg7 = 0x5555555555555555;
 		send(chan,msg);
-		/*		msg = get_send_slot(chan);
-		msg->fn_type = 0x31337;
-		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
-		msg->reg2 = 0x0;
-		msg->reg3 = 0x9999999999999999;
-		msg->reg4 = 0x8888888888888888;
-		msg->reg5 = 0x7777777777777777;
-		msg->reg6 = 0x6666666666666666;
-		msg->reg7 = 0x5555555555555555;
-		send(chan,msg);
-		msg = get_send_slot(chan);
-		msg->fn_type = 0x31337;
-		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
-		msg->reg2 = 0x0;
-		msg->reg3 = 0x9999999999999999;
-		msg->reg4 = 0x8888888888888888;
-		msg->reg5 = 0x7777777777777777;
-		msg->reg6 = 0x6666666666666666;
-		msg->reg7 = 0x5555555555555555;
-		send(chan,msg);
-		msg = get_send_slot(chan);
-		msg->fn_type = 0x31337;
-		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
-		msg->reg2 = 0x0;
-		msg->reg3 = 0x9999999999999999;
-		msg->reg4 = 0x8888888888888888;
-		msg->reg5 = 0x7777777777777777;
-		msg->reg6 = 0x6666666666666666;
-		msg->reg7 = 0x5555555555555555;
-		send(chan,msg); 
-		
 
-		msg = get_send_slot(chan);
-		//		prefetch_tx(chan);
-		msg->fn_type = 0x31337;
-		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
-		msg->reg2 = 0x0;
-		msg->reg3 = 0x9999999999999999;
-		msg->reg4 = 0x8888888888888888;
-		msg->reg5 = 0x7777777777777777;
-		msg->reg6 = 0x6666666666666666;
-		msg->reg7 = 0x5555555555555555;
-		send(chan,msg);
-		msg = get_send_slot(chan);
-		msg->fn_type = 0x31337;
-		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
-		msg->reg2 = 0x0;
-		msg->reg3 = 0x9999999999999999;
-		msg->reg4 = 0x8888888888888888;
-		msg->reg5 = 0x7777777777777777;
-		msg->reg6 = 0x6666666666666666;
-		msg->reg7 = 0x5555555555555555;
-		send(chan,msg);
-		msg = get_send_slot(chan);
-		msg->fn_type = 0x31337;
-		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
-		msg->reg2 = 0x0;
-		msg->reg3 = 0x9999999999999999;
-		msg->reg4 = 0x8888888888888888;
-		msg->reg5 = 0x7777777777777777;
-		msg->reg6 = 0x6666666666666666;
-		msg->reg7 = 0x5555555555555555;
-		send(chan,msg);
-		msg = get_send_slot(chan);
-		msg->fn_type = 0x31337;
-		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
-		msg->reg2 = 0x0;
-		msg->reg3 = 0x9999999999999999;
-		msg->reg4 = 0x8888888888888888;
-		msg->reg5 = 0x7777777777777777;
-		msg->reg6 = 0x6666666666666666;
-		msg->reg7 = 0x5555555555555555;
-		send(chan,msg);*/
-		/* 8 */
-
-		/*		msg = recv(chan);
-		transaction_complete(msg);
 		msg = recv(chan);
 		transaction_complete(msg);
-		msg = recv(chan);
-		transaction_complete(msg);
-		msg = recv(chan);
-		transaction_complete(msg);
-		msg = recv(chan);
-		transaction_complete(msg);
-		msg = recv(chan);
-		transaction_complete(msg);
-		msg = recv(chan);
-		transaction_complete(msg);*/
-		msg = recv(chan);
-		transaction_complete(msg);
-
 
 		end = RDTSCP();
 		time[count] = end-start;
@@ -237,7 +146,7 @@ static void consumer(struct ttd_ring_channel *chan)
 		transaction_complete(msg);
 		sen = get_send_slot(chan);
 		prefetch_tx(chan);
-		sen->fn_type = 0x1C0DEBAD;
+		sen->fn_type = 0x99;
 		sen->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
 		sen->reg2 = 0x0;
 		sen->reg3 = 0x9999999999999999;
@@ -245,6 +154,7 @@ static void consumer(struct ttd_ring_channel *chan)
 		sen->reg5 = 0x7777777777777777;
 		sen->reg6 = 0x6666666666666666;
 		sen->reg7 = 0x5555555555555555;
+		//prefetch_rx(chan);
 		send(chan, sen);
 		count++;
 	}
@@ -273,13 +183,14 @@ static void dump_time(void)
 
 	for (i = 0; i < TRANSACTIONS; i++) {
 		counter+= time[i];
+		pr_err("%d\n", time[i]);
 	}
 
 	sort(time, TRANSACTIONS, sizeof(unsigned long), compare, NULL);
 
 	min = time[0];
 	max = time[(TRANSACTIONS) - 1];
-	counter = min;
+	//	counter = min;
 
 	pr_err("MIN\tMAX\tAVG\tMEDIAN\n");
 	pr_err("%lu & %lu & %llu & %lu \n", min, max, counter/TRANSACTIONS, time[((TRANSACTIONS))/2]);
@@ -353,7 +264,7 @@ static int __init timing_init(void)
 }
 static int __exit timing_rmmod(void)
 {
-
+	
 	return 0;
 }
 
