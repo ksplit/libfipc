@@ -18,7 +18,7 @@ static unsigned long *time;
 
 MODULE_LICENSE("GPL");
 
-#define TRANSACTIONS 10000/2
+#define TRANSACTIONS 10000/4
 #define CONS_TRANSACTIONS 10000
 #define _35_MILLION 35000000
 
@@ -138,10 +138,38 @@ static void producer(struct ttd_ring_channel *chan)
 		msg->reg7 = 0x5555555555555555;
 		send(chan,msg);
 
+
+		msg = get_send_slot(chan);
+		msg->fn_type = 0x99;
+		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
+		msg->reg2 = 0x0;
+		msg->reg3 = 0x9999999999999999;
+		msg->reg4 = 0x8888888888888888;
+		msg->reg5 = 0x7777777777777777;
+		msg->reg6 = 0x6666666666666666;
+		msg->reg7 = 0x5555555555555555;
+		send(chan,msg);
+
+		msg = get_send_slot(chan);
+		msg->fn_type = 0x99;
+		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
+		msg->reg2 = 0x0;
+		msg->reg3 = 0x9999999999999999;
+		msg->reg4 = 0x8888888888888888;
+		msg->reg5 = 0x7777777777777777;
+		msg->reg6 = 0x6666666666666666;
+		msg->reg7 = 0x5555555555555555;
+		send(chan,msg);
+
 		msg = recv(chan);
 		transaction_complete(msg);
 		msg = recv(chan);
 		transaction_complete(msg);
+		msg = recv(chan);
+		transaction_complete(msg);
+		msg = recv(chan);
+		transaction_complete(msg);
+
 
 		end = RDTSCP();
 		time[count] = end-start;
