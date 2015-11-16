@@ -43,6 +43,5 @@ int ipc_start_thread(struct ttd_ring_channel *chan);
 void connect_channels(struct ttd_ring_channel *c1, struct ttd_ring_channel *t2);
 void prefetch_rx(struct ttd_ring_channel *rx);
 void prefetch_tx(struct ttd_ring_channel *rx);
-
-
+void prefetch_tx_range(struct ttd_ring_channel *rx, unsigned long range);
 #endif

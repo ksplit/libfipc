@@ -37,6 +37,24 @@ static inline void monitor_mwait(unsigned long rcx, volatile uint32_t *rax,
 	__mwait(wait_type, rcx);
 }
 
+static inline int check_tx_slot_available_experimental(struct ipc_message *loc)
+{
+	return atomic_cmpxchg(&loc->msg_status, tx_slot_avail, 0) !=
+		tx_slot_avail;
+	//loc->msg_status ^= tx_slot_avail;
+	//asm volatile("mfence");
+	//return loc->msg_status == 0;
+}
+
+static inline int check_rx_slot_available_experimental(struct ipc_message *loc)
+{
+
+	return atomic_cmpxchg(&loc->msg_status, rx_msg_avail, 0) != rx_msg_avail;
+	//	loc->msg_status ^= rx_msg_avail;
+	//asm volatile("mfence\n");
+	//return loc->msg_status == 0;
+}
+
 static inline int check_rx_slot_available(struct ipc_message *loc)
 {
 	return (likely(loc->msg_status != rx_msg_avail));
@@ -223,9 +241,21 @@ int ipc_start_thread(struct ttd_ring_channel *chan)
 }
 EXPORT_SYMBOL(ipc_start_thread);
 
+void prefetch_tx_range(struct ttd_ring_channel *rx, unsigned long range) {
+	void *temp = get_tx_rec(rx, sizeof(struct ipc_message));
+	size_t stride = sizeof(struct ipc_message);
+
+	/* obviously this wont wrap... todo later */
+	while (range--) {
+		__builtin_prefetch(temp, 1, 1);
+		/* void* math is defined in gcc */
+		temp += stride;
+	}
+
+}
 
 void prefetch_rx(struct ttd_ring_channel *rx) {
-	__builtin_prefetch((void *)get_rx_rec(rx, sizeof(struct ipc_message)), 1, 1);
+	__builtin_prefetch((void *)get_rx_rec(rx, sizeof(struct ipc_message)), 0, 0);
 }
 
 void prefetch_tx(struct ttd_ring_channel *rx) {
