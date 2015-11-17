@@ -18,13 +18,16 @@ static unsigned long *time;
 
 MODULE_LICENSE("GPL");
 
-#define TRANSACTIONS 10000/8
+#define TRANSACTIONS 10000
 #define CONS_TRANSACTIONS 10000
 #define _35_MILLION 35000000
 
+
+static atomic_t prod_done;
+static atomic_t cons_done;
+
 //void prefetch_tx(struct ttd_ring_channel *rx);
 //void prefetch_rx(struct ttd_ring_channel *rx);
-
 /* Timing is used via serializing instructios because this white paper says so:
  *
  *  http://www.intel.com/content/www/us/en/intelligent-systems/embedded-systems-training/ia-32-ia-64-benchmark-code-execution-paper.html
@@ -118,6 +121,7 @@ static void producer(struct ttd_ring_channel *chan)
 		start = RDTSC_START();
 
 		msg = get_send_slot(chan);
+		prefetch_tx(chan);
 		msg->fn_type = 0x99;
 		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
 		msg->reg2 = 0x0;
@@ -127,7 +131,7 @@ static void producer(struct ttd_ring_channel *chan)
 		msg->reg6 = 0x6666666666666666;
 		msg->reg7 = 0x5555555555555555;
 		send(chan,msg);
-
+		/*
 		msg = get_send_slot(chan);
 		msg->fn_type = 0x99;
 		msg->reg1 = 0xAAAAAAAAAAAAAAAA; //414141
@@ -206,7 +210,7 @@ static void producer(struct ttd_ring_channel *chan)
 		msg->reg6 = 0x6666666666666666;
 		msg->reg7 = 0x5555555555555555;
 		send(chan,msg);
-		//prefetch_tx_range(chan, 4);
+		//prefetch_tx_range(chan, 8);
 
 		msg = recv(chan);
 		transaction_complete(msg);
@@ -221,7 +225,7 @@ static void producer(struct ttd_ring_channel *chan)
 		msg = recv(chan);
 		transaction_complete(msg);
 		msg = recv(chan);
-		transaction_complete(msg);
+		transaction_complete(msg);*/
 		msg = recv(chan);
 		transaction_complete(msg);
 
@@ -303,15 +307,16 @@ int dispatch(void *data)
 	if(data == prod) {
 		producer(data);
 		dump_time();
-		kfree(time);
+		atomic_set(&prod_done, 1);
 		//	        producer_iops(data);
 	}
 	else {
 		consumer(data);
+		atomic_set(&cons_done, 1);
 		//consumer_iops(data);
 	}
 
-	free_channel(data);
+	//free_channel(data);
 	return 1;
 }
 
@@ -336,20 +341,41 @@ static void setup_tests(void)
 		free_channel(prod);
 		return;
 	}
-	connect_channels(prod,cons);
+	connect_channels(prod, cons);
 
-        if (attach_thread_to_channel(prod, 28, dispatch) == NULL ||
-            attach_thread_to_channel(cons, 31, dispatch) == NULL ) {
-                ttd_ring_channel_free(prod);
-                ttd_ring_channel_free(cons);
-                kfree(prod);
-                kfree(cons);
-                return;
-        }
+	int i = 0, j = 0;
 
+	for (i = 0; i < 32; i++) {
+		for (j = 0; j < 32; j++) {
+			if (j == i)
+				continue;
 
-	ipc_start_thread(prod);
-	ipc_start_thread(cons);
+			if (attach_thread_to_channel(prod, i, dispatch) == NULL ||
+			    attach_thread_to_channel(cons, j, dispatch) == NULL ) {
+				ttd_ring_channel_free(prod);
+				ttd_ring_channel_free(cons);
+				kfree(prod);
+				kfree(cons);
+				return;
+			}
+			pr_err("Starting Producer on %d Socket %u\n", i, cpu_data(i).phys_proc_id);
+                        pr_err("Starting Consumer on %d Socket %u\n", j, cpu_data(j).phys_proc_id);
+			
+			atomic_set(&prod_done, 0);
+			atomic_set(&cons_done, 0);
+			ipc_start_thread(prod);
+			ipc_start_thread(cons);
+
+			while (1) {
+				schedule();
+				if (atomic_read(&prod_done) == 1 && atomic_read(&cons_done))
+					break;
+			}
+
+			pr_err("\n\n");
+		}
+	}
+
 }
 
 static int __init timing_init(void)
