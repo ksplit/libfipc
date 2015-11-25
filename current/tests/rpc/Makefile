@@ -1,7 +1,7 @@
 obj-m := rpc_testing.o
 
 ccflags-y += -O2 -I/users/mquigley/fast-ipc-module/current/IPC
-
+EXTRA_CFLAGS=-DDEBUG_OUTPUT
 INC_DIR = ../../IPC
 CFLAGS_ipc.o = -O2 -DPOLL
 CFLAGS_ring-channel.o = -I$(INC_DIR) 

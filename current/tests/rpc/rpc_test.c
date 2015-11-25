@@ -55,10 +55,9 @@ static void setup_tests(void)
                 kfree(chan2);
                 return;
         }
-
 	ipc_start_thread(chan1);
-	ipc_start_thread(chan2);
-	//callee(NULL);
+//	ipc_start_thread(chan2);
+//	callee(NULL);
 }
 
 static int __init rpc_init(void)

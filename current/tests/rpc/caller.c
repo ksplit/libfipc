@@ -57,7 +57,6 @@ int caller(void *channel)
 	while (num_transactions < TRANSACTIONS) {
 		msg = recv(chan);
 		msg_id = msg->msg_id;
-		printk(KERN_ERR "recv regs:\n 0x%lx\n 0x%lx\n 0x%lx\n 0x%lx\n 0x%lx\n 0x%lx\n status = 0x%lx\n", msg->reg1, msg->reg2, msg->reg3, msg->reg4, msg->reg5, msg->reg6, msg->msg_status);
 
 		switch(msg->fn_type) {
 		case NULL_INVOCATION:
