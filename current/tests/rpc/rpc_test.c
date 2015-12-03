@@ -56,7 +56,10 @@ static void setup_tests(void)
                 return;
         }
 	ipc_start_thread(chan1);
-//	ipc_start_thread(chan2);
+
+
+
+	ipc_start_thread(chan2);
 //	callee(NULL);
 }
 

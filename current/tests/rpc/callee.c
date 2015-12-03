@@ -83,7 +83,6 @@ static unsigned long add_nums(unsigned long trans, unsigned long res1)
 static unsigned long add_nums_async(unsigned long trans, unsigned long res1, awe_t* awe)
 {
 	struct ipc_message *msg;
-	//int i = 0;
 	unsigned long result;
 	unsigned long msg_id = (unsigned long)awe;
 	
@@ -97,7 +96,6 @@ static unsigned long add_nums_async(unsigned long trans, unsigned long res1, awe
 	msg->reg6    = res1;
 	msg->msg_id  = msg_id;
 	send(channel,msg);
-	//msg = recv(channel);
 	msg = async_recv(channel, msg_id);
 	printk(KERN_ERR "result = %lx\n", msg->reg1);
 	result = msg->reg1;
@@ -201,8 +199,6 @@ static void test_async_ipc(void* chan)
 
 	channel = chan;
 	
-	current->ptstate = kzalloc(sizeof(struct ptstate_t), GFP_KERNEL);
-	thc_latch_init(&(current->ptstate->latch));
 	thc_init();
 
 	res1 = 1;
@@ -224,7 +220,6 @@ static void test_async_ipc(void* chan)
 	pr_err("Complete\n");
 	printk(KERN_ERR "lcd async exiting module and deleting ptstate");
 	thc_done();
-	kfree(current->ptstate);
 }
 
 static void test_sync_ipc(void* chan)
@@ -260,43 +255,17 @@ static void test_sync_ipc(void* chan)
         return 1;
 }
 
-void foo3(void);
-void foo4(void);
-
-noinline void foo3(void) {
-	printk(KERN_ERR "lcd async entering foo1\n");
-	printk(KERN_ERR "lcd async yielding to foo2\n");
-	int count = 0;
-	while (count < 2) {
-	 printk(KERN_ERR "lcd async Yielding\n");
-	 THCYield();	
-	 count++;
-	}
-	printk(KERN_ERR "lcd async foo3 complete\n");
-}
-
-noinline void foo4(void) {
-	printk(KERN_ERR "lcd async entering foo2\n");
-	printk(KERN_ERR "lcd async foo2 Complete\n");
-}
-
-
-
 int callee(void *chan)
 {
-//	test_async_ipc(chan);
-
-	//current->ptstate = kzalloc(sizeof(struct ptstate_t), GFP_KERNEL);
-	//thc_latch_init(&(current->ptstate->latch));
-	thc_init();
-    //assert((PTS() == NULL) && "PTS already initialized");
-	printk(KERN_ERR "lcd async entering module ptstate allocated");
-	DO_FINISH(ASYNC(foo3();); ASYNC(foo4();););
- //printk(KERN_ERR "lcd async apit_init coming back\n");
-    printk(KERN_ERR "lcd async end of DO_FINISH");
-	printk(KERN_ERR "lcd async exiting module and deleting ptstate");
-	thc_done();
-	kfree(current->ptstate);
-
+	//NOTE: Setting the return address like below is a hack
+	//if async is run inside a kernel thread, it is important to do this,
+	//then restore it when async finishes.
+	void ** frame = (void**)__builtin_frame_address(0);
+	void *ret_addr = *(frame + 1);
+	*(frame + 1) = NULL;
+	
+	test_async_ipc(chan);
+	
+	*(frame + 1) = ret_addr;
 	return 1;
 }

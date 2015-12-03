@@ -1,6 +1,6 @@
 obj-m := rpc_testing.o
 
-ccflags-y += -O2 -I/users/mquigley/fast-ipc-module/current/IPC
+ccflags-y += -O0 -I/users/mquigley/fast-ipc-module/current/IPC -fno-ipa-cp -fno-ipa-sra
 EXTRA_CFLAGS=-DDEBUG_OUTPUT
 INC_DIR = ../../IPC
 CFLAGS_ipc.o = -O2 -DPOLL

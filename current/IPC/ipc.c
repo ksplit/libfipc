@@ -222,11 +222,13 @@ noinline struct ipc_message *async_recv(struct ttd_ring_channel *rx, unsigned lo
 			else
 			{
 				awe_t* other_awe = get_awe_from_msg_id(msg_id);
-				break;//THCYield(); //THCYieldTo(other_awe);		
+				printk(KERN_ERR "other msg id yield\n");
+				THCYield(); //THCYieldTo(other_awe);		
 			}
 		}
 		else
 		{
+			printk(KERN_ERR "spin yield\n");
 			THCYield();
 		}
 	}	
