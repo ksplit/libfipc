@@ -208,7 +208,7 @@ noinline struct ipc_message *async_recv(struct ttd_ring_channel *rx, unsigned lo
 {
 	struct ipc_message *recv_msg;
 
-
+	printk(KERN_ERR "MESSAGE ID RECEIVED IS: %lx\n", msg_id);	
 	while( true )
 	{
 		recv_msg = get_rx_rec(rx, sizeof(struct ipc_message));
@@ -222,8 +222,12 @@ noinline struct ipc_message *async_recv(struct ttd_ring_channel *rx, unsigned lo
 			else
 			{
 				awe_t* other_awe = get_awe_from_msg_id(msg_id);
-				printk(KERN_ERR "other msg id yield\n");
-				THCYield(); //THCYieldTo(other_awe);		
+				printk(KERN_ERR "CALLING YIELD TO\n");
+				THCYield();
+				/* 
+				//THCYieldTo(other_awe);		
+				TODO: Add support for YieldTo
+				This involves adding a data structure that maps awes to id numbers. This is because the continuation needed is not available at the time the message is sent, so instead an ID can be created and assigned so that when an ASYNC yields, the ID can then be used to correspond to the correct awe.*/
 			}
 		}
 		else
