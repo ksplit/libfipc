@@ -4,10 +4,11 @@ ccflags-y += -O0 -I/users/mquigley/fast-ipc-module/current/IPC -fno-ipa-cp -fno-
 EXTRA_CFLAGS=-DDEBUG_OUTPUT
 INC_DIR = ../../IPC
 CFLAGS_ipc.o = -O2 -DPOLL
-CFLAGS_ring-channel.o = -I$(INC_DIR) 
+CFLAGS_ring-channel.o = -I$(INC_DIR)
+CFLAGS_awe-mapper.o = -I/users/mquigley/fast-ipc-module/current/awe-mapper 
 DEPS= $(INC_DIR)/ipc.h
 
-rpc_testing-objs :=  ../../IPC/ipc.o ../../ring-chan/ring-channel.o callee.o caller.o rpc_test.o
+rpc_testing-objs :=  ../../IPC/ipc.o ../../ring-chan/ring-channel.o ../../awe-mapper/awe-mapper.o callee.o caller.o rpc_test.o
 
 KDIR := /lib/modules/`uname -r`/build
 
@@ -17,3 +18,4 @@ clean:
 	make -C $(KDIR) M=$(PWD) clean
 	rm ../../IPC/ipc.o
 	rm ../../ring-chan/ring-channel.o
+	rm ../../awe-mapper/awe-mapper.o

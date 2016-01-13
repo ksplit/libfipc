@@ -1,5 +1,6 @@
 #include <linux/random.h>
 #include <linux/slab.h>
+#include "../../awe-mapper/awe-mapper.h"
 #include "rpc.h"
 #include <lcd-domains/thc.h>
 #include <lcd-domains/thcinternal.h>
