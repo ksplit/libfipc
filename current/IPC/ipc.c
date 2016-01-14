@@ -78,12 +78,6 @@ static int wait_for_tx_slot(struct ipc_message *imsg)
 static int wait_for_rx_slot(struct ipc_message *imsg, bool is_async)
 {
 	while (check_rx_slot_available(imsg)) { //while a slot is not available
-		if( is_async )
-		{
-			THCYield();
-		}	
-		else
-		{
 			#if defined(USE_MWAIT)
 				monitor_mwait(ecx, &imsg->msg_status, cstate_wait);
 			#endif//usemwait
@@ -91,7 +85,6 @@ static int wait_for_rx_slot(struct ipc_message *imsg, bool is_async)
 				cpu_relax();
 			#endif
 		}
-	}
 	return 0;
 }
 
@@ -221,19 +214,14 @@ noinline struct ipc_message *async_recv(struct ttd_ring_channel *rx, unsigned lo
 			}		
 			else
 			{
-				awe_t* other_awe = get_awe_from_msg_id(msg_id);
 				printk(KERN_ERR "CALLING YIELD TO\n");
-				THCYield();
-				/* 
-				//THCYieldTo(other_awe);		
-				TODO: Add support for YieldTo
-				This involves adding a data structure that maps awes to id numbers. This is because the continuation needed is not available at the time the message is sent, so instead an ID can be created and assigned so that when an ASYNC yields, the ID can then be used to correspond to the correct awe.*/
+				THCYieldToId((uint32_t) msg_id);
 			}
 		}
 		else
 		{
 			printk(KERN_ERR "spin yield\n");
-			THCYield();
+			THCYieldAndSave((uint32_t) msg_id);
 		}
 	}	
 
