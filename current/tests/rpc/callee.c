@@ -1,9 +1,9 @@
 #include <linux/random.h>
 #include <linux/slab.h>
-#include "../../awe-mapper/awe-mapper.h"
 #include "rpc.h"
 #include <lcd-domains/thc.h>
 #include <lcd-domains/thcinternal.h>
+#include <lcd-domains/awe-mapper.h>
 
 static struct ttd_ring_channel *channel;
 
@@ -81,11 +81,11 @@ static unsigned long add_nums(unsigned long trans, unsigned long res1)
 	return result;
 }
 
-static unsigned long add_nums_async(unsigned long trans, unsigned long res1, awe_t* awe)
+static unsigned long add_nums_async(unsigned long trans, unsigned long res1, unsigned long msg_id)
 {
 	struct ipc_message *msg;
 	unsigned long result;
-	unsigned long msg_id = (unsigned long)awe;
+	//unsigned long msg_id = (unsigned long)awe;
 	printk(KERN_ERR "MESSAGE ID IS: %lx\n", msg_id);	
 	msg = get_send_slot(channel);
 	msg->fn_type = ADD_NUMS;
@@ -208,12 +208,29 @@ static void test_async_ipc(void* chan)
 	res4 = res3 + res2;
 	res5 = res4 + res3;
 	DO_FINISH(
+		uint32_t id_num;
 		while (num_transactions < TRANSACTIONS / 3) {
 	//	start = RDTSC_START();
 
-		ASYNC(add_nums_async(num_transactions, 1, awe););
-		ASYNC(add_nums_async(num_transactions, 2, awe););
-		ASYNC(add_nums_async(num_transactions, 3, awe););
+		ASYNC(
+			id_num = awe_mapper_create_id();
+			printk(KERN_ERR "ID_NUM: %d\n", id_num);
+			add_nums_async(num_transactions, 1,(unsigned long) id_num);
+		     );
+
+		ASYNC(
+			id_num = awe_mapper_create_id();
+			printk(KERN_ERR "ID_NUM: %d\n", id_num);
+			add_nums_async(num_transactions, 2,(unsigned long) id_num);
+		     );
+
+		ASYNC(
+			id_num = awe_mapper_create_id();
+			printk(KERN_ERR "ID_NUM: %d\n", id_num);
+			add_nums_async(num_transactions, 3,(unsigned long) id_num);
+		     );
+
+
 	//	end = RDTSCP();
 	//	pr_err("%lu\n", end-start);
 		num_transactions++;
@@ -253,7 +270,6 @@ static void test_sync_ipc(void* chan)
 		num_transactions++;
 	}
 	pr_err("Complete\n");
-        return 1;
 }
 
 int callee(void *chan)
