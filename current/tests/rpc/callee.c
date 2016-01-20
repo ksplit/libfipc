@@ -85,7 +85,6 @@ static unsigned long add_nums_async(unsigned long trans, unsigned long res1, uns
 {
 	struct ipc_message *msg;
 	unsigned long result;
-	//unsigned long msg_id = (unsigned long)awe;
 	printk(KERN_ERR "MESSAGE ID IS: %lx\n", msg_id);	
 	msg = get_send_slot(channel);
 	msg->fn_type = ADD_NUMS;
