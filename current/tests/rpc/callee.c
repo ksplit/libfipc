@@ -1,9 +1,9 @@
 #include <linux/random.h>
 #include <linux/slab.h>
 #include "rpc.h"
-#include <lcd-domains/thc.h>
-#include <lcd-domains/thcinternal.h>
-#include <lcd-domains/awe-mapper.h>
+#include <thc.h>
+#include <thcinternal.h>
+#include <awe-mapper.h>
 
 static struct ttd_ring_channel *channel;
 
@@ -191,7 +191,7 @@ static unsigned long add_6_nums(unsigned long trans, unsigned long res1,
 
 
 
-static void test_async_ipc(void* chan)
+void test_async_ipc(void* chan)
 {
 	unsigned long num_transactions = 0;
 	unsigned long res1, res2, res3, res4, res5, res6;
@@ -276,12 +276,14 @@ int callee(void *chan)
 	//NOTE: Setting the return address like below is a hack
 	//if async is run inside a kernel thread, it is important to do this,
 	//then restore it when async finishes.
-	void ** frame = (void**)__builtin_frame_address(0);
-	void *ret_addr = *(frame + 1);
+	volatile void ** frame = (volatile void**)__builtin_frame_address(0);
+	volatile void *ret_addr = *(frame + 1);
+
 	*(frame + 1) = NULL;
-	
+
 	test_async_ipc(chan);
-	
+
 	*(frame + 1) = ret_addr;
+
 	return 1;
 }
