@@ -4,7 +4,7 @@
 #include <thc.h>
 #include <thcinternal.h>
 #include <awe-mapper.h>
-
+ 
 static struct ttd_ring_channel *channel;
 
 static unsigned long RDTSC_START(void)
