@@ -85,7 +85,7 @@ static unsigned long add_nums_async(unsigned long trans, unsigned long res1, uns
 {
 	struct ipc_message *msg;
 	unsigned long result;
-	printk(KERN_ERR "MESSAGE ID IS: %lx\n", msg_id);	
+	//printk(KERN_ERR "MESSAGE ID IS: %lx\n", msg_id);	
 	msg = get_send_slot(channel);
 	msg->fn_type = ADD_NUMS;
 	msg->reg1    = trans;
@@ -97,7 +97,7 @@ static unsigned long add_nums_async(unsigned long trans, unsigned long res1, uns
 	msg->msg_id  = msg_id;
 	send(channel,msg);
 	msg = async_recv(channel, msg_id);
-	printk(KERN_ERR "result = %lx\n", msg->reg1);
+	//printk(KERN_ERR "result = %lx\n", msg->reg1);
 	result = msg->reg1;
 	transaction_complete(msg);
 	
@@ -209,23 +209,27 @@ void test_async_ipc(void* chan)
 	DO_FINISH(
 		uint32_t id_num;
 		while (num_transactions < TRANSACTIONS / 3) {
+		if((num_transactions * 3) % 300 == 0)
+		{
+			printk(KERN_ERR "num_transactions: %lu\n", num_transactions * 3);
+		}
 	//	start = RDTSC_START();
 
 		ASYNC(
 			id_num = awe_mapper_create_id();
-			printk(KERN_ERR "ID_NUM: %d\n", id_num);
+//			printk(KERN_ERR "ID_NUM: %d\n", id_num);
 			add_nums_async(num_transactions, 1,(unsigned long) id_num);
 		     );
 
 		ASYNC(
 			id_num = awe_mapper_create_id();
-			printk(KERN_ERR "ID_NUM: %d\n", id_num);
+//			printk(KERN_ERR "ID_NUM: %d\n", id_num);
 			add_nums_async(num_transactions, 2,(unsigned long) id_num);
 		     );
 
 		ASYNC(
 			id_num = awe_mapper_create_id();
-			printk(KERN_ERR "ID_NUM: %d\n", id_num);
+//			printk(KERN_ERR "ID_NUM: %d\n", id_num);
 			add_nums_async(num_transactions, 3,(unsigned long) id_num);
 		     );
 

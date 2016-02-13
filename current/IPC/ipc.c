@@ -75,7 +75,7 @@ static int wait_for_tx_slot(struct ipc_message *imsg)
 	return 0;
 }
 
-static int wait_for_rx_slot(struct ipc_message *imsg, bool is_async)
+static int wait_for_rx_slot(struct ipc_message *imsg)
 {
 	while (check_rx_slot_available(imsg)) { //while a slot is not available
 			#if defined(USE_MWAIT)
@@ -192,10 +192,42 @@ struct ipc_message *recv(struct ttd_ring_channel *rx)
 
 	recv_msg = get_rx_rec(rx, sizeof(struct ipc_message));
 	inc_rx_slot(rx);
-	wait_for_rx_slot(recv_msg, false);
+	wait_for_rx_slot(recv_msg);
 	return recv_msg;
 }
 EXPORT_SYMBOL(recv);
+
+/*
+Takes an array of rx channels to iterate over. This function does one
+loop over the array and populates 'msg' with a received message and returns true
+if there is a message, else it returns false.
+start_ind: the index to start iterating and wrap around to
+NOTE: right now this just checks the first rx slot for each channel that previously didn't have a message.
+To make this check for everything where there could be a message, it would need to check the interval [rx, tx]
+*/
+bool poll_recv(struct ttd_ring_channel** rx_chans, int chans_num, int start_ind, struct ipc_message* msg)
+{
+    int curr_ind;
+    struct ttd_ring_channel* curr_chan;
+	struct ipc_message *recv_msg;
+
+    for( int i = 0; i < chans_num; i++ )
+    {
+        curr_ind  = (start_ind + i) % chans_num;
+        curr_chan = rx_chans[curr_ind];
+	    recv_msg  = get_rx_rec(curr_chan, sizeof(struct ipc_message));
+
+        if( !check_rx_slot_available(imsg) ) //if message exists
+        {
+            msg = recv_msg;
+	        inc_rx_slot(curr_chan);
+            return true;
+        }
+    }
+
+    return false;
+}
+EXPORT_SYMBOL(poll_recv);
 
 noinline struct ipc_message *async_recv(struct ttd_ring_channel *rx, unsigned long msg_id)
 {
@@ -213,15 +245,15 @@ noinline struct ipc_message *async_recv(struct ttd_ring_channel *rx, unsigned lo
 			}		
 			else
 			{
-				printk(KERN_ERR "MESSAGE ID RECEIVED IS: %lx\n", recv_msg->msg_id);	
-				printk(KERN_ERR "MESSAGE ID FOR CONTEXT IS: %lx\n", msg_id);	
-				printk(KERN_ERR "CALLING YIELD TO\n");
+				//printk(KERN_ERR "MESSAGE ID RECEIVED IS: %lx\n", recv_msg->msg_id);	
+				//printk(KERN_ERR "MESSAGE ID FOR CONTEXT IS: %lx\n", msg_id);	
+				//printk(KERN_ERR "CALLING YIELD TO\n");
 				THCYieldToId((uint32_t) recv_msg->msg_id, (uint32_t) msg_id);
 			}
 		}
 		else
 		{
-			printk(KERN_ERR "spin yield\n");
+			//printk(KERN_ERR "spin yield\n");
 			THCYieldAndSave((uint32_t) msg_id);
 		}
 	}	

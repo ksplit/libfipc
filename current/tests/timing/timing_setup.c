@@ -5,10 +5,11 @@
 #include <linux/string.h>
 #include <linux/slab.h>
 #include <linux/sched.h>
-#include <linux/sort.h>
 #include <asm/tsc.h>
 
 #include "ipc.h"
+#include "timing_util.h"
+
 
 static struct ttd_ring_channel *prod;
 static struct ttd_ring_channel *cons;
@@ -21,48 +22,13 @@ MODULE_LICENSE("GPL");
 #define TRANSACTIONS 10000
 #define _35_MILLION 35000000
 
-
-/* Timing is used via serializing instructios because this white paper says so:
- *
- *  http://www.intel.com/content/www/us/en/intelligent-systems/embedded-systems-training/ia-32-ia-64-benchmark-code-execution-paper.html
- */
-static unsigned long RDTSC_START(void)
-{
-
-	unsigned cycles_low, cycles_high;
-
-	asm volatile ("CPUID\n\t"
-		      "RDTSC\n\t"
-		      "mov %%edx, %0\n\t"
-		      "mov %%eax, %1\n\t": "=r" (cycles_high), "=r" (cycles_low)::
-		      "%rax", "%rbx", "%rcx", "%rdx");
-	return ((unsigned long) cycles_high << 32) | cycles_low;
-
-}
-
-
-static unsigned long RDTSCP(void)
-{
-	unsigned long tsc;
-	__asm__ __volatile__(
-        "rdtscp;"
-        "shl $32, %%rdx;"
-        "or %%rdx, %%rax"
-        : "=a"(tsc)
-        :
-        : "%rcx", "%rdx");
-
-	return tsc;
-}
-
-
 static void  producer_iops(struct ttd_ring_channel *chan)
 {
 	unsigned long count = 0;
 	unsigned long start,end;
 	struct ipc_message *msg;
 
-	start = RDTSC_START();
+	start = timing_util_RDTSC_START();
 	while (count < _35_MILLION) {
 		msg = get_send_slot(chan);
 		msg->fn_type = 0x31337;
@@ -72,13 +38,13 @@ static void  producer_iops(struct ttd_ring_channel *chan)
 		msg->reg4 = 0x8888888888888888;
 		msg->reg5 = 0x7777777777777777;
 		msg->reg6 = 0x6666666666666666;
-		msg->reg7 = 0x5555555555555555;
+		msg->msg_id = 0x5555555555555555;
 		send(chan,msg);
 		msg = recv(chan);
 		transaction_complete(msg);
 		count++;
 	}
-	end = RDTSCP();
+	end = timing_util_RDTSCP();
 	pr_err("35 million ping pongs in %lu cyles\n", end-start);
 }
 
@@ -98,7 +64,7 @@ static void consumer_iops(struct ttd_ring_channel *chan)
 		msg->reg4 = 0x8888888888888888;
 		msg->reg5 = 0x7777777777777777;
 		msg->reg6 = 0x6666666666666666;
-		msg->reg7 = 0x5555555555555555;
+		msg->msg_id = 0x5555555555555555;
 		send(chan,msg);
 		count++;
 	}
@@ -112,7 +78,7 @@ static void producer(struct ttd_ring_channel *chan)
 	struct ipc_message *msg;
 
 	while (count < TRANSACTIONS) {
-		start = RDTSC_START();
+		start = timing_util_RDTSC_START();
 
 		msg = get_send_slot(chan);
 		msg->fn_type = 0x31337;
@@ -122,12 +88,12 @@ static void producer(struct ttd_ring_channel *chan)
 		msg->reg4 = 0x8888888888888888;
 		msg->reg5 = 0x7777777777777777;
 		msg->reg6 = 0x6666666666666666;
-		msg->reg7 = 0x5555555555555555;
+		msg->msg_id = 0x5555555555555555;
 		send(chan,msg);
 		msg = recv(chan);
 		transaction_complete(msg);
 
-		end = RDTSCP();
+		end = timing_util_RDTSCP();
 		time[count] = end-start;
 		count++;
 	}
@@ -149,53 +115,18 @@ static void consumer(struct ttd_ring_channel *chan)
 		msg->reg4 = 0x8888888888888888;
 		msg->reg5 = 0x7777777777777777;
 		msg->reg6 = 0x6666666666666666;
-		msg->reg7 = 0x5555555555555555;
+		msg->msg_id = 0x5555555555555555;
 		send(chan,msg);
 		count++;
 	}
 }
 
-static int compare(const void *_a, const void *_b){
-
-	u64 a = *((u64 *)_a);
-	u64 b = *((u64 *)_b);
-
-	if(a < b)
-		return -1;
-	if(a > b)
-		return 1;
-	return 0;
-}
-
-
-static void dump_time(void)
-{
-
-	int i;
-	unsigned long long counter = 0;
-        unsigned long min;
-	unsigned long max;
-
-	for (i = 0; i < TRANSACTIONS; i++) {
-		counter+= time[i];
-	}
-
-	sort(time, TRANSACTIONS, sizeof(unsigned long), compare, NULL);
-
-	min = time[0];
-	max = time[TRANSACTIONS-1];
-	counter = min;
-
-	pr_err("MIN\tMAX\tAVG\tMEDIAN\n");
-	pr_err("%lu & %lu & %llu & %lu \n", min, max, counter/TRANSACTIONS, time[4999]);
-
-}
 
 int dispatch(void *data)
 {
 	if(data == prod) {
 		producer(data);
-		dump_time();
+		timing_util_dump_time(time, (unsigned long)TRANSACTIONS);
 		kfree(time);
 	        producer_iops(data);
 	}
