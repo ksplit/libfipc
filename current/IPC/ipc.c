@@ -36,6 +36,7 @@ awe_t* get_awe_from_msg_id(unsigned long msg_id)
 
 	return (awe_t*)msg_id;
 }
+EXPORT_SYMBOL(get_awe_from_msg_id);
 
 static inline void monitor_mwait(unsigned long rcx, volatile uint32_t *rax,
 				 unsigned long wait_type)
@@ -121,6 +122,7 @@ struct task_struct *attach_thread_to_channel(struct ttd_ring_channel *chan,
 
         return chan->thread;
 }
+EXPORT_SYMBOL(attach_thread_to_channel);
 
 /*
  *  Create a channel with a ring-buffer of size pages
@@ -201,25 +203,25 @@ EXPORT_SYMBOL(recv);
 Takes an array of rx channels to iterate over. This function does one
 loop over the array and populates 'msg' with a received message and returns true
 if there is a message, else it returns false.
-start_ind: the index to start iterating and wrap around to
+curr_ind: the index to start iterating and wrap around to. The value of this when
+the function is finished will be the index of the ipc that has a message.
 NOTE: right now this just checks the first rx slot for each channel that previously didn't have a message.
 To make this check for everything where there could be a message, it would need to check the interval [rx, tx]
 */
-bool poll_recv(struct ttd_ring_channel** rx_chans, int chans_num, int start_ind, struct ipc_message* msg)
+bool poll_recv(struct ttd_ring_channel** rx_chans, int chans_num, int* curr_ind, struct ipc_message** msg)
 {
-    int curr_ind;
     struct ttd_ring_channel* curr_chan;
 	struct ipc_message *recv_msg;
-
-    for( int i = 0; i < chans_num; i++ )
+    int i;
+    for( i = 0; i < chans_num; i++ )
     {
-        curr_ind  = (start_ind + i) % chans_num;
-        curr_chan = rx_chans[curr_ind];
+        *curr_ind  = ((*curr_ind) + i) % chans_num;
+        curr_chan = rx_chans[*curr_ind];
 	    recv_msg  = get_rx_rec(curr_chan, sizeof(struct ipc_message));
 
-        if( !check_rx_slot_available(imsg) ) //if message exists
+        if( !check_rx_slot_available(recv_msg) ) //if message exists
         {
-            msg = recv_msg;
+            *msg = recv_msg;
 	        inc_rx_slot(curr_chan);
             return true;
         }
@@ -232,7 +234,7 @@ EXPORT_SYMBOL(poll_recv);
 noinline struct ipc_message *async_recv(struct ttd_ring_channel *rx, unsigned long msg_id)
 {
 	struct ipc_message *recv_msg;
-
+    void* pts = current->ptstate;
 	while( true )
 	{
 		recv_msg = get_rx_rec(rx, sizeof(struct ipc_message));
@@ -248,7 +250,14 @@ noinline struct ipc_message *async_recv(struct ttd_ring_channel *rx, unsigned lo
 				//printk(KERN_ERR "MESSAGE ID RECEIVED IS: %lx\n", recv_msg->msg_id);	
 				//printk(KERN_ERR "MESSAGE ID FOR CONTEXT IS: %lx\n", msg_id);	
 				//printk(KERN_ERR "CALLING YIELD TO\n");
-				THCYieldToId((uint32_t) recv_msg->msg_id, (uint32_t) msg_id);
+                if( recv_msg->pts == pts )
+                {
+				    THCYieldToId((uint32_t) recv_msg->msg_id, (uint32_t) msg_id);
+                }
+                else
+                {
+                    THCYieldAndSave((uint32_t) msg_id);
+                }
 			}
 		}
 		else

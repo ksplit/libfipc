@@ -112,7 +112,7 @@ int caller(void *channel)
 			break;
 		case ADD_6_NUMS:
 			temp_res = add_6_nums(msg->reg1, msg->reg2, msg->reg3,
-					      msg->reg4, msg->reg5, msg->reg6);
+					      msg->reg4, msg->reg5, msg->pts);
 			transaction_complete(msg);
 			msg = get_send_slot(chan);
 			msg->fn_type = ADD_6_NUMS;

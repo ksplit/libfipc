@@ -93,7 +93,7 @@ static unsigned long add_nums_async(unsigned long trans, unsigned long res1, uns
 	msg->reg3    = res1;
 	msg->reg4    = res1;
 	msg->reg5    = res1;
-	msg->reg6    = res1;
+    //msg->reg6    = res1;
 	msg->msg_id  = msg_id;
 	send(channel,msg);
 	msg = async_recv(channel, msg_id);
@@ -178,7 +178,7 @@ static unsigned long add_6_nums(unsigned long trans, unsigned long res1,
 	msg->reg3 = res2;
 	msg->reg4 = res3;
 	msg->reg5 = res4;
-	msg->reg6 = res5;
+	msg->pts  = res5;
 	send(channel,msg);
 	msg = recv(channel);
 	if (msg->fn_type != ADD_6_NUMS)
