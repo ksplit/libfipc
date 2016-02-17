@@ -90,6 +90,14 @@ static int wait_for_rx_slot(struct ipc_message *imsg)
 }
 
 
+struct task_struct * attach_channels_to_thread(struct ttd_ring_channel_group *chan_arr, 
+                                                int CPU_PIN,
+                                                int (*threadfn)(void *data))
+{
+
+}
+
+
 
 struct task_struct *attach_thread_to_channel(struct ttd_ring_channel *chan,
                                              int CPU_PIN,

@@ -37,6 +37,13 @@ struct ttd_ring_channel {
 	uint8_t padding[56]; /* pad the struct to cacheline size */
 };
 
+typedef struct ttd_ring_channel_group
+{
+    struct ttd_ring_channel **chans;
+    int chans_length;
+    struct task_struct *thread;
+} ttd_ring_channel_group_t;
+
 
 static inline void ttd_ring_channel_init(struct ttd_ring_channel *ring_channel)
 {
