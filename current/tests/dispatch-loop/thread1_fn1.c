@@ -12,11 +12,11 @@ static unsigned long add_2_nums_async(unsigned long lhs, unsigned long rhs, unsi
 	struct ipc_message *msg;
 	unsigned long result;
 	msg = get_send_slot(channel);
-	msg->fn_type = ADD_2_FN;
-	msg->reg1    = lhs;
-	msg->reg2    = rhs;
-	msg->msg_id  = msg_id;
-    msg->pts     = (unsigned long)current->ptstate;
+	msg->fn_type  = ADD_2_FN;
+	msg->reg1     = lhs;
+	msg->reg2     = rhs;
+	msg->msg_id   = msg_id;
+    msg->msg_type = msg_type_request;
 	send(channel,msg);
 	msg = async_recv(channel, msg_id);
 	result = msg->reg1;
@@ -32,13 +32,13 @@ int thread1_fn1(void* chan)
 {
 	volatile void ** frame = (volatile void**)__builtin_frame_address(0);
 	volatile void *ret_addr = *(frame + 1);
-	*(frame + 1) = NULL;
     int num_transactions = 0;
+	uint32_t id_num;
+	*(frame + 1) = NULL;
     channel = chan;
 
     thc_init();
  	DO_FINISH(
-		uint32_t id_num;
 		while (num_transactions < TRANSACTIONS / 3) {
 		if((num_transactions * 3) % 10 == 0)
 		{

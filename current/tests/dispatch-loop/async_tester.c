@@ -47,16 +47,17 @@ static void setup_tests(void)
         /* Create a thread for each channel to utilize, pin it to a core.
          * Pass a function pointer to call on wakeup.
          */
-        if (attach_thread_to_channel(chan1, CHAN1_CPU, thread1_fn1) == NULL ||
-            attach_thread_to_channel(chan2, CHAN2_CPU, thread2_fn1) == NULL ) {
+        struct task_struct *thread1 = attach_thread_to_channel(chan1, CHAN1_CPU, thread1_fn1);
+        struct task_struct *thread2 = attach_thread_to_channel(chan2, CHAN2_CPU, thread2_fn1);
+        if ( thread1 == NULL || thread2 == NULL ) {
                 ttd_ring_channel_free(chan1);
                 ttd_ring_channel_free(chan2);
                 kfree(chan1);
                 kfree(chan2);
                 return;
         }
-	ipc_start_thread(chan1);
-	ipc_start_thread(chan2);
+	ipc_start_thread(thread1);
+	ipc_start_thread(thread2);
 }
 
 static int __init async_dispatch_start(void)

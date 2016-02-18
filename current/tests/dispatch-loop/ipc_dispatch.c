@@ -11,10 +11,10 @@ int ipc_dispatch_loop(ipc_local_fn_t* fns, int fns_length,struct ttd_ring_channe
 {
 	volatile void ** frame = (volatile void**)__builtin_frame_address(0);
 	volatile void *ret_addr = *(frame + 1);
+    int recv_ct = 0;
 
     *(frame + 1) = NULL;
     //NOTE:recv_ct is just for testing
-    int recv_ct = 0;
     DO_FINISH({
         int curr_ind     = 0;
         int* curr_ind_pt = &curr_ind;
@@ -30,7 +30,7 @@ int ipc_dispatch_loop(ipc_local_fn_t* fns, int fns_length,struct ttd_ring_channe
 
                 printk(KERN_ERR "poll_recv returned\n");
                 //check if curr_msg corresponds to existing awe in this thread
-                if( curr_msg->pts == current->ptstate )
+                if( curr_msg->msg_type == msg_type_response )
                 {            
                     printk(KERN_ERR "yielding to\n"); 
                     THCYieldToId(curr_msg->msg_id, do_finish_awe_id);
@@ -44,7 +44,7 @@ int ipc_dispatch_loop(ipc_local_fn_t* fns, int fns_length,struct ttd_ring_channe
                         printk(KERN_ERR "fn_type: %d\n", curr_msg->fn_type);
                         if( curr_msg->fn_type == fns[i].fn_type )
                         {
-                            printk(KERN_ERR "calling fn: %lu\n", fns[i].fn_type);
+                            printk(KERN_ERR "calling fn: %d\n", fns[i].fn_type);
                             fns[i].local_fn(rx_chans[*curr_ind_pt], curr_msg, NULL);
                         }
                     }

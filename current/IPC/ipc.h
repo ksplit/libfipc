@@ -16,6 +16,13 @@
 
 /* TODO CONFIRM ALIGNMENT REQUIREMENTS FOR ULONG! */
 
+
+typedef enum {
+    msg_type_unspecified,
+    msg_type_request,
+    msg_type_response,
+} msg_type_t;
+
 struct ipc_message{
 	int fn_type; /* looks like standard converts ENUM members to ints */
 	unsigned long reg1;
@@ -24,7 +31,7 @@ struct ipc_message{
 	unsigned long reg4;
 	unsigned long reg5;
     #ifdef USE_ASYNC
-        unsigned long pts;
+        unsigned long msg_type;
     #else
 	    unsigned long reg6;
     #endif
@@ -32,8 +39,13 @@ struct ipc_message{
 	volatile uint32_t msg_status;
 }__attribute__((packed));
 
+typedef struct ttd_ring_channel_group ttd_ring_channel_group_t;
+
 struct ttd_ring_channel *create_channel(unsigned long size_pages);
 struct task_struct *attach_thread_to_channel(struct ttd_ring_channel *chan,
+                                             int CPU_PIN,
+                                             int (*threadfn)(void *data));
+struct task_struct *attach_channels_to_thread(ttd_ring_channel_group_t *chan_group,
                                              int CPU_PIN,
                                              int (*threadfn)(void *data));
 void free_channel(struct ttd_ring_channel *channel);
@@ -43,7 +55,7 @@ bool poll_recv(struct ttd_ring_channel** rx_chans, int chans_num, int* curr_ind,
 struct ipc_message *async_recv(struct ttd_ring_channel *rx, unsigned long msg_id);
 struct ipc_message *get_send_slot(struct ttd_ring_channel *tx);
 void transaction_complete(struct ipc_message *msg);
-int ipc_start_thread(struct ttd_ring_channel *chan);
+int ipc_start_thread(struct task_struct* thread);
 void connect_channels(struct ttd_ring_channel *c1, struct ttd_ring_channel *t2);
 
 #endif

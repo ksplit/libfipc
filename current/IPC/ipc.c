@@ -89,23 +89,12 @@ static int wait_for_rx_slot(struct ipc_message *imsg)
 	return 0;
 }
 
-
-struct task_struct * attach_channels_to_thread(struct ttd_ring_channel_group *chan_arr, 
-                                                int CPU_PIN,
-                                                int (*threadfn)(void *data))
-{
-
-}
-
-
-
-struct task_struct *attach_thread_to_channel(struct ttd_ring_channel *chan,
+static struct task_struct *attach_data_to_channel(void *chan_data,
                                              int CPU_PIN,
                                              int (*threadfn)(void *data)) {
-
 	struct cpumask cpu_core;
 
-        if (!chan)
+        if (!chan_data)
                 return NULL;
 
         if (CPU_PIN > num_online_cpus()) {
@@ -113,22 +102,41 @@ struct task_struct *attach_thread_to_channel(struct ttd_ring_channel *chan,
                 return NULL;
         }
 
-	chan->thread = kthread_create(threadfn, (void *)chan,
+	struct task_struct* thread = kthread_create(threadfn, chan_data,
 					   "AsyncIPC.%u", CPU_PIN);
 
-	if (IS_ERR(chan->thread)) {
+	if (IS_ERR(thread)) {
 		pr_err("Error while creating kernel thread\n");
 		return NULL;
 	}
 
-	get_task_struct(chan->thread);
+	get_task_struct(thread);
 
 	cpumask_clear(&cpu_core);
 	cpumask_set_cpu(CPU_PIN , &cpu_core);
 
-	set_cpus_allowed_ptr(chan->thread, &cpu_core);
+	set_cpus_allowed_ptr(thread, &cpu_core);
 
-        return chan->thread;
+    return thread;
+}
+
+
+
+struct task_struct * attach_channels_to_thread(ttd_ring_channel_group_t *chan_group, 
+                                                int CPU_PIN,
+                                                int (*threadfn)(void *data))
+{
+    return attach_data_to_channel((void *)chan_group, CPU_PIN, threadfn);
+}
+EXPORT_SYMBOL(attach_channels_to_thread);
+
+
+
+struct task_struct *attach_thread_to_channel(struct ttd_ring_channel *chan,
+                                             int CPU_PIN,
+                                             int (*threadfn)(void *data)) {
+
+    return attach_data_to_channel((void *)chan, CPU_PIN, threadfn);
 }
 EXPORT_SYMBOL(attach_thread_to_channel);
 
@@ -180,13 +188,16 @@ EXPORT_SYMBOL(create_channel);
 
 void free_channel(struct ttd_ring_channel *channel)
 {
-
 	ttd_ring_channel_free(channel);
-	put_task_struct(channel->thread);
 	kfree(channel);
-
 }
 EXPORT_SYMBOL(free_channel);
+
+void free_thread(struct task_struct *thread)
+{
+	put_task_struct(thread);
+}
+EXPORT_SYMBOL(free_thread);
 
 
 void send(struct ttd_ring_channel *tx, struct ipc_message *trans)
@@ -242,7 +253,6 @@ EXPORT_SYMBOL(poll_recv);
 noinline struct ipc_message *async_recv(struct ttd_ring_channel *rx, unsigned long msg_id)
 {
 	struct ipc_message *recv_msg;
-    void* pts = current->ptstate;
 	while( true )
 	{
 		recv_msg = get_rx_rec(rx, sizeof(struct ipc_message));
@@ -257,8 +267,8 @@ noinline struct ipc_message *async_recv(struct ttd_ring_channel *rx, unsigned lo
 			{
 				//printk(KERN_ERR "MESSAGE ID RECEIVED IS: %lx\n", recv_msg->msg_id);	
 				//printk(KERN_ERR "MESSAGE ID FOR CONTEXT IS: %lx\n", msg_id);	
-				//printk(KERN_ERR "CALLING YIELD TO\n");
-                if( recv_msg->pts == pts )
+		        printk(KERN_ERR "CALLING YIELD TO\n");
+                if( recv_msg->msg_type == msg_type_response )
                 {
 				    THCYieldToId((uint32_t) recv_msg->msg_id, (uint32_t) msg_id);
                 }
@@ -308,8 +318,8 @@ void transaction_complete(struct ipc_message *msg)
 EXPORT_SYMBOL(transaction_complete);
 
 
-int ipc_start_thread(struct ttd_ring_channel *chan)
+int ipc_start_thread(struct task_struct* thread)
 {
-	return wake_up_process(chan->thread);
+	return wake_up_process(thread);
 }
 EXPORT_SYMBOL(ipc_start_thread);

@@ -11,10 +11,10 @@ int add_2_fn(struct ttd_ring_channel* chan, struct ipc_message* msg, void* param
 {
     unsigned long result = msg->reg1 + msg->reg2;
 	struct ipc_message* out_msg = get_send_slot(chan);
-    out_msg->reg1    = result;
-    out_msg->msg_id  = msg->msg_id;
-    out_msg->fn_type = ADD_2_FN;
-    out_msg->pts     = msg->pts;
+    out_msg->reg1     = result;
+    out_msg->msg_id   = msg->msg_id;
+    out_msg->fn_type  = ADD_2_FN;
+    out_msg->msg_type = msg_type_response;
     send(chan, out_msg);
     
     return 0;
