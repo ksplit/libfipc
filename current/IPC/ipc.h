@@ -51,7 +51,7 @@ struct task_struct *attach_channels_to_thread(ttd_ring_channel_group_t *chan_gro
 void free_channel(struct ttd_ring_channel *channel);
 void send(struct ttd_ring_channel *tx, struct ipc_message *trans);
 struct ipc_message *recv(struct ttd_ring_channel *rx);
-bool poll_recv(struct ttd_ring_channel** rx_chans, int chans_num, int* curr_ind, struct ipc_message** msg);
+bool poll_recv(struct ttd_ring_channel_group* rx_group, int* curr_ind, struct ipc_message** msg);
 struct ipc_message *async_recv(struct ttd_ring_channel *rx, unsigned long msg_id);
 struct ipc_message *get_send_slot(struct ttd_ring_channel *tx);
 void transaction_complete(struct ipc_message *msg);

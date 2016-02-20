@@ -9,7 +9,7 @@ CFLAGS_ipc.o = -O2 -DPOLL
 CFLAGS_ring-channel.o = -I$(INC_DIR)
 DEPS= $(INC_DIR)/ipc.h
 
-async_dispatch-objs := $(ASYNC_SRC)/awe-mapper.o ../../IPC/ipc.o ../../ring-chan/ring-channel.o  $(ASYNC_SRC)/thc.o $(ASYNC_SRC)/thcsync.o ipc_dispatch.o thread1_fn1.o thread2_fn1.o async_tester.o 
+async_dispatch-objs := $(ASYNC_SRC)/awe-mapper.o ../../IPC/ipc.o ../../ring-chan/ring-channel.o  $(ASYNC_SRC)/thc.o $(ASYNC_SRC)/thcsync.o ipc_dispatch.o thread1_fn1.o thread2_fn1.o thread3_fn1.o async_tester.o 
 
 KDIR := /lib/modules/`uname -r`/build
 

@@ -17,6 +17,7 @@
 
 #include <linux/string.h>
 #include <linux/types.h>
+#include <linux/slab.h>
 #include "../IPC/ipc.h"
 
 struct ttd_buf {
@@ -39,10 +40,30 @@ struct ttd_ring_channel {
 struct ttd_ring_channel_group
 {
     struct ttd_ring_channel **chans;
-    int chans_length;
+    size_t chans_length;
     struct task_struct *thread;
 };
 
+
+static inline void channel_group_alloc(struct ttd_ring_channel_group* channel_group, size_t chans_length)
+{
+    struct ttd_ring_channel **chans_arr = (struct ttd_ring_channel **)kzalloc(
+                                    sizeof(struct ttd_ring_channel*)*chans_length, 
+                                    GFP_KERNEL);
+    if( !chans_arr )
+    {
+        pr_err("could not allocate memory for ring channel group\n");
+        return;
+    }
+    channel_group->chans        = chans_arr;
+    channel_group->chans_length = chans_length;
+}
+
+
+static inline void channel_group_free(struct ttd_ring_channel_group* channel_group)
+{
+    kfree(channel_group->chans);
+}
 
 
 static inline void ttd_ring_channel_init(struct ttd_ring_channel *ring_channel)

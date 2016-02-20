@@ -93,7 +93,7 @@ static struct task_struct *attach_data_to_channel(void *chan_data,
                                              int CPU_PIN,
                                              int (*threadfn)(void *data)) {
 	struct cpumask cpu_core;
-
+    struct task_struct* thread;
         if (!chan_data)
                 return NULL;
 
@@ -102,7 +102,7 @@ static struct task_struct *attach_data_to_channel(void *chan_data,
                 return NULL;
         }
 
-	struct task_struct* thread = kthread_create(threadfn, chan_data,
+	thread = kthread_create(threadfn, chan_data,
 					   "AsyncIPC.%u", CPU_PIN);
 
 	if (IS_ERR(thread)) {
@@ -126,7 +126,8 @@ struct task_struct * attach_channels_to_thread(ttd_ring_channel_group_t *chan_gr
                                                 int CPU_PIN,
                                                 int (*threadfn)(void *data))
 {
-    return attach_data_to_channel((void *)chan_group, CPU_PIN, threadfn);
+    chan_group->thread = attach_data_to_channel((void *)chan_group, CPU_PIN, threadfn);
+    return chan_group->thread;
 }
 EXPORT_SYMBOL(attach_channels_to_thread);
 
@@ -227,15 +228,15 @@ the function is finished will be the index of the ipc that has a message.
 NOTE: right now this just checks the first rx slot for each channel that previously didn't have a message.
 To make this check for everything where there could be a message, it would need to check the interval [rx, tx]
 */
-bool poll_recv(struct ttd_ring_channel** rx_chans, int chans_num, int* curr_ind, struct ipc_message** msg)
+bool poll_recv(struct ttd_ring_channel_group* rx_group, int* curr_ind, struct ipc_message** msg)
 {
     struct ttd_ring_channel* curr_chan;
 	struct ipc_message *recv_msg;
     int i;
-    for( i = 0; i < chans_num; i++ )
+    for( i = 0; i < rx_group->chans_length; i++ )
     {
-        *curr_ind  = ((*curr_ind) + i) % chans_num;
-        curr_chan = rx_chans[*curr_ind];
+        *curr_ind  = ((*curr_ind) + i) % (rx_group->chans_length);
+        curr_chan = rx_group->chans[*curr_ind];
 	    recv_msg  = get_rx_rec(curr_chan, sizeof(struct ipc_message));
 
         if( !check_rx_slot_available(recv_msg) ) //if message exists

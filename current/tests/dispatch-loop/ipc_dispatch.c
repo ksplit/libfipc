@@ -7,7 +7,8 @@
 
 #include "thread_fn_util.h"
 
-int ipc_dispatch_loop(ipc_local_fn_t* fns, int fns_length,struct ttd_ring_channel** rx_chans, int chans_num)
+//max_recv_ct just for testing
+int ipc_dispatch_loop(ipc_local_fn_t* fns, int fns_length,struct ttd_ring_channel_group* rx_group, int max_recv_ct)
 {
 	volatile void ** frame = (volatile void**)__builtin_frame_address(0);
 	volatile void *ret_addr = *(frame + 1);
@@ -15,16 +16,16 @@ int ipc_dispatch_loop(ipc_local_fn_t* fns, int fns_length,struct ttd_ring_channe
 
     *(frame + 1) = NULL;
     //NOTE:recv_ct is just for testing
-    DO_FINISH({
+    DO_FINISH_(0,{
         int curr_ind     = 0;
         int* curr_ind_pt = &curr_ind;
         struct ipc_message* curr_msg;
 
         uint32_t do_finish_awe_id = awe_mapper_create_id();
-        while( recv_ct < TRANSACTIONS )
+        while( recv_ct < max_recv_ct )
         {
             curr_ind = 0;
-            if( poll_recv(rx_chans, chans_num, curr_ind_pt, &curr_msg) )
+            if( poll_recv(rx_group, curr_ind_pt, &curr_msg) )
             {
                 recv_ct++;
 
@@ -41,11 +42,12 @@ int ipc_dispatch_loop(ipc_local_fn_t* fns, int fns_length,struct ttd_ring_channe
                     int i;
                     for(i = 0; i < fns_length; i++)
                     {
-                        printk(KERN_ERR "fn_type: %d\n", curr_msg->fn_type);
                         if( curr_msg->fn_type == fns[i].fn_type )
                         {
                             printk(KERN_ERR "calling fn: %d\n", fns[i].fn_type);
-                            fns[i].local_fn(rx_chans[*curr_ind_pt], curr_msg, NULL);
+                            ASYNC_({
+                            fns[i].local_fn(rx_group, *curr_ind_pt, curr_msg);
+                            },0xdeadbeef);
                         }
                     }
                 }

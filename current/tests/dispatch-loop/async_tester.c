@@ -21,43 +21,74 @@
 #include "thread_fn_util.h"
 #include "../../IPC/ipc.h"
 #define CHAN_NUM_PAGES 4
-#define CHAN1_CPU 1
-#define CHAN2_CPU 3
+#define THREAD1_CPU 1
+#define THREAD2_CPU 3
+#define THREAD3_CPU 4
 
 MODULE_LICENSE("GPL");
 
-static struct ttd_ring_channel *chan1;
-static struct ttd_ring_channel *chan2;
+static struct ttd_ring_channel_group group1;
+static struct ttd_ring_channel_group group2;
+static struct ttd_ring_channel_group group3;
+
+
+static void alloc_chans(struct ttd_ring_channel_group* chan_group, int num_pages)
+{
+    int i;
+    for(i = 0; i < chan_group->chans_length; i++)
+    {
+        chan_group->chans[i] = create_channel(num_pages);
+	    if ( !chan_group->chans[i] ) 
+        {
+		    pr_err("Failed to create channel\n");
+		    return;
+	    }
+    }
+}
+
 
 static void setup_tests(void)
 {
-    chan1 = create_channel(CHAN_NUM_PAGES);
-	if (!chan1) {
-		pr_err("Failed to create channel 1");
-		return;
-	}
-	chan2 = create_channel(CHAN_NUM_PAGES);
-	if (!chan2) {
-		pr_err("Failed to create channel 2");
-		free_channel(chan1);
-		return;
-	}
-	connect_channels(chan1, chan2);
+    const size_t thread1_chans = 1;
+    const size_t thread2_chans = 2;
+    const size_t thread3_chans = 1;
 
-        /* Create a thread for each channel to utilize, pin it to a core.
-         * Pass a function pointer to call on wakeup.
-         */
-        struct task_struct *thread1 = attach_thread_to_channel(chan1, CHAN1_CPU, thread1_fn1);
-        struct task_struct *thread2 = attach_thread_to_channel(chan2, CHAN2_CPU, thread2_fn1);
-        if ( thread1 == NULL || thread2 == NULL ) {
-                ttd_ring_channel_free(chan1);
-                ttd_ring_channel_free(chan2);
-                kfree(chan1);
-                kfree(chan2);
-                return;
-        }
-	ipc_start_thread(thread1);
-	ipc_start_thread(thread2);
+    channel_group_alloc(&group1, thread1_chans);
+    channel_group_alloc(&group2, thread2_chans);
+    channel_group_alloc(&group3, thread3_chans);
+
+    alloc_chans(&group1, CHAN_NUM_PAGES);
+    alloc_chans(&group2, CHAN_NUM_PAGES);
+    alloc_chans(&group3, CHAN_NUM_PAGES);
+
+	connect_channels(group1.chans[0], group2.chans[0]);
+	connect_channels(group2.chans[1], group3.chans[0]);
+
+    /* Create a thread for each channel to utilize, pin it to a core.
+     * Pass a function pointer to call on wakeup.
+     */
+    attach_channels_to_thread(&group1, 
+                              THREAD1_CPU, 
+                              thread1_fn1);
+    attach_channels_to_thread(&group2, 
+                              THREAD2_CPU, 
+                              thread2_fn1);
+    attach_channels_to_thread(&group3, 
+                              THREAD3_CPU, 
+                              thread3_fn1);
+
+    if ( group1.thread == NULL || group2.thread == NULL || group3.thread == NULL) {
+            ttd_ring_channel_free(group1.chans[0]);
+            ttd_ring_channel_free(group2.chans[0]);
+            ttd_ring_channel_free(group3.chans[0]);
+            channel_group_free(&group1);
+            channel_group_free(&group2);
+            channel_group_free(&group3);
+            return;
+    }
+	ipc_start_thread(group1.thread);
+	ipc_start_thread(group2.thread);
+	ipc_start_thread(group3.thread);
 }
 
 static int __init async_dispatch_start(void)
