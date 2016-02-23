@@ -8,7 +8,7 @@
 #include "thread_fn_util.h"
 
 //max_recv_ct just for testing
-int ipc_dispatch_loop(ipc_local_fn_t* fns, int fns_length,struct ttd_ring_channel_group* rx_group, int max_recv_ct)
+int ipc_dispatch_loop(struct ttd_ring_channel_group* rx_group, int max_recv_ct)
 {
 	volatile void ** frame = (volatile void**)__builtin_frame_address(0);
 	volatile void *ret_addr = *(frame + 1);
@@ -16,7 +16,7 @@ int ipc_dispatch_loop(ipc_local_fn_t* fns, int fns_length,struct ttd_ring_channe
 
     *(frame + 1) = NULL;
     //NOTE:recv_ct is just for testing
-    DO_FINISH_(0,{
+    DO_FINISH_(ipc_dispatch,{
         int curr_ind     = 0;
         int* curr_ind_pt = &curr_ind;
         struct ipc_message* curr_msg;
@@ -39,16 +39,16 @@ int ipc_dispatch_loop(ipc_local_fn_t* fns, int fns_length,struct ttd_ring_channe
                 //else find corresponding function and execute.
                 else
                 {
-                    int i;
-                    for(i = 0; i < fns_length; i++)
+                    if( rx_group->chans[curr_ind]->dispatch_fn )
                     {
-                        if( curr_msg->fn_type == fns[i].fn_type )
-                        {
-                            printk(KERN_ERR "calling fn: %d\n", fns[i].fn_type);
-                            ASYNC_({
-                            fns[i].local_fn(rx_group, *curr_ind_pt, curr_msg);
-                            },0xdeadbeef);
-                        }
+                        ASYNC_({
+                        rx_group->chans[curr_ind]->dispatch_fn(rx_group->chans[curr_ind],
+                                                                curr_msg);
+                        },ipc_dispatch);
+                    }
+                    else
+                    {
+                        printk(KERN_ERR "Channel %d function not allocated, message dropped\n", curr_ind_pt);
                     }
                 }
             }

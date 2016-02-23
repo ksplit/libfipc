@@ -18,7 +18,7 @@
 #include <linux/string.h>
 #include <linux/types.h>
 #include <linux/slab.h>
-#include "../IPC/ipc.h"
+#include "ipc.h"
 
 struct ttd_buf {
 	/* PRODUCER */
@@ -30,11 +30,15 @@ struct ttd_buf {
 	uint8_t             padding[16]; /* pad the struct up to cache line size */
 };
 
+//from ipc.h
+struct ipc_message;
+
 struct ttd_ring_channel {
 	struct ttd_buf tx;
 	struct ttd_buf rx;
 	/* TODO NECESSARY? */
-	uint8_t padding[64]; /* pad the struct to cacheline size */
+    int (*dispatch_fn)(struct ttd_ring_channel*, struct ipc_message*);
+	uint8_t padding[56]; /* pad the struct to cacheline size */
 };
 
 struct ttd_ring_channel_group

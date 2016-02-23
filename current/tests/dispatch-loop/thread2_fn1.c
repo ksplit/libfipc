@@ -4,13 +4,14 @@
 #include "ipc_dispatch.h"
 #include "thread_fn_util.h"
 #include "awe-mapper.h"
+#include "../../ring-chan/ring-channel.h"
 #define THREAD2_FNS_LENGTH 2
 
+static struct ttd_ring_channel_group* rx_group;
 
 //Just returns a value back to thread 1
-static int add_2_fn(struct ttd_ring_channel_group* group, int channel_index, struct ipc_message* msg)
+static int add_2_fn(struct ttd_ring_channel* chan, struct ipc_message* msg)
 {
-    struct ttd_ring_channel * chan = group->chans[channel_index];
     unsigned long result = msg->reg1 + msg->reg2;
 	struct ipc_message* out_msg = get_send_slot(chan);
     out_msg->reg1     = result;
@@ -24,19 +25,14 @@ static int add_2_fn(struct ttd_ring_channel_group* group, int channel_index, str
 
 
 //Receives a value from thread1, then passes it to thread 3 and returns that result to thread 1
-static int add_10_fn(struct ttd_ring_channel_group* group, int channel_index, struct ipc_message* msg)
+static int add_10_fn(struct ttd_ring_channel* thread1_chan, struct ipc_message* msg)
 {
-    struct ttd_ring_channel * thread1_chan = group->chans[0]; 
-    struct ttd_ring_channel * thread3_chan = group->chans[1]; 
+    struct ttd_ring_channel * thread3_chan = rx_group->chans[1]; 
  	struct ipc_message* thread3_msg = get_send_slot(thread3_chan);
  	struct ipc_message* thread1_result;
     unsigned long saved_msg_id = msg->msg_id;
     unsigned long new_msg_id   = awe_mapper_create_id();
 
-    if( channel_index != 0 )
-    {
-        printk(KERN_ERR "CHANNEL INDEX WRONG\n");
-    }
 	thread3_msg->fn_type  = msg->fn_type;
 	thread3_msg->reg1     = msg->reg1;
 	thread3_msg->reg2     = msg->reg2;
@@ -58,17 +54,26 @@ static int add_10_fn(struct ttd_ring_channel_group* group, int channel_index, st
 }
 
 
-static ipc_local_fn_t functions[THREAD2_FNS_LENGTH] = {
-    {ADD_2_FN, add_2_fn},
-    {ADD_10_FN, add_10_fn}
-}; 
-
+static int thread1_dispatch_fn(struct ttd_ring_channel* chan, struct ipc_message* msg)
+{
+    switch( msg->fn_type )
+    {
+        case ADD_2_FN:
+            return add_2_fn(chan, msg);
+        case ADD_10_FN:
+            return add_10_fn(chan, msg);
+        default:
+            printk(KERN_ERR "FN: %lu is not a valid function type\n", msg->fn_type);
+    }
+    return 1;
+}
 
 int thread2_fn1(void* group)
 {
-    struct ttd_ring_channel_group* rx_group = group;
     thc_init();
-    ipc_dispatch_loop(functions, THREAD2_FNS_LENGTH, rx_group, 3);
+    rx_group = (struct ttd_ring_channel_group*)group;
+    rx_group->chans[0]->dispatch_fn = thread1_dispatch_fn;
+    ipc_dispatch_loop(rx_group, 3);
     thc_done();
 
     return 1;
