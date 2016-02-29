@@ -242,7 +242,10 @@ bool poll_recv(struct ttd_ring_channel_group* rx_group, int* curr_ind, struct ip
         if( !check_rx_slot_available(recv_msg) ) //if message exists
         {
             *msg = recv_msg;
-	        inc_rx_slot(curr_chan);
+            if( recv_msg->msg_type == msg_type_request )
+            {
+	            inc_rx_slot(curr_chan);
+            }
             return true;
         }
     }
@@ -266,11 +269,9 @@ noinline struct ipc_message *async_recv(struct ttd_ring_channel *rx, unsigned lo
 			}		
 			else
 			{
-				//printk(KERN_ERR "MESSAGE ID RECEIVED IS: %lx\n", recv_msg->msg_id);	
-				//printk(KERN_ERR "MESSAGE ID FOR CONTEXT IS: %lx\n", msg_id);	
-		        printk(KERN_ERR "CALLING YIELD TO\n");
                 if( recv_msg->msg_type == msg_type_response )
                 {
+		            printk(KERN_ERR "CALLING YIELD TO\n");
 				    THCYieldToId((uint32_t) recv_msg->msg_id, (uint32_t) msg_id);
                 }
                 else
@@ -281,10 +282,10 @@ noinline struct ipc_message *async_recv(struct ttd_ring_channel *rx, unsigned lo
 		}
 		else
 		{
-			//printk(KERN_ERR "spin yield\n");
 			THCYieldAndSave((uint32_t) msg_id);
 		}
-	}	
+	}
+    printk(KERN_ERR "REMOVING ID: %d\n", (uint32_t) msg_id);    
 	awe_mapper_remove_id((uint32_t)msg_id);
 	inc_rx_slot(rx);
 

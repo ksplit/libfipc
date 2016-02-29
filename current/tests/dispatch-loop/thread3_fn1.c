@@ -13,12 +13,16 @@ static struct ttd_ring_channel_group* rx_group;
 
 static int add_10_fn(struct ttd_ring_channel* chan, struct ipc_message* msg)
 {
-    msleep(1000);
-    unsigned long result = msg->reg1 + msg->reg2 + 10;
+    unsigned long msg_id = msg->msg_id;
+    unsigned long reg1 = msg->reg1;
+    unsigned long reg2 = msg->reg2;
+    transaction_complete(msg);
+    msleep(5);
+    unsigned long result = reg1 + reg2 + 10;
 	struct ipc_message* out_msg = get_send_slot(chan);
     printk(KERN_ERR "got to thread3\n");
     out_msg->reg1     = result;
-    out_msg->msg_id   = msg->msg_id;
+    out_msg->msg_id   = msg_id;
     out_msg->fn_type  = ADD_10_FN;
     out_msg->msg_type = msg_type_response;
     send(chan, out_msg);
@@ -44,7 +48,7 @@ int thread3_fn1(void* group)
     thc_init();
     rx_group = (struct ttd_ring_channel_group*)group;
     rx_group->chans[0]->dispatch_fn = thread2_dispatch_fn;
-    ipc_dispatch_loop(rx_group, 1);
+    ipc_dispatch_loop(rx_group, TRANSACTIONS / THD3_INTERVAL);
     thc_done();
 
     return 1;

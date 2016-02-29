@@ -14,6 +14,7 @@ static int add_2_fn(struct ttd_ring_channel* chan, struct ipc_message* msg)
 {
     unsigned long result = msg->reg1 + msg->reg2;
 	struct ipc_message* out_msg = get_send_slot(chan);
+    transaction_complete(msg);
     out_msg->reg1     = result;
     out_msg->msg_id   = msg->msg_id;
     out_msg->fn_type  = ADD_2_FN;
@@ -32,7 +33,7 @@ static int add_10_fn(struct ttd_ring_channel* thread1_chan, struct ipc_message* 
  	struct ipc_message* thread1_result;
     unsigned long saved_msg_id = msg->msg_id;
     unsigned long new_msg_id   = awe_mapper_create_id();
-
+    transaction_complete(msg);
 	thread3_msg->fn_type  = msg->fn_type;
 	thread3_msg->reg1     = msg->reg1;
 	thread3_msg->reg2     = msg->reg2;
@@ -41,6 +42,7 @@ static int add_10_fn(struct ttd_ring_channel* thread1_chan, struct ipc_message* 
 	send(thread3_chan,thread3_msg);
 
 	msg = async_recv(thread3_chan, new_msg_id);
+    transaction_complete(msg);
 
     thread1_result = get_send_slot(thread1_chan);
 	thread1_result->fn_type  = msg->fn_type;
@@ -73,7 +75,7 @@ int thread2_fn1(void* group)
     thc_init();
     rx_group = (struct ttd_ring_channel_group*)group;
     rx_group->chans[0]->dispatch_fn = thread1_dispatch_fn;
-    ipc_dispatch_loop(rx_group, 3);
+    ipc_dispatch_loop(rx_group, TRANSACTIONS + 50);
     thc_done();
 
     return 1;

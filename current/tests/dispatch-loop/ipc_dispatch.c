@@ -29,7 +29,7 @@ int ipc_dispatch_loop(struct ttd_ring_channel_group* rx_group, int max_recv_ct)
             {
                 recv_ct++;
 
-                printk(KERN_ERR "poll_recv returned\n");
+                //printk(KERN_ERR "poll_recv returned\n");
                 //check if curr_msg corresponds to existing awe in this thread
                 if( curr_msg->msg_type == msg_type_response )
                 {            

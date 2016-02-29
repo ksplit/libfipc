@@ -4,6 +4,7 @@
 #include "ipc_dispatch.h"
 #include "thread_fn_util.h"
 #include <awe-mapper.h>
+#include <linux/delay.h>
 
 static struct ttd_ring_channel* channel;
 
@@ -39,33 +40,38 @@ int thread1_fn1(void* group)
     channel = rcg->chans[0];
 
     thc_init();
- 	DO_FINISH_(1,{
+ 	DO_FINISH_(thread1_fn,{
 		while (num_transactions < TRANSACTIONS) {
 		printk(KERN_ERR "num_transactions: %d\n", num_transactions);
 
 		ASYNC(
+            printk(KERN_ERR "id created\n");
 			id_num = awe_mapper_create_id();
-			printk(KERN_ERR "ID_NUM: %d\n", id_num);
+            printk(KERN_ERR "id returned\n");
+		    num_transactions++;
 			add_nums_async(num_transactions, 1,(unsigned long) id_num, ADD_2_FN);
 		     );
-
+        if( (num_transactions) % THD3_INTERVAL == 0 )
+        {
+            ASYNC(
+            printk(KERN_ERR "id created\n");
+                id_num = awe_mapper_create_id();
+            printk(KERN_ERR "id returned\n");
+		        num_transactions++;
+                add_nums_async(num_transactions, 2,(unsigned long) id_num, ADD_10_FN);
+                 );
+        }
 		ASYNC(
+            printk(KERN_ERR "id created\n");
 			id_num = awe_mapper_create_id();
-			printk(KERN_ERR "ID_NUM: %d\n", id_num);
-			add_nums_async(num_transactions, 2,(unsigned long) id_num, ADD_10_FN);
-		     );
-
-		ASYNC(
-			id_num = awe_mapper_create_id();
-			printk(KERN_ERR "ID_NUM: %d\n", id_num);
+            printk(KERN_ERR "id returned\n");
+		    num_transactions++;
 			add_nums_async(num_transactions, 3,(unsigned long) id_num, ADD_2_FN);
 		     );
-
-
-
-		num_transactions++;
-	}});
-	pr_err("Complete\n");
+        msleep(5);
+	}
+    printk(KERN_ERR "done with transactions\n");
+    });
 	printk(KERN_ERR "lcd async exiting module and deleting ptstate");
 	thc_done();
 
