@@ -6,6 +6,8 @@
 #include <awe-mapper.h>
 #include <linux/delay.h>
 
+#define BATCH_INTERVAL 100
+
 static struct ttd_ring_channel* channel;
 
 static unsigned long add_nums_async(unsigned long lhs, unsigned long rhs, unsigned long msg_id, int fn_type)
@@ -68,7 +70,7 @@ int thread1_fn1(void* group)
 		    num_transactions++;
 			add_nums_async(num_transactions, 3,(unsigned long) id_num, ADD_2_FN);
 		     );
-        msleep(5);
+            //msleep(20);
 	}
     printk(KERN_ERR "done with transactions\n");
     });

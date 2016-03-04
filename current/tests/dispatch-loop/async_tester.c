@@ -21,9 +21,9 @@
 #include "thread_fn_util.h"
 #include "../../IPC/ipc.h"
 #define CHAN_NUM_PAGES 4
-#define THREAD1_CPU 1
-#define THREAD2_CPU 3
-#define THREAD3_CPU 4
+#define THREAD1_CPU 3
+#define THREAD2_CPU 2
+#define THREAD3_CPU 1
 
 MODULE_LICENSE("GPL");
 

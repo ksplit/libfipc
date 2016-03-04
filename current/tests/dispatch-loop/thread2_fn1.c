@@ -75,7 +75,7 @@ int thread2_fn1(void* group)
     thc_init();
     rx_group = (struct ttd_ring_channel_group*)group;
     rx_group->chans[0]->dispatch_fn = thread1_dispatch_fn;
-    ipc_dispatch_loop(rx_group, TRANSACTIONS + 50);
+    ipc_dispatch_loop(rx_group, TRANSACTIONS);
     thc_done();
 
     return 1;

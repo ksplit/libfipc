@@ -2,7 +2,7 @@ obj-m := async_dispatch.o
 
 INC_BASE_PATH=/local/sda4/xcap-async-module
 ASYNC_SRC=../../../../libasync/src/common
-ccflags-y += -O0 -I$(INC_BASE_PATH)/fast-ipc-module/current/IPC -I$(INC_BASE_PATH)/libasync/src/include -fno-ipa-cp -fno-ipa-sra -DUSE_ASYNC
+ccflags-y += -O0 -I$(INC_BASE_PATH)/fast-ipc-module/current/IPC -I$(INC_BASE_PATH)/libasync/src/include -fno-ipa-cp -fno-ipa-sra -DUSE_ASYNC -DCONFIG_LAZY_THC
 EXTRA_CFLAGS=-DDEBUG_OUTPUT
 INC_DIR = ../../IPC
 CFLAGS_ipc.o = -O2 -DPOLL

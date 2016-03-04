@@ -17,7 +17,7 @@ static int add_10_fn(struct ttd_ring_channel* chan, struct ipc_message* msg)
     unsigned long reg1 = msg->reg1;
     unsigned long reg2 = msg->reg2;
     transaction_complete(msg);
-    msleep(5);
+    msleep(10);
     unsigned long result = reg1 + reg2 + 10;
 	struct ipc_message* out_msg = get_send_slot(chan);
     printk(KERN_ERR "got to thread3\n");
