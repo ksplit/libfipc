@@ -212,6 +212,7 @@ int fipc_recv_msg_if(struct fipc_ring_channel *chnl,
 			/* Caller wants the message */
 			*msg = m;
 			inc_rx_slot(chnl);
+			ret = 0;
 		} else {
 			ret = -ENOMSG;
 		}

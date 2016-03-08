@@ -290,4 +290,43 @@ int fipc_recv_msg_if(struct fipc_ring_channel *chnl,
 int fipc_recv_msg_end(struct fipc_ring_channel *chnl,
 		struct fipc_message *msg);
 
+/* MESSAGE ACCESSORS ---------------------------------------- */
+
+/* While use of these is not required, it makes your code independent
+ * of the layout of struct fipc_message, and does compile time bounds
+ * checking. */
+
+#define FIPC_MK_REG_ACCESS(idx)						\
+static inline							        \
+unsigned long fipc_get_reg##idx(struct fipc_message *msg)		\
+{									\
+	BUILD_BUG_ON(idx >= FIPC_NR_REGS);				\
+	return msg->regs[idx];						\
+}									\
+static inline								\
+void fipc_set_reg##idx(struct fipc_message *msg, unsigned long val)	\
+{									\
+	msg->regs[idx] = val;						\
+}									
+
+FIPC_MK_REG_ACCESS(0)
+FIPC_MK_REG_ACCESS(1)
+FIPC_MK_REG_ACCESS(2)
+FIPC_MK_REG_ACCESS(3)
+FIPC_MK_REG_ACCESS(4)
+FIPC_MK_REG_ACCESS(5)
+FIPC_MK_REG_ACCESS(6)
+
+static inline
+uint32_t fipc_get_flags(struct fipc_message *msg)
+{
+	return msg->flags;
+}
+
+static inline
+void fipc_set_flags(struct fipc_message *msg, uint32_t flags)
+{
+	msg->flags = flags;
+}
+
 #endif /* LIBFIPC_H */
