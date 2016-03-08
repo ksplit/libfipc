@@ -22,6 +22,14 @@ static int setup_and_run_test(void)
 	struct fipc_ring_channel *caller_header, *callee_header;
 	struct task_struct *caller_thread, *callee_thread;
 	/*
+	 * Initialize fipc
+	 */
+	ret = fipc_init();
+	if (ret) {
+		pr_err("Error init'ing libfipc, ret = %d\n", ret);
+		goto fail0;
+	}
+	/*
 	 * Set up channel
 	 */
 	ret = test_fipc_create_channel(CHANNEL_ORDER, &caller_header, 
@@ -66,6 +74,8 @@ static int setup_and_run_test(void)
 	 */
 	test_fipc_free_channel(CHANNEL_ORDER, caller_header, callee_header);
 
+	fipc_fini();
+
 	return 0;
 
 fail3:
@@ -73,6 +83,8 @@ fail3:
 fail2:
 	test_fipc_free_channel(CHANNEL_ORDER, caller_header, callee_header);
 fail1:
+	fipc_fini();
+fail0:
 	return ret;
 }
 
