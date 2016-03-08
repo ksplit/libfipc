@@ -14,12 +14,11 @@ AM_INIT_AUTOMAKE([subdir-objects foreign])
 # libfipc features, packages, and config
 # --------------------------------------------------
 
-# Platform = user xor kernel
+# Platform = kernel
+# (other platforms to be added later ... )
 AC_ARG_VAR([PLATFORM],
-    [The platform to build for @{:@user|kernel@:}@ (default=kernel)])
+    [The platform to build for @{:@kernel@:}@ (default=kernel)])
 AS_CASE([$PLATFORM],
-    [user],
-    [PLATFORM_DIR=platform/user],
     [kernel],
     [PLATFORM_DIR=platform/kernel],
     [*],
@@ -33,44 +32,29 @@ AC_MSG_NOTICE([Building for PLATFORM=$PLATFORM.])
 AC_SUBST(PLATFORM)
 AC_SUBST(PLATFORM_DIR)
 
-# Kernel module build?
+# Build kernel test modules?
 AS_IF([test "x$PLATFORM" = "xkernel"],
 
     [
-        # Build libcap as kernel module, in addition to static lib.a
-        AC_ARG_ENABLE([kernel_module],
-            [AS_HELP_STRING([--disable-kernel-module],
-                [Disable kernel module build (default=no)])],
-            [],
-            [enable_kernel_module="yes"])
-        AM_CONDITIONAL(ENABLE_KERNEL_MODULE, 
-            [test "x$enable_kernel_module" = "xyes"])
-
-        AM_COND_IF([ENABLE_KERNEL_MODULE],
-            [AC_MSG_NOTICE([Building kernel module.])],
-            [AC_MSG_NOTICE([Not building kernel module.])])
+        AC_ARG_ENABLE([kernel_tests_build],
+            [AS_HELP_STRING([--enable-kernel-tests-build],
+                [Enable building kernel test modules (default=no)])],
+                [],
+                [enable_kernel_tests_build="no"])
+        AM_CONDITIONAL(ENABLE_KERNEL_TESTS_BUILD, 
+            [test "x$enable_kernel_tests_build" = "xyes"])
+        AM_COND_IF([ENABLE_KERNEL_TESTS_BUILD],
+            [AC_MSG_NOTICE([Building kernel tests.])],
+            [AC_MSG_NOTICE([Not building kernel tests.])])
 
     ],
 
     [
 
-        AM_CONDITIONAL(ENABLE_KERNEL_MODULE, 
+        AM_CONDITIONAL(ENABLE_KERNEL_TESTS_BUILD, 
             [false])
 
     ])
-
-# Build tests?
-AC_ARG_ENABLE([test_build],
-    [AS_HELP_STRING([--enable-test-build],
-        [Enable building test applications (default=no)])],
-    [],
-    [enable_test_build="no"])
-AM_CONDITIONAL(ENABLE_TEST_BUILD, 
-    [test "x$enable_test_build" = "xyes"])
-AM_COND_IF([ENABLE_TEST_BUILD],
-    [AC_MSG_NOTICE([Building tests.])],
-    [AC_MSG_NOTICE([Not building tests.])])
-
 
 # --------------------------------------------------
 # Checks for programs.
@@ -145,23 +129,13 @@ AC_CONFIG_FILES(
   src/common/Makefile
 
   src/include/Makefile
-  src/include/libcap_config.h
-  src/include/libcap_types.h
-  src/include/libcap.h
 
   src/platform/Makefile
   src/platform/kernel/Makefile
-  src/Kbuild:src/platform/kernel/Kbuild.in
-  src/platform/kernel/src/Makefile
-  src/platform/kernel/module/Makefile
-  src/platform/kernel/module/Kbuild
+  src/platform/kernel/Kbuild.in
   src/platform/kernel/include/Makefile
-  src/platform/kernel/test/Makefile
-
-  src/platform/user/Makefile
-  src/platform/user/src/Makefile
-  src/platform/user/include/Makefile
-  src/platform/user/test/Makefile
+  src/platform/kernel/tests/Makefile
+  src/platform/kernel/tests/Kbuild.in
 )
 AC_OUTPUT
 
