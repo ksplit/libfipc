@@ -50,7 +50,7 @@
  *
  * There are few steps:
  *
- *         1 - Allocate the shared memory buffers
+ *         1 - Allocate and initialize the shared memory buffers
  *
  *         2 - Allocate the headers (struct fipc_ring_channel's). These
  *             can be statically allocated (e.g. global variables).
@@ -61,7 +61,7 @@
  * share them with Thread 2 (how this is done depends on the environment).
  * Thread 1 and Thread 2 will allocate their private headers, and initialize
  * them to point to the allocated memory buffers. Here is how this looks
- * for Thread 1 using the libfipc interface:
+ * for Thread 1 using the libfipc interface (return values ignored):
  *
  *     --------
  *     Thread 1
@@ -70,14 +70,17 @@
  *     struct fipc_ring_channel t1_chnl_header;
  *
  *     // Allocate shared memory buffers
- *     unsigned int buf_nr_pages_order = .. buffers are 2^buf_nr_pages_order ..
+ *     unsigned int buf_order = .. buffers are 2^buf_order bytes ..
  *     char *buffer_1 = ... alloc memory buffer 1 ...
  *     char *buffer_2 = ... alloc memory buffer 1 ...
  *
+ *     // Initialize the shared buffers (*required*)
+ *     fipc_prep_buffers(buf_order, buffer_1, buffer_2);
+ *
  *     .... share buffers with Thread 2 ...
  *
- *     // Initialize my struct fipc_ring_channel
- *     fipc_ring_channel_init(&t1_chnl_header, buf_nr_pages_order, 
+ *     // Initialize my struct fipc_ring_channel header
+ *     fipc_ring_channel_init(&t1_chnl_header, buf_order, 
  *                            buffer_1, 
  *                            buffer_2);
  *
@@ -151,6 +154,8 @@
  *
  * This should be invoked before any use of libfipc functions.
  *
+ * Returns non-zero on initialization failure.
+ *
  * Note: This is a no-op for now, but gives us a chance later to have
  * some init code if necessary (internal caches, whatever).
  */
@@ -161,6 +166,21 @@ int fipc_init(void);
  * This should be invoked when finished using libfipc functions.
  */
 void fipc_fini(void);
+/**
+ * fipc_prep_buffers -- Initialize the shared memory buffers for ipc
+ * @buf_order: both buffers are 2^buf_order bytes
+ * @buffer_1, @buffer_2: buffers used for channel
+ *
+ * This *must* be called by exactly one of the sides of the channel
+ * before using the channel (probably the same thread that allocated the 
+ * buffers themselves should call this). It initializes the slots in
+ * the shared buffers.
+ *
+ * @buffer_1 and @buffer_2 *must* be exactly 2^buf_order bytes (if not,
+ * your memory will be corrupted), and the buffers must be big enough
+ * to fit at least one struct fipc_message.
+ */
+int fipc_prep_buffers(unsigned int buf_order, void *buffer_1, void *buffer_2);
 /**
  * fipc_ring_channel_init -- Initialize ring channel header with buffers
  * @chnl: the struct fipc_ring_channel to initialize

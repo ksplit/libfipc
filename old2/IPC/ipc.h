@@ -8,7 +8,7 @@
 #define CHAR_BITS 8
 
 #if defined(USE_MWAIT)
-	unsigned long ecx = 1; /*break of interrupt flag */
+	unsigned long ecx = 1; /\*break of interrupt flag *\/ */
 	unsigned long cstate_wait = 0x0; /* 4 states, 0x0, 0x1 0x10 0x20 */
 #endif
 

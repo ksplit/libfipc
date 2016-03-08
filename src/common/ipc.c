@@ -1,327 +1,242 @@
-#include <linux/module.h>
-#include <linux/kernel.h>
-#include <linux/init.h>
-#include <linux/miscdevice.h>
-#include <linux/fs.h>
-#include <linux/string.h>
-#include <linux/slab.h>
-#include <linux/sched.h>
-#include <linux/irqflags.h>
-#include <linux/kthread.h>
-#include <linux/cpumask.h>
-#include <linux/preempt.h>
-#include <asm/uaccess.h>
-#include <asm/mwait.h>
-#include <asm/page_types.h>
-#include <asm/cpufeature.h>
-#include <linux/ktime.h>
-#include <linux/sort.h>
-#include <asm/tsc.h>
-
-#include <lcd-domains/thc.h>
-#include <lcd-domains/thcinternal.h>
-#include <lcd-domains/awe-mapper.h>
-#include "../ring-chan/ring-channel.h"
-#include "ipc.h"
-
-static unsigned int tx_slot_avail = 0xC1346BAD;
-static unsigned int send_message = 0xBADBEEF;
-static unsigned int rx_msg_avail = 0xBADBEEF;
-static unsigned int trans_complete = 0xC1346BAD;
-
-awe_t* get_awe_from_msg_id(unsigned long msg_id)
-{
-	if( sizeof(unsigned long) != sizeof(awe_t*) )
-		printk(KERN_WARNING "mismatched sizes in get_awe_from_msg_id\n");
-
-	return (awe_t*)msg_id;
-}
-EXPORT_SYMBOL(get_awe_from_msg_id);
-
-static inline void monitor_mwait(unsigned long rcx, volatile uint32_t *rax,
-				 unsigned long wait_type)
-{
-
-	__monitor((void *)rax, 0, 0);
-	/* TODO comment for memory barrier, why is this necessary? */
-	mb();
-	__mwait(wait_type, rcx);
-}
-
-static inline int check_rx_slot_available(struct ipc_message *loc)
-{
-	return (likely(loc->msg_status != rx_msg_avail));
-}
-
-static inline int check_tx_slot_available(struct ipc_message *loc)
-{
-	return (unlikely(loc->msg_status != tx_slot_avail));
-}
-
-
-static int wait_for_tx_slot(struct ipc_message *imsg)
-{
-
-
-	while (check_tx_slot_available(imsg)) {
-
-#if defined(USE_MWAIT)
-		cpu_relax();
-		monitor_mwait(ecx, &imsg->msg_status, cstate_wait);
-#endif//usemwait
-#if defined(POLL)
-		cpu_relax();
-#endif
-	}
-	return 0;
-}
-
-static int wait_for_rx_slot(struct ipc_message *imsg)
-{
-	while (check_rx_slot_available(imsg)) { //while a slot is not available
-			#if defined(USE_MWAIT)
-				monitor_mwait(ecx, &imsg->msg_status, cstate_wait);
-			#endif//usemwait
-			#if defined(POLL)
-				cpu_relax();
-			#endif
-		}
-	return 0;
-}
-
-static struct task_struct *attach_data_to_channel(void *chan_data,
-                                             int CPU_PIN,
-                                             int (*threadfn)(void *data)) {
-	struct cpumask cpu_core;
-    struct task_struct* thread;
-        if (!chan_data)
-                return NULL;
-
-        if (CPU_PIN > num_online_cpus()) {
-                pr_err("Trying to pin on cpu > than avail # cpus\n");
-                return NULL;
-        }
-
-	thread = kthread_create(threadfn, chan_data,
-					   "AsyncIPC.%u", CPU_PIN);
-
-	if (IS_ERR(thread)) {
-		pr_err("Error while creating kernel thread\n");
-		return NULL;
-	}
-
-	get_task_struct(thread);
-
-	cpumask_clear(&cpu_core);
-	cpumask_set_cpu(CPU_PIN , &cpu_core);
-
-	set_cpus_allowed_ptr(thread, &cpu_core);
-
-    return thread;
-}
-
-
-
-struct task_struct * attach_channels_to_thread(ttd_ring_channel_group_t *chan_group, 
-                                                int CPU_PIN,
-                                                int (*threadfn)(void *data))
-{
-    chan_group->thread = attach_data_to_channel((void *)chan_group, CPU_PIN, threadfn);
-    return chan_group->thread;
-}
-EXPORT_SYMBOL(attach_channels_to_thread);
-
-
-
-struct task_struct *attach_thread_to_channel(struct ttd_ring_channel *chan,
-                                             int CPU_PIN,
-                                             int (*threadfn)(void *data)) {
-
-    return attach_data_to_channel((void *)chan, CPU_PIN, threadfn);
-}
-EXPORT_SYMBOL(attach_thread_to_channel);
-
 /*
- *  Create a channel with a ring-buffer of size pages
+ * ipc.c
+ *
+ * Authors: Anton Burtsev, Scotty Bauer
+ * Date:    October 2011,  Feburary 2015
+ *
+ * Copyright: University of Utah
  */
 
-struct ttd_ring_channel *create_channel(unsigned long size_pages)
+#include <libfipc.h>
+
+abcdef
+
+#define FIPC_MSG_STATUS_AVAILABLE 0xdeaddeadUL
+#define FIPC_MSG_STATUS_SENT      0xfeedfeedUL
+
+static inline unsigned long get_tx_slot(struct fipc_ring_channel *rc)
 {
+	return rc->tx.slot;
+}
 
-	int i,ret;
-	struct ttd_ring_channel *channel;
+static inline unsigned long get_rx_slot(struct fipc_ring_channel *rc)
+{
+	return rc->rx.slot;
+}
+
+static inline void set_tx_slot(struct fipc_ring_channel *rc, unsigned long num)
+{
+	rc->tx.slot = num;
+}
+
+static inline void set_rx_slot(struct fipc_ring_channel *rc, unsigned long num)
+{
+	rc->rx.slot = num;
+}
+
+static inline unsigned long inc_tx_slot(struct fipc_ring_channel *rc)
+{
+	return (rc->tx.slot++);
+}
+
+static inline unsigned long inc_rx_slot(struct fipc_ring_channel *rc)
+{
+	return (rc->rx.slot++);
+}
+
+static inline struct fipc_message* 
+get_current_tx_slot(struct fipc_ring_channel *rc)
+{
+	unsigned long idx = rc->tx.slot & rc->tx.order_two_mask;
+	return &rc->tx.buffer[idx];
+}
+
+static inline struct fipc_message* 
+get_current_rx_slot(struct fipc_ring_channel *rc)
+{
+	unsigned long idx = rc->rx.slot & rc->rx.order_two_mask;
+	return &rc->rx.buffer[idx];
+}
+
+static inline int check_rx_slot_available(struct ipc_message *slot)
+{
+	return (likely(slot->msg_status != FIPC_MSG_STATUS_SENT));
+}
 
 
+static inline int check_tx_slot_available(struct fipc_message *slot)
+{
+	return unlikely(slot->msg_status != FIPC_MSG_STATUS_AVAILABLE);
+}
 
-	if (((sizeof(unsigned long) * CHAR_BITS) -
-	     (__builtin_clzl(size_pages*PAGE_SIZE)-1)) % 2 != 0) {
-		pr_err("buffers _MUST_ be on order 2 size, ie 2^2 or 2^4 etc");
-		return NULL;
+static inline unsigned long nr_slots(unsigned int buf_order)
+{
+	return (1UL << buf_order) / sizeof(struct fipc_ring_buf);
+}
+
+static inline unsigned long order_two_mask(unsigned int buf_order)
+{
+	return  nr_slots(buf_order) - 1;
+}
+
+int fipc_prep_buffers(unsigned int buf_order, void *buffer_1, void *buffer_2);
+{
+	unsigned long i;
+	struct ipc_message *msg_buffer_1 = buffer_1;
+	struct ipc_message *msg_buffer_2 = buffer_2;
+	/*
+	 * Buffers must be at least as big as one ipc message slot
+	 */
+	if ((1UL << buf_order) < sizeof(struct fipc_message))
+		return -EINVAL;
+	/*
+	 * Initialize slots as available
+	 */
+	for (i = 0; i < nr_slots(buf_order); i++) {
+		msg_buffer_1[i].msg_status = FIPC_MSG_STATUS_AVAILABLE;
+		msg_buffer_2[i].msg_status = FIPC_MSG_STATUS_AVAILABLE;
+	}
+	return 0;
+}
+
+static void ring_buf_init(struct fipc_ring_buf *ring_buf,
+			unsigned int buf_order,
+			void *buffer)
+{
+	fipc_mutex_init(&ring_buf->lock);
+	ring_buf->buffer = buffer;
+	ring_buf->order_two_mask = order_two_mask(buf_order);
+}
+
+int fipc_ring_channel_init(struct fipc_ring_channel *chnl,
+			unsigned int buf_order,
+			void *buffer_tx, void *buffer_rx)
+{
+	/*
+	 * Checks at compile time
+	 */
+	BUILD_BUG_ON_NOT_POWER_OF_2(FIPC_CACHE_LINE_SIZE);
+	BUILD_BUG_ON(sizeof(struct fipc_ring_buf) != FIPC_CACHE_LINE_SIZE);
+	BUILD_BUG_ON(sizeof(struct fipc_message) != FIPC_CACHE_LINE_SIZE);
+	/*
+	 * Buffers must be as big as one ipc message slot
+	 */
+	if ((1UL << buf_order) < sizeof(struct fipc_message))
+		return -EINVAL;
+	/*
+	 * Initialize tx and rx
+	 */
+	memset(chnl, 0, sizeof(*chnl));
+	ring_buf_init(&chnl->tx, buf_order, buffer_tx);
+	ring_buf_init(&chnl->rx, buf_order, buffer_rx);
+
+	return 0;
+}
+
+
+int fipc_send_msg_start(struct fipc_ring_channel *chnl,
+			struct fipc_message **msg)
+{
+	int ret = -EWOULDBLOCK;
+
+	fipc_mutex_lock(&chnl->tx.lock);
+
+	if (check_tx_slot_available(get_current_tx_slot(chnl))) {
+
+		*msg = get_current_tx_slot(chnl);
+		inc_tx_slot(chnl);
+		ret = 0;
+
 	}
 
-	channel = kzalloc(sizeof(*channel), GFP_KERNEL);
+	fipc_mutex_unlock(&chnl->tx.lock);
 
-	if (!channel) {
-		pr_err("could not alloc space for channel");
-		return NULL;
+	return ret;
+}
+
+int fipc_send_msg_end(struct fipc_ring_channel *chnl, 
+		struct fipc_message *msg)
+{
+	msg->msg_status = FIPC_MSG_STATUS_SENT;
+	return 0;
+}
+
+/* Expects rx to be locked! */
+static int recv_msg_peek(struct fipc_ring_channel *chnl,
+			struct fipc_message **msg)
+{
+	int ret = -EWOULDBLOCK;
+
+	if (check_rx_slot_available(get_current_rx_slot(chnl))) {
+
+		*msg = get_current_rx_slot(chnl);
+		ret = 0;
+
 	}
 
-	ret = ttd_ring_channel_alloc(channel,
-				     size_pages,
-				     sizeof(struct ipc_message));
+	return ret;
+}
 
-	if (ret != 0) {
-		pr_err("Failed to alloc/Init ring channel\n");
-		return NULL;
+int fipc_recv_msg_start(struct fipc_ring_channel *chnl,
+			struct fipc_message **msg)
+{
+	int ret;
+	struct fipc_message *m;
+
+	fipc_mutex_lock(&chnl->rx.lock);
+
+	ret = recv_msg_peek(chnl, &m);
+	if (!ret) {
+		/* Message waiting to be received */
+		*msg = m;
+		inc_rx_slot(chnl);
 	}
 
-	pr_debug("Channel is at %p, recs are %p to %p\n", (void*)channel,
-		 channel->tx.recs,
-		 channel->tx.recs + (size_pages * PAGE_SIZE));
+	fipc_mutex_unlock(&chnl->rx.lock);
 
-	/* We init the buffer to say each slot is free */
-	for (i = 0; i < (size_pages * PAGE_SIZE)/sizeof(int); i++)
-		*((int *)channel->tx.recs+i) = tx_slot_avail;
-
-	return channel;
+	return ret;
 }
-EXPORT_SYMBOL(create_channel);
 
-void free_channel(struct ttd_ring_channel *channel)
+int fipc_recv_msg_if(struct fipc_ring_channel *chnl,
+		int (*pred)(struct fipc_message *, void *),
+		void *data,
+		struct fipc_message **msg)
 {
-	ttd_ring_channel_free(channel);
-	kfree(channel);
-}
-EXPORT_SYMBOL(free_channel);
+	int ret;
+	struct fipc_message *m;
 
-void free_thread(struct task_struct *thread)
-{
-	put_task_struct(thread);
-}
-EXPORT_SYMBOL(free_thread);
+	fipc_mutex_lock(&chnl->rx.lock);
 
-
-void send(struct ttd_ring_channel *tx, struct ipc_message *trans)
-{
-	trans->msg_status = send_message;
-	inc_tx_slot(tx);
-}
-EXPORT_SYMBOL(send);
-
-struct ipc_message *recv(struct ttd_ring_channel *rx)
-{
-	struct ipc_message *recv_msg;
-
-	recv_msg = get_rx_rec(rx, sizeof(struct ipc_message));
-	inc_rx_slot(rx);
-	wait_for_rx_slot(recv_msg);
-	return recv_msg;
-}
-EXPORT_SYMBOL(recv);
-
-/*
-Takes an array of rx channels to iterate over. This function does one
-loop over the array and populates 'msg' with a received message and returns true
-if there is a message, else it returns false.
-curr_ind: the index to start iterating and wrap around to. The value of this when
-the function is finished will be the index of the ipc that has a message.
-NOTE: right now this just checks the first rx slot for each channel that previously didn't have a message.
-To make this check for everything where there could be a message, it would need to check the interval [rx, tx]
-*/
-bool poll_recv(struct ttd_ring_channel_group* rx_group, int* curr_ind, struct ipc_message** msg)
-{
-    struct ttd_ring_channel* curr_chan;
-	struct ipc_message *recv_msg;
-    int i;
-    for( i = 0; i < rx_group->chans_length; i++ )
-    {
-        *curr_ind  = ((*curr_ind) + i) % (rx_group->chans_length);
-        curr_chan = rx_group->chans[*curr_ind];
-	    recv_msg  = get_rx_rec(curr_chan, sizeof(struct ipc_message));
-
-        if( !check_rx_slot_available(recv_msg) ) //if message exists
-        {
-            *msg = recv_msg;
-            if( recv_msg->msg_type == msg_type_request )
-            {
-	            inc_rx_slot(curr_chan);
-            }
-            return true;
-        }
-    }
-
-    return false;
-}
-EXPORT_SYMBOL(poll_recv);
-
-noinline struct ipc_message *async_recv(struct ttd_ring_channel *rx, unsigned long msg_id)
-{
-	struct ipc_message *recv_msg;
-	while( true )
-	{
-		recv_msg = get_rx_rec(rx, sizeof(struct ipc_message));
-
-		if( !check_rx_slot_available(recv_msg) ) //if slot is available
-		{
-			if( recv_msg->msg_id == msg_id )
-			{
-				break;
-			}		
-			else
-			{
-                if( recv_msg->msg_type == msg_type_response )
-                {
-		            printk(KERN_ERR "CALLING YIELD TO\n");
-				    THCYieldToId((uint32_t) recv_msg->msg_id, (uint32_t) msg_id);
-                }
-                else
-                {
-                    THCYieldAndSave((uint32_t) msg_id);
-                }
-			}
+	ret = recv_msg_peek(chnl, &m);
+	if (!ret) {
+		/* Message waiting to be received; query predicate */
+		if (pred(m, data)) {
+			/* Caller wants the message */
+			*msg = m;
+			inc_rx_slot(chnl);
+		} else {
+			ret = -ENOMSG;
 		}
-		else
-		{
-			THCYieldAndSave((uint32_t) msg_id);
-		}
 	}
-    printk(KERN_ERR "REMOVING ID: %d\n", (uint32_t) msg_id);    
-	awe_mapper_remove_id((uint32_t)msg_id);
-	inc_rx_slot(rx);
 
-	return recv_msg;
+	fipc_mutex_unlock(&chnl->rx.lock);
+
+	return ret;
 }
-EXPORT_SYMBOL(async_recv);
 
-struct ipc_message *get_send_slot(struct ttd_ring_channel *tx)
+int fipc_recv_msg_end(struct fipc_ring_channel *chnl,
+		struct fipc_message *msg)
 {
-	struct ipc_message *msg =
-		(struct ipc_message *) get_tx_rec(tx, sizeof(struct ipc_message));
-	wait_for_tx_slot(msg);
-	return msg;
+	msg->msg_status = FIPC_MSG_STATUS_AVAILABLE;
+	return 0;
 }
-EXPORT_SYMBOL(get_send_slot);
 
-void connect_channels(struct ttd_ring_channel *chan1,
-		      struct ttd_ring_channel *chan2)
+int fipc_init(void)
 {
-	/* exchange pointers and sizes */
-	memcpy(&chan1->rx, &chan2->tx, sizeof(struct ttd_buf));
-	memcpy(&chan2->rx, &chan1->tx, sizeof(struct ttd_buf));
+	return 0;
 }
-EXPORT_SYMBOL(connect_channels);
 
-
-/* Notify the buffer that the message slot is available and can be re-used */
-void transaction_complete(struct ipc_message *msg)
+void fipc_fini(void)
 {
-	msg->msg_status = trans_complete;
+	return;
 }
-EXPORT_SYMBOL(transaction_complete);
-
-
-int ipc_start_thread(struct task_struct* thread)
-{
-	return wake_up_process(thread);
-}
-EXPORT_SYMBOL(ipc_start_thread);

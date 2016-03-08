@@ -20,54 +20,54 @@
 #include <linux/slab.h>
 #include "ipc.h"
 
-/* struct ttd_buf { */
-/* 	/\* PRODUCER *\/ */
-/* 	unsigned long      slot; */
-/* 	unsigned long      size_of_a_rec;        /\* size of a single record *\/ */
-/* 	unsigned long      order_two_mask; */
-/* 	unsigned long      size_in_pages; */
-/* 	char               *recs;                 /\* pointer to buffer data areas      *\/ */
-/* 	uint8_t             padding[16]; /\* pad the struct up to cache line size *\/ */
-/* }; */
+struct ttd_buf {
+	/* PRODUCER */
+	unsigned long      slot;
+	unsigned long      size_of_a_rec;        /* size of a single record */
+	unsigned long      order_two_mask;
+	unsigned long      size_in_pages;
+	char               *recs;                 /* pointer to buffer data areas      */
+	uint8_t             padding[16]; /* pad the struct up to cache line size */
+};
 
 //from ipc.h
-/* struct ipc_message; */
+struct ipc_message;
 
-/* struct ttd_ring_channel { */
-/* 	struct ttd_buf tx; */
-/* 	struct ttd_buf rx; */
-/* 	/\* TODO NECESSARY? *\/ */
-/*     int (*dispatch_fn)(struct ttd_ring_channel*, struct ipc_message*); */
-/* 	uint8_t padding[56]; /\* pad the struct to cacheline size *\/ */
-/* }; */
+struct ttd_ring_channel {
+	struct ttd_buf tx;
+	struct ttd_buf rx;
+	/* TODO NECESSARY? */
+    int (*dispatch_fn)(struct ttd_ring_channel*, struct ipc_message*);
+	uint8_t padding[56]; /* pad the struct to cacheline size */
+};
 
-/* struct ttd_ring_channel_group */
-/* { */
-/*     struct ttd_ring_channel **chans; */
-/*     size_t chans_length; */
-/*     struct task_struct *thread; */
-/* }; */
-
-
-/* static inline void channel_group_alloc(struct ttd_ring_channel_group* channel_group, size_t chans_length) */
-/* { */
-/*     struct ttd_ring_channel **chans_arr = (struct ttd_ring_channel **)kzalloc( */
-/*                                     sizeof(struct ttd_ring_channel*)*chans_length,  */
-/*                                     GFP_KERNEL); */
-/*     if( !chans_arr ) */
-/*     { */
-/*         pr_err("could not allocate memory for ring channel group\n"); */
-/*         return; */
-/*     } */
-/*     channel_group->chans        = chans_arr; */
-/*     channel_group->chans_length = chans_length; */
-/* } */
+struct ttd_ring_channel_group
+{
+    struct ttd_ring_channel **chans;
+    size_t chans_length;
+    struct task_struct *thread;
+};
 
 
-/* static inline void channel_group_free(struct ttd_ring_channel_group* channel_group) */
-/* { */
-/*     kfree(channel_group->chans); */
-/* } */
+static inline void channel_group_alloc(struct ttd_ring_channel_group* channel_group, size_t chans_length)
+{
+    struct ttd_ring_channel **chans_arr = (struct ttd_ring_channel **)kzalloc(
+                                    sizeof(struct ttd_ring_channel*)*chans_length,
+                                    GFP_KERNEL);
+    if( !chans_arr )
+    {
+        pr_err("could not allocate memory for ring channel group\n");
+        return;
+    }
+    channel_group->chans        = chans_arr;
+    channel_group->chans_length = chans_length;
+}
+
+
+static inline void channel_group_free(struct ttd_ring_channel_group* channel_group)
+{
+    kfree(channel_group->chans);
+}
 
 
 static inline void ttd_ring_channel_init(struct ttd_ring_channel *ring_channel)
