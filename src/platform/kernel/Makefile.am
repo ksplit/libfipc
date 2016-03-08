@@ -29,6 +29,8 @@ export AM_CPPFLAGS COMMON_SRCS
 LIBFIPC_KBUILD=@abs_top_builddir@/src/platform/kernel
 LIBFIPC_TESTS_KBUILD=@abs_top_builddir@/src/platform/kernel/tests
 
+export LIBFIPC_TESTS_KBUILD
+
 if ENABLE_KERNEL_TESTS_BUILD
 
 MAYBE_ALL_TESTS = all-tests
