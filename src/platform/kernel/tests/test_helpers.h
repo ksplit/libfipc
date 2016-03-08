@@ -86,12 +86,12 @@ test_fipc_create_channel(unsigned int buf_nr_pages_order, /* in pages */
 	/*
 	 * Allocate buffer pages
 	 */
-	buf1 = (void *)__get_free_pages(buf_nr_pages_order, GFP_KERNEL);
+	buf1 = (void *)__get_free_pages(GFP_KERNEL, buf_nr_pages_order);
 	if (!buf1) {
 		ret = -ENOMEM;
 		goto fail1;
 	}
-	buf2 = (void *)__get_free_pages(buf_nr_pages_order, GFP_KERNEL);
+	buf2 = (void *)__get_free_pages(GFP_KERNEL, buf_nr_pages_order);
 	if (!buf2) {
 		ret = -ENOMEM;
 		goto fail2;
