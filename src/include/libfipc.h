@@ -149,6 +149,8 @@
 
 #include <libfipc_types.h>
 
+/* MAIN INTERFACE -------------------------------------------------- */
+
 /**
  * fipc_init -- Initialize libfipc.
  *
