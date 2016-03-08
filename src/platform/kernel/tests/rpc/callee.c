@@ -9,6 +9,7 @@
 #include <linux/kernel.h>
 #include <libfipc.h>
 #include "rpc.h"
+#include "../test_helpers.h"
 
 /*
  * We use "noinline" because we want the function call to actually
@@ -78,7 +79,7 @@ static inline int send_response(struct fipc_ring_channel *chnl,
 	/*
 	 * Response
 	 */
-	ret = blocking_send_start(chnl, &response);
+	ret = test_fipc_blocking_send_start(chnl, &response);
 	if (ret) {
 		pr_err("Error getting send slot");
 		return ret;
@@ -110,9 +111,9 @@ int callee(void *_callee_channel_header)
 		/*
 		 * Try to receive a message
 		 */
-		ret = blocking_recv_start(chan, &recvd_msg);
+		ret = test_fipc_blocking_recv_start(chan, &recvd_msg);
 		if (ret) {
-			pr_err("Error receiving message, ret = %d", ret);
+			pr_err("Error receiving message, ret = %d, exiting...", ret);
 			goto out;
 		}
 		/*
@@ -156,13 +157,16 @@ int callee(void *_callee_channel_header)
 					fipc_get_reg4(recvd_msg),
 					fipc_get_reg5(recvd_msg));
 			break;
+		default:
+			pr_err("Bad function type %d, exiting...\n", type);
+			goto out;
 		}
 		/*
 		 * Send response back
 		 */
 		ret = send_response(chan, recvd_msg, temp_res, type);
 		if (ret) {
-			pr_err("Error sending response back, ret = %d", ret);
+			pr_err("Error sending response back, ret = %d, exiting...", ret);
 			goto out;
 		}
 	}

@@ -8,6 +8,7 @@
 
 #include <linux/random.h>
 #include "rpc.h"
+#include "../test_helpers.h"
 
 static inline int send_and_get_response(
 	struct fipc_ring_channel *chan,
@@ -27,7 +28,7 @@ static inline int send_and_get_response(
 	/*
 	 * Try to get the response
 	 */
-	ret = blocking_recv_start(chan, &resp);
+	ret = test_fipc_blocking_recv_start(chan, &resp);
 	if (ret) {
 		pr_err("failed to get a response, ret = %d\n", ret);
 		goto fail2;
@@ -47,6 +48,7 @@ static inline int finish_response_check_fn_type(struct fipc_ring_channel *chnl,
 						struct fipc_message *response,
 						enum fn_type expected_type)
 {
+	int ret;
 	enum fn_type actual_type = get_fn_type(response);
 	ret = fipc_recv_msg_end(chnl, response);
 	if (ret) {
@@ -67,6 +69,7 @@ static inline int finish_response_check_fn_type_and_reg0(
 	enum fn_type expected_type,
 	unsigned long expected_reg0)
 {
+	int ret;
 	enum fn_type actual_type = get_fn_type(response);
 	unsigned long actual_reg0 = fipc_get_reg0(response);
 
@@ -117,7 +120,7 @@ null_invocation(struct fipc_ring_channel *chan)
 	/*
 	 * Set up request
 	 */
-	ret = blocking_send_start(chan, &request);
+	ret = test_fipc_blocking_send_start(chan, &request);
 	if (ret) {
 		pr_err("Error getting send message, ret = %d\n", ret);
 		goto fail;
@@ -134,7 +137,7 @@ null_invocation(struct fipc_ring_channel *chan)
 	/*
 	 * Maybe check message
 	 */
-	return finish_response_check_fn_type(response, NULL_INVOCATION);
+	return finish_response_check_fn_type(chan, response, NULL_INVOCATION);
 
 fail:
 	return ret;
@@ -149,7 +152,7 @@ add_constant(struct fipc_ring_channel *chan, unsigned long trans)
 	/*
 	 * Set up request
 	 */
-	ret = blocking_send_start(chan, &request);
+	ret = test_fipc_blocking_send_start(chan, &request);
 	if (ret) {
 		pr_err("Error getting send message, ret = %d\n", ret);
 		goto fail;
@@ -168,6 +171,7 @@ add_constant(struct fipc_ring_channel *chan, unsigned long trans)
 	 * Maybe check message
 	 */
 	return finish_response_check_fn_type_and_reg0(
+		chan,
 		response, 
 		ADD_CONSTANT,
 		trans + 50);
@@ -186,7 +190,7 @@ add_nums(struct fipc_ring_channel *chan, unsigned long trans,
 	/*
 	 * Set up request
 	 */
-	ret = blocking_send_start(chan, &request);
+	ret = test_fipc_blocking_send_start(chan, &request);
 	if (ret) {
 		pr_err("Error getting send message, ret = %d\n", ret);
 		goto fail;
@@ -206,6 +210,7 @@ add_nums(struct fipc_ring_channel *chan, unsigned long trans,
 	 * Maybe check message
 	 */
 	return finish_response_check_fn_type_and_reg0(
+		chan,
 		response, 
 		ADD_NUMS,
 		trans + res1);
@@ -224,7 +229,7 @@ add_3_nums(struct fipc_ring_channel *chan, unsigned long trans,
 	/*
 	 * Set up request
 	 */
-	ret = blocking_send_start(chan, &request);
+	ret = test_fipc_blocking_send_start(chan, &request);
 	if (ret) {
 		pr_err("Error getting send message, ret = %d\n", ret);
 		goto fail;
@@ -245,6 +250,7 @@ add_3_nums(struct fipc_ring_channel *chan, unsigned long trans,
 	 * Maybe check message
 	 */
 	return finish_response_check_fn_type_and_reg0(
+		chan,
 		response, 
 		ADD_3_NUMS,
 		trans + res1 + res2);
@@ -263,7 +269,7 @@ add_4_nums(struct fipc_ring_channel *chan, unsigned long trans,
 	/*
 	 * Set up request
 	 */
-	ret = blocking_send_start(chan, &request);
+	ret = test_fipc_blocking_send_start(chan, &request);
 	if (ret) {
 		pr_err("Error getting send message, ret = %d\n", ret);
 		goto fail;
@@ -285,6 +291,7 @@ add_4_nums(struct fipc_ring_channel *chan, unsigned long trans,
 	 * Maybe check message
 	 */
 	return finish_response_check_fn_type_and_reg0(
+		chan,
 		response, 
 		ADD_4_NUMS,
 		trans + res1 + res2 + res3);
@@ -304,7 +311,7 @@ add_5_nums(struct fipc_ring_channel *chan, unsigned long trans,
 	/*
 	 * Set up request
 	 */
-	ret = blocking_send_start(chan, &request);
+	ret = test_fipc_blocking_send_start(chan, &request);
 	if (ret) {
 		pr_err("Error getting send message, ret = %d\n", ret);
 		goto fail;
@@ -327,6 +334,7 @@ add_5_nums(struct fipc_ring_channel *chan, unsigned long trans,
 	 * Maybe check message
 	 */
 	return finish_response_check_fn_type_and_reg0(
+		chan,
 		response, 
 		ADD_5_NUMS,
 		trans + res1 + res2 + res3 + res4);
@@ -346,7 +354,7 @@ add_6_nums(struct fipc_ring_channel *chan, unsigned long trans,
 	/*
 	 * Set up request
 	 */
-	ret = blocking_send_start(chan, &request);
+	ret = test_fipc_blocking_send_start(chan, &request);
 	if (ret) {
 		pr_err("Error getting send message, ret = %d\n", ret);
 		goto fail;
@@ -370,6 +378,7 @@ add_6_nums(struct fipc_ring_channel *chan, unsigned long trans,
 	 * Maybe check message
 	 */
 	return finish_response_check_fn_type_and_reg0(
+		chan,
 		response, 
 		ADD_6_NUMS,
 		trans + res1 + res2 + res3 + res4 + res5);
@@ -378,12 +387,13 @@ fail:
 	return ret;
 }
 
-int caller(void *_caller_channel_header);
+int caller(void *_caller_channel_header)
 {
         struct fipc_ring_channel *chan = _caller_channel_header;
 	unsigned long transaction_id;
 	unsigned long res1, res2, res3, res4, res5;
 	unsigned long start, end;
+	int ret = 0;
 
 	get_random_bytes(&res1, sizeof(res1));
 	res2 = res1 + res1;
@@ -398,9 +408,15 @@ int caller(void *_caller_channel_header);
 	     transaction_id < TRANSACTIONS/2;
 	     transaction_id++) {
 
-		start = start_stopwatch();
-		null_invocation();
-		end = stop_stopwatch();
+		start = test_fipc_start_stopwatch();
+		ret = null_invocation(chan);
+		end = test_fipc_stop_stopwatch();
+
+		if (ret) {
+			pr_err("error doing null invocation, ret = %d, exiting...\n",
+				ret);
+			goto out;
+		}
 
 		pr_err("\t%lu\n", end - start);
 	}
@@ -412,13 +428,24 @@ int caller(void *_caller_channel_header);
 	     transaction_id < TRANSACTIONS;
 	     transaction_id++) {
 
-		start = start_stopwatch();
-		res6 = add_6_nums(num_transactions,res1,res2,res3,res4,res5);
-		end = stop_stopwatch();
+		start = test_fipc_start_stopwatch();
+		ret = add_6_nums(chan,
+				transaction_id, 
+				res1, res2, res3, res4, res5);
+		end = test_fipc_stop_stopwatch();
+
+		if (ret) {
+			pr_err("error doing add6nums invocation, ret = %d, exiting...\n",
+				ret);
+			goto out;
+		}
+		
 
 		pr_err("\t%lu\n", end - start);
 	}
 
 	pr_err("Complete\n");
 
+out:
+	return ret;
 }

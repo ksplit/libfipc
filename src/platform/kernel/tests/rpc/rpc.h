@@ -10,7 +10,7 @@
 
 #include <libfipc.h>
 
-enum fn_types {
+enum fn_type {
 	NULL_INVOCATION, 
 	ADD_CONSTANT, 
 	ADD_NUMS, 

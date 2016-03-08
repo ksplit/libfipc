@@ -24,7 +24,8 @@ static int setup_and_run_test(void)
 	/*
 	 * Set up channel
 	 */
-	ret = create_channel(CHANNEL_ORDER, &caller_header, &callee_header);
+	ret = test_fipc_create_channel(CHANNEL_ORDER, &caller_header, 
+				&callee_header);
 	if (ret) {
 		pr_err("Error creating channel, ret = %d", ret);
 		goto fail1;
@@ -32,14 +33,16 @@ static int setup_and_run_test(void)
 	/*
 	 * Set up threads
 	 */
-	caller_thread = spawn_thread_with_channel(caller_header, caller,
-						CALLER_CPU);
+	caller_thread = test_fipc_spawn_thread_with_channel(caller_header, 
+							caller,
+							CALLER_CPU);
 	if (!caller_thread) {
 		pr_err("Error setting up caller thread");
 		goto fail2;
 	}
-	callee_thread = spawn_thread_with_channel(callee_header, callee,
-						CALLEE_CPU);
+	callee_thread = test_fipc_spawn_thread_with_channel(callee_header, 
+							callee,
+							CALLEE_CPU);
 	if (!callee_thread) {
 		pr_err("Error setting up callee thread");
 		goto fail3;
@@ -50,18 +53,25 @@ static int setup_and_run_test(void)
 	wake_up_process(caller_thread);
 	wake_up_process(callee_thread);
 	/*
-	 * Release our reference on them since we are going to exit
-	 * before they finish
+	 * Wait for them to complete, so we can tear things down
 	 */
-	release_thread(caller_thread);
-	release_thread(callee_thread);
+	ret = test_fipc_wait_for_thread(caller_thread);
+	if (ret)
+		pr_err("Caller returned non-zero exit status %d\n", ret);
+	ret = test_fipc_wait_for_thread(callee_thread);
+	if (ret)
+		pr_err("Callee returned non-zero exit status %d\n", ret);
+	/*
+	 * Tear things down
+	 */
+	test_fipc_free_channel(CHANNEL_ORDER, caller_header, callee_header);
 
 	return 0;
 
 fail3:
-	release_thread(caller_thread);
+	test_fipc_release_thread(caller_thread);
 fail2:
-	free_channel(CHANNEL_ORDER, caller_header, callee_header);
+	test_fipc_free_channel(CHANNEL_ORDER, caller_header, callee_header);
 fail1:
 	return ret;
 }
@@ -74,10 +84,9 @@ static int __init rpc_init(void)
 
         return ret;
 }
-static int __exit rpc_rmmod(void)
+static void __exit rpc_rmmod(void)
 {
-
-	return 0;
+	return;
 }
 
 module_init(rpc_init);

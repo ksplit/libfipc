@@ -13,13 +13,14 @@
 #include <linux/mm.h>
 #include <linux/sched.h>
 #include <linux/kthread.h>
+#include <linux/kernel.h>
 #include <libfipc.h>
 
 static inline 
 struct task_struct *
-spawn_thread_with_channel(struct fipc_ring_channel *channel,
-			int (*threadfn)(void *data),
-			int cpu_pin)
+test_fipc_spawn_thread_with_channel(struct fipc_ring_channel *channel,
+				int (*threadfn)(void *data),
+				int cpu_pin)
 {
 	struct cpumask cpu_core;
 	struct task_struct* thread = NULL;
@@ -57,14 +58,14 @@ fail1:
 
 static inline
 void
-release_thread(struct kthread *thread)
+test_fipc_release_thread(struct task_struct *thread)
 {
 	put_task_struct(thread);
 }
 
 static inline
 int
-wait_for_thread(struct kthread *thread)
+test_fipc_wait_for_thread(struct task_struct *thread)
 {
 	int ret;
 	ret = kthread_stop(thread);
@@ -74,9 +75,9 @@ wait_for_thread(struct kthread *thread)
 
 static inline
 int
-create_channel(unsigned int buf_nr_pages_order, /* in pages */
-	struct fipc_ring_channel **header_1, 
-	struct fipc_ring_channel **header_2)
+test_fipc_create_channel(unsigned int buf_nr_pages_order, /* in pages */
+			struct fipc_ring_channel **header_1, 
+			struct fipc_ring_channel **header_2)
 {
 	int ret;
 	void *buf1, *buf2;
@@ -85,12 +86,12 @@ create_channel(unsigned int buf_nr_pages_order, /* in pages */
 	/*
 	 * Allocate buffer pages
 	 */
-	buf1 = __get_free_pages(buf_nr_pages_order, GFP_KERNEL);
+	buf1 = (void *)__get_free_pages(buf_nr_pages_order, GFP_KERNEL);
 	if (!buf1) {
 		ret = -ENOMEM;
 		goto fail1;
 	}
-	buf2 = __get_free_pages(buf_nr_pages_order, GFP_KERNEL);
+	buf2 = (void *)__get_free_pages(buf_nr_pages_order, GFP_KERNEL);
 	if (!buf2) {
 		ret = -ENOMEM;
 		goto fail2;
@@ -142,9 +143,9 @@ fail1:
 
 static inline
 void
-free_channel(unsigned int buf_nr_pages_order, /* in pages */
-	struct fipc_ring_channel *header_1, 
-	struct fipc_ring_channel *header_2)
+test_fipc_free_channel(unsigned int buf_nr_pages_order, /* in pages */
+		struct fipc_ring_channel *header_1, 
+		struct fipc_ring_channel *header_2)
 {
 	/*
 	 * Free buffers
@@ -160,7 +161,8 @@ free_channel(unsigned int buf_nr_pages_order, /* in pages */
 
 static inline
 int
-blocking_recv_start(struct fipc_ring_channel *chnl, struct fipc_message **out)
+test_fipc_blocking_recv_start(struct fipc_ring_channel *chnl, 
+			struct fipc_message **out)
 {
 	int ret;
 	for (;;) {
@@ -174,7 +176,8 @@ blocking_recv_start(struct fipc_ring_channel *chnl, struct fipc_message **out)
 
 static inline
 int
-blocking_send_start(struct fipc_ring_channel *chnl, struct fipc_message **out)
+test_fipc_blocking_send_start(struct fipc_ring_channel *chnl, 
+			struct fipc_message **out)
 {
 	int ret;
 	for (;;) {
@@ -186,7 +189,7 @@ blocking_send_start(struct fipc_ring_channel *chnl, struct fipc_message **out)
 	}
 }
 
-static inline unsigned long start_stopwatch(void)
+static inline unsigned long test_fipc_start_stopwatch(void)
 {
 	unsigned long stamp;
 	/*
@@ -210,11 +213,11 @@ static inline unsigned long start_stopwatch(void)
 		"or %%rdx, %%rax\n\t" 
 		: "=a" (stamp)
 		:
-		: "rax", "rdx");
+		: "rdx");
 	return stamp;
 }
 
-static inline unsigned long stop_stopwatch(void)
+static inline unsigned long test_fipc_stop_stopwatch(void)
 {
 	unsigned long stamp;
 	/*
@@ -230,7 +233,7 @@ static inline unsigned long stop_stopwatch(void)
 		"or %%rdx, %%rax\n\t" 
 		: "=a" (stamp)
 		:
-		: "rax", "rdx", "rcx");
+		: "rdx", "rcx");
 	return stamp;
 }
 
