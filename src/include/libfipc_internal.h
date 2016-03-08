@@ -17,9 +17,9 @@
 #define FIPC_DEBUG_ERR  1
 #define FIPC_DEBUG_VERB 2
 
-#define FIPC_DEBUG_LVL FIPC_DEBUG_NONE
+#define FIPC_DEBUG_LVL FIPC_DEBUG_VERB
 
-#define fipc_debug(fmt, ...) __fipc_debug(fmt, __VA_ARGS__)
+#define fipc_debug(fmt, ...) __fipc_debug(fmt,##__VA_ARGS__)
 
 #define FIPC_DEBUG(lvl, fmt, ...) do {				\
 		if (lvl <= FIPC_DEBUG_LVL) {			\

@@ -14,7 +14,7 @@
 #include <libfipc_platform_types.h>
 
 #define __fipc_debug(fmt, ...) \
-    printk(KERN_ERR "fipc: %s:%d: "format,__FUNCTION__,__LINE__,##__VA_ARGS__)
+    printk(KERN_ERR "fipc: %s:%d: "fmt,__FUNCTION__,__LINE__,##__VA_ARGS__)
 
 static inline int __fipc_mutex_init(fipc_mutex_t *mutex)
 {

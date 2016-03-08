@@ -108,7 +108,7 @@ int fipc_prep_buffers(unsigned int buf_order, void *buffer_1, void *buffer_2)
 	 */
 	if ((1UL << buf_order) < sizeof(struct fipc_message)) {
 		FIPC_DEBUG(FIPC_DEBUG_ERR,
-			"Buffers are too small (buf_order = %d, so their size is 2^buf_order = %ul bytes); but one fipc message is %ul, so the buffers need to be at least that big\n",
+			"Buffers are too small (buf_order = %d, so their size is 2^buf_order = %lu bytes); but one fipc message is %lu, so the buffers need to be at least that big\n",
 			buf_order, (1UL << buf_order), 
 			sizeof(struct fipc_message));
 		return -EINVAL;
@@ -147,7 +147,7 @@ int fipc_ring_channel_init(struct fipc_ring_channel *chnl,
 	 */
 	if ((1UL << buf_order) < sizeof(struct fipc_message)) {
 		FIPC_DEBUG(FIPC_DEBUG_ERR,
-			"Buffers are too small (buf_order = %d, so their size is 2^buf_order = %ul bytes); but one fipc message is %ul, so the buffers need to be at least that big\n",
+			"Buffers are too small (buf_order = %d, so their size is 2^buf_order = %lu bytes); but one fipc message is %lu, so the buffers need to be at least that big\n",
 			buf_order, (1UL << buf_order), 
 			sizeof(struct fipc_message));
 		return -EINVAL;
@@ -182,7 +182,7 @@ int fipc_send_msg_start(struct fipc_ring_channel *chnl,
 #if FIPC_DEBUG_LVL >= FIPC_DEBUG_VERB
 
 	if (!ret)
-		fipc_debug("Allocated a slot at index %ul in tx\n",
+		fipc_debug("Allocated a slot at index %lu in tx\n",
 			tx_msg_to_idx(chnl, *msg));
 	else
 		fipc_debug("Failed to get a slot, out of slots right now.\n");
@@ -199,7 +199,7 @@ int fipc_send_msg_end(struct fipc_ring_channel *chnl,
 
 #if FIPC_DEBUG_LVL >= FIPC_DEBUG_VERB
 
-	fipc_debug("Marking message at idx %ul as sent\n",
+	fipc_debug("Marking message at idx %lu as sent\n",
 		tx_msg_to_idx(chnl, msg));
 
 #endif
@@ -243,7 +243,7 @@ int fipc_recv_msg_start(struct fipc_ring_channel *chnl,
 #if FIPC_DEBUG_LVL >= FIPC_DEBUG_VERB
 
 	if (!ret)
-		fipc_debug("Received a message at index %ul in rx\n",
+		fipc_debug("Received a message at index %lu in rx\n",
 			rx_msg_to_idx(chnl, *msg));
 	else
 		fipc_debug("No messages to receive right now\n");
@@ -281,7 +281,7 @@ int fipc_recv_msg_if(struct fipc_ring_channel *chnl,
 #if FIPC_DEBUG_LVL >= FIPC_DEBUG_VERB
 
 	if (!ret)
-		fipc_debug("Received a message at index %ul in rx\n",
+		fipc_debug("Received a message at index %lu in rx\n",
 			rx_msg_to_idx(chnl, *msg));
 	else
 		fipc_debug("No messages to receive right now, or caller doesn't want it\n");
@@ -298,7 +298,7 @@ int fipc_recv_msg_end(struct fipc_ring_channel *chnl,
 
 #if FIPC_DEBUG_LVL >= FIPC_DEBUG_VERB
 
-	fipc_debug("Marking message at idx %ul as received\n",
+	fipc_debug("Marking message at idx %lu as received\n",
 		rx_msg_to_idx(chnl, msg));
 
 #endif
