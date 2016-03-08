@@ -55,10 +55,10 @@ struct fipc_message {
  * above.)
  *
  * XXX: This definition may need to be arch-specific in general if we want
- * it to be cacheline sized.
+ * it to be double cacheline sized.
  */
 #define FIPC_RING_BUF_PADDING \
-	(FIPC_CACHE_LINE_SIZE - \
+	(2 * FIPC_CACHE_LINE_SIZE - \
 		(3 * sizeof(unsigned long) + sizeof(fipc_mutex_t)))
 struct fipc_ring_buf {
 	/**

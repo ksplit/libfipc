@@ -20,6 +20,9 @@ AM_CPPFLAGS = \
 	-I$(abs_top_builddir)/src/include \
 	$(KERNEL_INCLUDES)
 
+COMMON_SRCS= \
+	../../common/ipc.c
+
 # Necessary to export so that these variables are available in Kbuilds
 export AM_CPPFLAGS COMMON_SRCS
 

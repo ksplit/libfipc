@@ -57,7 +57,7 @@ get_current_rx_slot(struct fipc_ring_channel *rc)
 	return &rc->rx.buffer[idx];
 }
 
-static inline int check_rx_slot_available(struct ipc_message *slot)
+static inline int check_rx_slot_available(struct fipc_message *slot)
 {
 	return (likely(slot->msg_status != FIPC_MSG_STATUS_SENT));
 }
@@ -78,11 +78,11 @@ static inline unsigned long order_two_mask(unsigned int buf_order)
 	return  nr_slots(buf_order) - 1;
 }
 
-int fipc_prep_buffers(unsigned int buf_order, void *buffer_1, void *buffer_2);
+int fipc_prep_buffers(unsigned int buf_order, void *buffer_1, void *buffer_2)
 {
 	unsigned long i;
-	struct ipc_message *msg_buffer_1 = buffer_1;
-	struct ipc_message *msg_buffer_2 = buffer_2;
+	struct fipc_message *msg_buffer_1 = buffer_1;
+	struct fipc_message *msg_buffer_2 = buffer_2;
 	/*
 	 * Buffers must be at least as big as one ipc message slot
 	 */
@@ -115,7 +115,7 @@ int fipc_ring_channel_init(struct fipc_ring_channel *chnl,
 	 * Checks at compile time
 	 */
 	BUILD_BUG_ON_NOT_POWER_OF_2(FIPC_CACHE_LINE_SIZE);
-	BUILD_BUG_ON(sizeof(struct fipc_ring_buf) != FIPC_CACHE_LINE_SIZE);
+	BUILD_BUG_ON(sizeof(struct fipc_ring_buf) != 2 * FIPC_CACHE_LINE_SIZE);
 	BUILD_BUG_ON(sizeof(struct fipc_message) != FIPC_CACHE_LINE_SIZE);
 	/*
 	 * Buffers must be as big as one ipc message slot
