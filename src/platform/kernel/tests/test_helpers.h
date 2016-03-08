@@ -69,7 +69,7 @@ test_fipc_wait_for_thread(struct task_struct *thread)
 {
 	int ret;
 	ret = kthread_stop(thread);
-	release_thread(thread);
+	test_fipc_release_thread(thread);
 	return ret;
 }
 
