@@ -1,6 +1,6 @@
 
 COMMON_SRCS = \
-	common/ipc.o \
+	common/ipc.o
 
 COMMON_INCLUDES = include
 
