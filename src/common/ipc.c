@@ -8,8 +8,7 @@
  */
 
 #include <libfipc.h>
-
-abcdef
+#include <libfipc_internal.h>
 
 #define FIPC_MSG_STATUS_AVAILABLE 0xdeaddeadUL
 #define FIPC_MSG_STATUS_SENT      0xfeedfeedUL
@@ -132,7 +131,6 @@ int fipc_ring_channel_init(struct fipc_ring_channel *chnl,
 
 	return 0;
 }
-
 
 int fipc_send_msg_start(struct fipc_ring_channel *chnl,
 			struct fipc_message **msg)
