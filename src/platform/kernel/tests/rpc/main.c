@@ -7,6 +7,7 @@
 #include <libfipc.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/delay.h>
 #include "../test_helpers.h"
 #include "rpc.h"
 
@@ -35,7 +36,7 @@ static int setup_and_run_test(void)
 	ret = test_fipc_create_channel(CHANNEL_ORDER, &caller_header, 
 				&callee_header);
 	if (ret) {
-		pr_err("Error creating channel, ret = %d", ret);
+		pr_err("Error creating channel, ret = %d\n", ret);
 		goto fail1;
 	}
 	/*
@@ -45,14 +46,14 @@ static int setup_and_run_test(void)
 							caller,
 							CALLER_CPU);
 	if (!caller_thread) {
-		pr_err("Error setting up caller thread");
+		pr_err("Error setting up caller thread\n");
 		goto fail2;
 	}
 	callee_thread = test_fipc_spawn_thread_with_channel(callee_header, 
 							callee,
 							CALLEE_CPU);
 	if (!callee_thread) {
-		pr_err("Error setting up callee thread");
+		pr_err("Error setting up callee thread\n");
 		goto fail3;
 	}
 	/*
@@ -60,6 +61,7 @@ static int setup_and_run_test(void)
 	 */
 	wake_up_process(caller_thread);
 	wake_up_process(callee_thread);
+	msleep(1000);
 	/*
 	 * Wait for them to complete, so we can tear things down
 	 */

@@ -77,15 +77,15 @@ tx_msg_to_idx(struct fipc_ring_channel *rc, struct fipc_message *msg)
 	return msg - rc->tx.buffer;
 }
 
-static inline int check_rx_slot_available(struct fipc_message *slot)
+static inline int check_rx_slot_msg_waiting(struct fipc_message *slot)
 {
-	return (likely(slot->msg_status != FIPC_MSG_STATUS_SENT));
+	return slot->msg_status == FIPC_MSG_STATUS_SENT;
 }
 
 
 static inline int check_tx_slot_available(struct fipc_message *slot)
 {
-	return unlikely(slot->msg_status != FIPC_MSG_STATUS_AVAILABLE);
+	return slot->msg_status == FIPC_MSG_STATUS_AVAILABLE;
 }
 
 static inline unsigned long nr_slots(unsigned int buf_order)
@@ -140,7 +140,7 @@ int fipc_ring_channel_init(struct fipc_ring_channel *chnl,
 	 * Checks at compile time
 	 */
 	BUILD_BUG_ON_NOT_POWER_OF_2(FIPC_CACHE_LINE_SIZE);
-	BUILD_BUG_ON(sizeof(struct fipc_ring_buf) != 2 * FIPC_CACHE_LINE_SIZE);
+	BUILD_BUG_ON(sizeof(struct fipc_ring_buf) != FIPC_CACHE_LINE_SIZE);
 	BUILD_BUG_ON(sizeof(struct fipc_message) != FIPC_CACHE_LINE_SIZE);
 	/*
 	 * Buffers must be as big as one ipc message slot
@@ -213,7 +213,7 @@ static int recv_msg_peek(struct fipc_ring_channel *chnl,
 {
 	int ret = -EWOULDBLOCK;
 
-	if (check_rx_slot_available(get_current_rx_slot(chnl))) {
+	if (check_rx_slot_msg_waiting(get_current_rx_slot(chnl))) {
 
 		*msg = get_current_rx_slot(chnl);
 		ret = 0;

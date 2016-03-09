@@ -159,6 +159,7 @@ int callee(void *_callee_channel_header)
 			break;
 		default:
 			pr_err("Bad function type %d, exiting...\n", type);
+			ret = -EINVAL;
 			goto out;
 		}
 		/*

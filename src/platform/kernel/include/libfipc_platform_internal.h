@@ -18,19 +18,19 @@
 
 static inline int __fipc_mutex_init(fipc_mutex_t *mutex)
 {
-	mutex_init(mutex);
+	spin_lock_init(mutex);
 	return 0;
 }
 
 static inline int __fipc_mutex_lock(fipc_mutex_t *mutex)
 {
-	mutex_lock(mutex);
+	spin_lock(mutex);
 	return 0;
 }
 
 static inline int __fipc_mutex_unlock(fipc_mutex_t *mutex)
 {
-	mutex_unlock(mutex);
+	spin_unlock(mutex);
 	return 0;
 }
 

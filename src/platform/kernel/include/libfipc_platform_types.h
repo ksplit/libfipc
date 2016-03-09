@@ -8,9 +8,9 @@
 #ifndef LIBFIPC_PLATFORM_TYPES_H
 #define LIBFIPC_PLATFORM_TYPES_H
 
-#include <linux/mutex.h>
+#include <linux/spinlock.h>
 
-typedef struct mutex fipc_mutex_t;
+typedef spinlock_t fipc_mutex_t;
 
 
 #endif /* LIBFIPC_PLATFORM_TYPES_H */

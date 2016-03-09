@@ -11,4 +11,4 @@ libfipc_test_rpc-y += main.o callee.o caller.o
 libfipc_test_rpc-y += ../$(LIBFIPC_PATH) # libfipc.a is relative to tests/
 
 # Add -DCHECK_MESSAGES to check that message values contain what is expected
-ccflags-y += $(CFLAGS) $(AM_CPPFLAGS) -DCHECK_MESSAGES
+ccflags-y += $(CFLAGS) $(AM_CPPFLAGS)
