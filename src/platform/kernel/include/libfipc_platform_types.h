@@ -8,6 +8,7 @@
 #ifndef LIBFIPC_PLATFORM_TYPES_H
 #define LIBFIPC_PLATFORM_TYPES_H
 
-/* Nothing for now */
+#include <linux/errno.h>
+#include <linux/string.h>
 
 #endif /* LIBFIPC_PLATFORM_TYPES_H */

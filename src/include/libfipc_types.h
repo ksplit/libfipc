@@ -58,7 +58,7 @@ struct fipc_message {
  * it to be double cacheline sized.
  */
 #define FIPC_RING_BUF_PADDING \
-	(FIPC_CACHE_LINE_SIZE - (3 * sizeof(unsigned long))
+	(FIPC_CACHE_LINE_SIZE - (3 * sizeof(unsigned long)))
 struct fipc_ring_buf {
 	/**
 	 * Where *I* am in the IPC buffer. (The other guy knows where I am

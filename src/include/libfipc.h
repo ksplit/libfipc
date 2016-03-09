@@ -158,6 +158,7 @@
 #define LIBFIPC_H
 
 #include <libfipc_types.h>
+#include <libfipc_platform.h>
 
 /* MAIN INTERFACE -------------------------------------------------- */
 
