@@ -58,14 +58,8 @@ struct fipc_message {
  * it to be double cacheline sized.
  */
 #define FIPC_RING_BUF_PADDING \
-	(FIPC_CACHE_LINE_SIZE - \
-		(3 * sizeof(unsigned long) + sizeof(fipc_mutex_t)))
+	(FIPC_CACHE_LINE_SIZE - (3 * sizeof(unsigned long))
 struct fipc_ring_buf {
-	/**
-	 * Protects slot. (Note that this synchronizes threads only
-	 * on one side of a buffer.)
-	 */
-	fipc_mutex_t lock;
 	/**
 	 * Where *I* am in the IPC buffer. (The other guy knows where I am
 	 * by looking at message statuses.)

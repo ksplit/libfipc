@@ -87,6 +87,16 @@
  * Send/Receive
  * ------------
  * 
+ * IMPORTANT: If you plan to share the same tx or rx header on one
+ * side of the channel amongst multiple threads, fipc_send_msg_start and 
+ * fipc_recv_msg_start/if are NOT thread safe. (Some libfipc users may 
+ * not require it, so we don't do any synchronization internally.) So,
+ * you should wrap calls to these functions in locks as necessary. See
+ * their documentation for more comments.
+ *
+ * (Of course, communication across the channel itself to the other side
+ * does not require explicit synchronization of threads on opposite sides.)
+ *
  * A typical send/receive sequence is as follows, assuming the headers
  * have been initialized already:
  *
@@ -213,8 +223,11 @@ int fipc_ring_channel_init(struct fipc_ring_channel *chnl,
  * be marked as ready to receive, for the receiver to pick up.) So, make
  * sure the code in between start and end cannot fail.
  *
- * This function is thread safe -- if you are returned a message slot,
- * you know that no other thread got a hold of it.
+ * IMPORTANT: This function is NOT thread safe. To make this code fast,
+ * we do not do any internal synchronization. If you plan to share the
+ * tx buffer amongst several threads, you should wrap a call to this 
+ * function with a tx-specific lock, for example. Once this call has
+ * returned, however, a subsequent call will not return the same message.
  */
 int fipc_send_msg_start(struct fipc_ring_channel *chnl,
 			struct fipc_message **msg);
@@ -225,6 +238,8 @@ int fipc_send_msg_start(struct fipc_ring_channel *chnl,
  *
  * Returns non-zero on failure. (For now, this never fails, but in case
  * failure is possible in the future, we provide for this possibility.)
+ *
+ * This function is thread safe.
  */
 int fipc_send_msg_end(struct fipc_ring_channel *chnl, 
 		struct fipc_message *msg);
@@ -254,8 +269,11 @@ int fipc_send_msg_end(struct fipc_ring_channel *chnl,
  * will potentially block waiting for the slot to become free. So, make sure
  * your code cannot fail between start/end.
  *
- * This function is thread safe -- if you are returned a message,
- * you know that no other thread got a hold of it.
+ * IMPORTANT: This function is NOT thread safe. To make this code fast,
+ * we do not do any internal synchronization. If you plan to share the
+ * rx buffer amongst several threads, you should wrap a call to this 
+ * function with a rx-specific lock, for example. Once this call has
+ * returned, however, a subsequent call will not return the same message.
  */
 int fipc_recv_msg_start(struct fipc_ring_channel *chnl,
 			struct fipc_message **msg);
@@ -274,7 +292,11 @@ int fipc_recv_msg_start(struct fipc_ring_channel *chnl,
  * @pred should return non-zero to indicate the caller should receive the
  * message, and zero if no.
  *
- * IMPORTANT: @pred should be simple, as it is executed inside of a
+ * IMPORTANT: This function is NOT thread safe. To make this code fast,
+ * we do not do any internal synchronization. If you plan to share the
+ * rx buffer amongst several threads, you should wrap a call to this 
+ * function with an rx-specific lock, for example. In that case, you
+ * should ensure @pred is simple, as it is would be executed inside of a
  * critical section.
  */
 int fipc_recv_msg_if(struct fipc_ring_channel *chnl,
@@ -288,6 +310,8 @@ int fipc_recv_msg_if(struct fipc_ring_channel *chnl,
  *
  * Returns non-zero on failure. (For now, this never fails, but in case
  * failure is possible in the future, we provide for this possibility.)
+ *
+ * This function is thread safe.
  */
 int fipc_recv_msg_end(struct fipc_ring_channel *chnl,
 		struct fipc_message *msg);

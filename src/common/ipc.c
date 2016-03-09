@@ -127,7 +127,6 @@ static void ring_buf_init(struct fipc_ring_buf *ring_buf,
 			unsigned int buf_order,
 			void *buffer)
 {
-	fipc_mutex_init(&ring_buf->lock);
 	ring_buf->buffer = buffer;
 	ring_buf->order_two_mask = order_two_mask(buf_order);
 }
@@ -167,8 +166,6 @@ int fipc_send_msg_start(struct fipc_ring_channel *chnl,
 {
 	int ret = -EWOULDBLOCK;
 
-	fipc_mutex_lock(&chnl->tx.lock);
-
 	if (check_tx_slot_available(get_current_tx_slot(chnl))) {
 
 		*msg = get_current_tx_slot(chnl);
@@ -176,8 +173,6 @@ int fipc_send_msg_start(struct fipc_ring_channel *chnl,
 		ret = 0;
 
 	}
-
-	fipc_mutex_unlock(&chnl->tx.lock);
 
 #if FIPC_DEBUG_LVL >= FIPC_DEBUG_VERB
 
@@ -229,16 +224,12 @@ int fipc_recv_msg_start(struct fipc_ring_channel *chnl,
 	int ret;
 	struct fipc_message *m;
 
-	fipc_mutex_lock(&chnl->rx.lock);
-
 	ret = recv_msg_peek(chnl, &m);
 	if (!ret) {
 		/* Message waiting to be received */
 		*msg = m;
 		inc_rx_slot(chnl);
 	}
-
-	fipc_mutex_unlock(&chnl->rx.lock);
 
 #if FIPC_DEBUG_LVL >= FIPC_DEBUG_VERB
 
@@ -261,8 +252,6 @@ int fipc_recv_msg_if(struct fipc_ring_channel *chnl,
 	int ret;
 	struct fipc_message *m;
 
-	fipc_mutex_lock(&chnl->rx.lock);
-
 	ret = recv_msg_peek(chnl, &m);
 	if (!ret) {
 		/* Message waiting to be received; query predicate */
@@ -275,8 +264,6 @@ int fipc_recv_msg_if(struct fipc_ring_channel *chnl,
 			ret = -ENOMSG;
 		}
 	}
-
-	fipc_mutex_unlock(&chnl->rx.lock);
 
 #if FIPC_DEBUG_LVL >= FIPC_DEBUG_VERB
 

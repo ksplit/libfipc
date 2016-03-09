@@ -8,9 +8,6 @@
 #ifndef LIBFIPC_PLATFORM_TYPES_H
 #define LIBFIPC_PLATFORM_TYPES_H
 
-#include <linux/spinlock.h>
-
-typedef spinlock_t fipc_mutex_t;
-
+/* Nothing for now */
 
 #endif /* LIBFIPC_PLATFORM_TYPES_H */
