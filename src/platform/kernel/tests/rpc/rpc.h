@@ -20,7 +20,7 @@ enum fn_type {
 	ADD_6_NUMS
 };
 
-/* must be divisible by 6... because I call 6 functions in the callee.c */
+/* Must be even */
 #define TRANSACTIONS 60
 
 /* thread main functions */

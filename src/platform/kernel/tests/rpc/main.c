@@ -13,7 +13,8 @@
 
 #define CALLER_CPU 1
 #define CALLEE_CPU 3
-#define CHANNEL_ORDER 2 /* channel is 2^CHANNEL_ORDER pages */
+/* channel buffers contain just one message slot */
+#define CHANNEL_ORDER ilog2(sizeof(struct fipc_message))
 
 MODULE_LICENSE("GPL");
 
@@ -61,7 +62,8 @@ static int setup_and_run_test(void)
 	 */
 	wake_up_process(caller_thread);
 	wake_up_process(callee_thread);
-	msleep(1000);
+	/* wait for a second so we don't prematurely kill caller/callee */
+	msleep(1000); 
 	/*
 	 * Wait for them to complete, so we can tear things down
 	 */

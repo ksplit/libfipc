@@ -75,14 +75,16 @@ test_fipc_wait_for_thread(struct task_struct *thread)
 
 static inline
 int
-test_fipc_create_channel(unsigned int buf_nr_pages_order, /* in pages */
+test_fipc_create_channel(unsigned int buf_order, /* in bytes */
 			struct fipc_ring_channel **header_1, 
 			struct fipc_ring_channel **header_2)
 {
 	int ret;
 	void *buf1, *buf2;
+	unsigned int buf_nr_pages_order = (
+		buf_order < PAGE_SHIFT ? 0 : buf_order - PAGE_SHIFT
+		);
 	struct fipc_ring_channel *h1, *h2;
-	unsigned int buf_order = buf_nr_pages_order + PAGE_SHIFT;
 	/*
 	 * Allocate buffer pages
 	 */
@@ -143,10 +145,13 @@ fail1:
 
 static inline
 void
-test_fipc_free_channel(unsigned int buf_nr_pages_order, /* in pages */
+test_fipc_free_channel(unsigned int buf_order, /* in bytes */
 		struct fipc_ring_channel *header_1, 
 		struct fipc_ring_channel *header_2)
 {
+	unsigned int buf_nr_pages_order = (
+		buf_order < PAGE_SHIFT ? 0 : buf_order - PAGE_SHIFT
+		);
 	/*
 	 * Free buffers
 	 */

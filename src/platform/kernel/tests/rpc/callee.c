@@ -16,7 +16,7 @@
  * happen.
  */
 
-static unsigned long noinline 
+static unsigned long noinline
 null_invocation(void)
 {
 	return 9;
@@ -28,13 +28,13 @@ add_constant(unsigned long trans)
 	return trans + 50;
 }
 
-static unsigned long noinline 
+static unsigned long noinline
 add_nums(unsigned long trans, unsigned long res1)
 {
 	return trans+res1;
 }
 
-static unsigned long noinline 
+static unsigned long noinline
 add_3_nums(unsigned long trans, unsigned long res1, unsigned long res2)
 {
 	return add_nums(trans, res1) + res2;
@@ -104,6 +104,10 @@ int callee(void *_callee_channel_header)
 	struct fipc_message *recvd_msg;
 	unsigned long transaction_id = 0;
 	enum fn_type type;
+	/*
+	 * Disable interrupts so we truly take over the core
+	 */
+	local_irq_disable();
 
 	for (transaction_id = 0; 
 	     transaction_id < TRANSACTIONS; 
@@ -171,6 +175,10 @@ int callee(void *_callee_channel_header)
 			goto out;
 		}
 	}
+	/*
+	 * Re-enable interrupts
+	 */
+	local_irq_enable();
 
 out:
 	return ret;

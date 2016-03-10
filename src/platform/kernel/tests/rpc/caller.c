@@ -394,6 +394,10 @@ int caller(void *_caller_channel_header)
 	unsigned long res1, res2, res3, res4, res5;
 	unsigned long start, end;
 	int ret = 0;
+	/*
+	 * Turn off interrupts so that we truly take over the core
+	 */
+	local_irq_disable();
 
 	get_random_bytes(&res1, sizeof(res1));
 	res2 = res1 + res1;
@@ -445,6 +449,10 @@ int caller(void *_caller_channel_header)
 	}
 
 	pr_err("Complete\n");
+	/*
+	 * Re-enable interrupts
+	 */
+	local_irq_enable();
 
 out:
 	return ret;

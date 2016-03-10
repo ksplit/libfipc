@@ -82,7 +82,6 @@ static inline int check_rx_slot_msg_waiting(struct fipc_message *slot)
 	return slot->msg_status == FIPC_MSG_STATUS_SENT;
 }
 
-
 static inline int check_tx_slot_available(struct fipc_message *slot)
 {
 	return slot->msg_status == FIPC_MSG_STATUS_AVAILABLE;
