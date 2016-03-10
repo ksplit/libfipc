@@ -137,6 +137,7 @@ AC_CONFIG_FILES(
   src/platform/kernel/tests/Makefile
   src/platform/kernel/tests/Kbuild
   src/platform/kernel/tests/rpc/Kbuild
+  src/platform/kernel/tests/empty_msg/Kbuild
 )
 AC_OUTPUT
 

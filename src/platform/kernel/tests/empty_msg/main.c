@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * Contains init/exit for rpc test
+ * Contains init/exit for empty_msg test
  *
  * See README.txt for more details.
  */
@@ -11,7 +11,7 @@
 #include <linux/module.h>
 #include <linux/delay.h>
 #include "../test_helpers.h"
-#include "rpc.h"
+#include "empty_msg.h"
 
 #define CALLER_CPU 1
 #define CALLEE_CPU 3
@@ -94,7 +94,7 @@ fail0:
 	return ret;
 }
 
-static int __init rpc_init(void)
+static int __init empty_msg_init(void)
 {
 	int ret = 0;
 
@@ -102,10 +102,10 @@ static int __init rpc_init(void)
 
         return ret;
 }
-static void __exit rpc_rmmod(void)
+static void __exit empty_msg_rmmod(void)
 {
 	return;
 }
 
-module_init(rpc_init);
-module_exit(rpc_rmmod);
+module_init(empty_msg_init);
+module_exit(empty_msg_rmmod);
