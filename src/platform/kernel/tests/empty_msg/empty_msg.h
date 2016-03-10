@@ -10,6 +10,8 @@
 
 #include <libfipc.h>
 
+#define TRANSACTIONS 60
+
 /* thread main functions */
 int callee(void *_callee_channel_header);
 int caller(void *_caller_channel_header);

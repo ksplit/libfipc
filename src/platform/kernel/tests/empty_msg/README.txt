@@ -15,8 +15,8 @@ This example was ran on an Intel Xeon E5530 2.4 GHz machines. Make sure
 you turn off TurboBoost in the BIOS, and make sure you turn up the
 processor frequencies to 2.4 GHz.
 
-We saw averages of 430 cycles for the null invocation round trip times
-between cpu1 and cpu3.
+We saw averages of 424-428 cycles for the round trip times between cpu1 and 
+cpu3.
 
 To run this example, after building the .ko, just insmod it. The round trip
 times will be printed to the kernel logs.

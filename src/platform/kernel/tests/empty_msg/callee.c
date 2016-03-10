@@ -48,7 +48,6 @@ int callee(void *_callee_channel_header)
 {
         struct fipc_ring_channel *chan = _callee_channel_header;
 	unsigned long transaction_id;
-	unsigned long start, end;
 	int ret = 0;
 	/*
 	 * Turn off interrupts so that we truly take over the core
@@ -57,14 +56,11 @@ int callee(void *_callee_channel_header)
 	/*
 	 * Do recv/send
 	 */
-	pr_err("Roundtrip Times (in cycles):\n");
 	for (transaction_id = 0; 
 	     transaction_id < TRANSACTIONS;
 	     transaction_id++) {
 
-		start = test_fipc_start_stopwatch();
 		ret = do_one_msg(chan);
-		end = test_fipc_stop_stopwatch();
 
 		if (ret) {
 			pr_err("error in send/recv, ret = %d, exiting...\n",
@@ -72,10 +68,7 @@ int callee(void *_callee_channel_header)
 			goto out;
 		}
 
-		pr_err("\t%lu\n", end - start);
 	}
-
-	pr_err("Complete\n");
 	/*
 	 * Re-enable interrupts
 	 */
