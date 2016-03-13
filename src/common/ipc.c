@@ -18,6 +18,11 @@
 #include <lcd_config/post_hook.h>
 #endif
 
+#ifndef LINUX_KERNEL_MODULE
+#undef EXPORT_SYMBOL
+#define EXPORT_SYMBOL(x)
+#endif
+
 #define FIPC_MSG_STATUS_AVAILABLE 0xdeaddeadUL
 #define FIPC_MSG_STATUS_SENT      0xfeedfeedUL
 
@@ -129,6 +134,7 @@ int fipc_prep_buffers(unsigned int buf_order, void *buffer_1, void *buffer_2)
 	}
 	return 0;
 }
+EXPORT_SYMBOL(fipc_prep_buffers);
 
 static void ring_buf_init(struct fipc_ring_buf *ring_buf,
 			unsigned int buf_order,
@@ -167,6 +173,7 @@ int fipc_ring_channel_init(struct fipc_ring_channel *chnl,
 
 	return 0;
 }
+EXPORT_SYMBOL(fipc_ring_channel_init);
 
 int fipc_send_msg_start(struct fipc_ring_channel *chnl,
 			struct fipc_message **msg)
@@ -193,6 +200,7 @@ int fipc_send_msg_start(struct fipc_ring_channel *chnl,
 
 	return ret;
 }
+EXPORT_SYMBOL(fipc_send_msg_start);
 
 int fipc_send_msg_end(struct fipc_ring_channel *chnl, 
 		struct fipc_message *msg)
@@ -208,6 +216,7 @@ int fipc_send_msg_end(struct fipc_ring_channel *chnl,
 
 	return 0;
 }
+EXPORT_SYMBOL(fipc_send_msg_end);
 
 static int recv_msg_peek(struct fipc_ring_channel *chnl,
 			struct fipc_message **msg)
@@ -249,6 +258,7 @@ int fipc_recv_msg_start(struct fipc_ring_channel *chnl,
 
 	return ret;
 }
+EXPORT_SYMBOL(fipc_recv_msg_start);
 
 int fipc_recv_msg_if(struct fipc_ring_channel *chnl,
 		int (*pred)(struct fipc_message *, void *),
@@ -283,6 +293,7 @@ int fipc_recv_msg_if(struct fipc_ring_channel *chnl,
 
 	return ret;
 }
+EXPORT_SYMBOL(fipc_recv_msg_if);
 
 int fipc_recv_msg_end(struct fipc_ring_channel *chnl,
 		struct fipc_message *msg)
@@ -298,6 +309,7 @@ int fipc_recv_msg_end(struct fipc_ring_channel *chnl,
 
 	return 0;
 }
+EXPORT_SYMBOL(fipc_recv_msg_end);
 
 int fipc_init(void)
 {
@@ -306,6 +318,7 @@ int fipc_init(void)
 
 	return 0;
 }
+EXPORT_SYMBOL(fipc_init);
 
 void fipc_fini(void)
 {
@@ -314,3 +327,4 @@ void fipc_fini(void)
 
 	return;
 }
+EXPORT_SYMBOL(fipc_fini);
