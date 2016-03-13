@@ -7,8 +7,16 @@
  * Copyright: University of Utah
  */
 
+#ifdef LCD_DOMAINS
+#include <lcd_config/pre_hook.h>
+#endif
+
 #include <libfipc.h>
 #include <libfipc_internal.h>
+
+#ifdef LCD_DOMAINS
+#include <lcd_config/post_hook.h>
+#endif
 
 #define FIPC_MSG_STATUS_AVAILABLE 0xdeaddeadUL
 #define FIPC_MSG_STATUS_SENT      0xfeedfeedUL
@@ -201,7 +209,6 @@ int fipc_send_msg_end(struct fipc_ring_channel *chnl,
 	return 0;
 }
 
-/* Expects rx to be locked! */
 static int recv_msg_peek(struct fipc_ring_channel *chnl,
 			struct fipc_message **msg)
 {

@@ -85,7 +85,7 @@ clean-tests:
 
 clean-lib:
 	$(MAKE) -C $(KDIR) M=$(LIBFIPC_KBUILD) clean
-	rm -f $(LIBFIPC_KBUILD)/libcap.a
+	rm -f $(LIBFIPC_KBUILD)/libfipc.a
 
 .PHONY: all-tests all-lib all-lib-cp \
 	install-tests install-libfipc install-setup-dir \
