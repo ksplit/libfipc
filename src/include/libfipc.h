@@ -160,6 +160,10 @@
 #include <libfipc_types.h>
 #include <libfipc_platform.h>
 
+#ifndef LIBFIPC_FUNC_ATTR
+#define LIBFIPC_FUNC_ATTR
+#endif
+
 /* MAIN INTERFACE -------------------------------------------------- */
 
 /**

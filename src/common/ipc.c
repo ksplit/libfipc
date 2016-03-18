@@ -110,7 +110,9 @@ static inline unsigned long order_two_mask(unsigned int buf_order)
 	return  nr_slots(buf_order) - 1;
 }
 
-int fipc_prep_buffers(unsigned int buf_order, void *buffer_1, void *buffer_2)
+int 
+LIBFIPC_FUNC_ATTR
+fipc_prep_buffers(unsigned int buf_order, void *buffer_1, void *buffer_2)
 {
 	unsigned long i;
 	struct fipc_message *msg_buffer_1 = buffer_1;
@@ -144,9 +146,11 @@ static void ring_buf_init(struct fipc_ring_buf *ring_buf,
 	ring_buf->order_two_mask = order_two_mask(buf_order);
 }
 
-int fipc_ring_channel_init(struct fipc_ring_channel *chnl,
-			unsigned int buf_order,
-			void *buffer_tx, void *buffer_rx)
+int 
+LIBFIPC_FUNC_ATTR
+fipc_ring_channel_init(struct fipc_ring_channel *chnl,
+		unsigned int buf_order,
+		void *buffer_tx, void *buffer_rx)
 {
 	/*
 	 * Checks at compile time
@@ -175,8 +179,10 @@ int fipc_ring_channel_init(struct fipc_ring_channel *chnl,
 }
 EXPORT_SYMBOL(fipc_ring_channel_init);
 
-int fipc_send_msg_start(struct fipc_ring_channel *chnl,
-			struct fipc_message **msg)
+int 
+LIBFIPC_FUNC_ATTR
+fipc_send_msg_start(struct fipc_ring_channel *chnl,
+		struct fipc_message **msg)
 {
 	int ret = -EWOULDBLOCK;
 
@@ -202,7 +208,9 @@ int fipc_send_msg_start(struct fipc_ring_channel *chnl,
 }
 EXPORT_SYMBOL(fipc_send_msg_start);
 
-int fipc_send_msg_end(struct fipc_ring_channel *chnl, 
+int 
+LIBFIPC_FUNC_ATTR
+fipc_send_msg_end(struct fipc_ring_channel *chnl, 
 		struct fipc_message *msg)
 {
 	msg->msg_status = FIPC_MSG_STATUS_SENT;
@@ -233,8 +241,10 @@ static int recv_msg_peek(struct fipc_ring_channel *chnl,
 	return ret;
 }
 
-int fipc_recv_msg_start(struct fipc_ring_channel *chnl,
-			struct fipc_message **msg)
+int 
+LIBFIPC_FUNC_ATTR
+fipc_recv_msg_start(struct fipc_ring_channel *chnl,
+		struct fipc_message **msg)
 {
 	int ret;
 	struct fipc_message *m;
@@ -260,7 +270,9 @@ int fipc_recv_msg_start(struct fipc_ring_channel *chnl,
 }
 EXPORT_SYMBOL(fipc_recv_msg_start);
 
-int fipc_recv_msg_if(struct fipc_ring_channel *chnl,
+int 
+LIBFIPC_FUNC_ATTR
+fipc_recv_msg_if(struct fipc_ring_channel *chnl,
 		int (*pred)(struct fipc_message *, void *),
 		void *data,
 		struct fipc_message **msg)
@@ -295,7 +307,9 @@ int fipc_recv_msg_if(struct fipc_ring_channel *chnl,
 }
 EXPORT_SYMBOL(fipc_recv_msg_if);
 
-int fipc_recv_msg_end(struct fipc_ring_channel *chnl,
+int 
+LIBFIPC_FUNC_ATTR
+fipc_recv_msg_end(struct fipc_ring_channel *chnl,
 		struct fipc_message *msg)
 {
 	msg->msg_status = FIPC_MSG_STATUS_AVAILABLE;
@@ -311,7 +325,9 @@ int fipc_recv_msg_end(struct fipc_ring_channel *chnl,
 }
 EXPORT_SYMBOL(fipc_recv_msg_end);
 
-int fipc_init(void)
+int 
+LIBFIPC_FUNC_ATTR
+fipc_init(void)
 {
 	FIPC_DEBUG(FIPC_DEBUG_VERB,
 		"libfipc initialized\n");
@@ -320,7 +336,9 @@ int fipc_init(void)
 }
 EXPORT_SYMBOL(fipc_init);
 
-void fipc_fini(void)
+void 
+LIBFIPC_FUNC_ATTR
+fipc_fini(void)
 {
 	FIPC_DEBUG(FIPC_DEBUG_VERB,
 		"libfipc torn down\n");
