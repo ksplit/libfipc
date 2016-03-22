@@ -26,16 +26,6 @@
 #define FIPC_MSG_STATUS_AVAILABLE 0xdeaddeadUL
 #define FIPC_MSG_STATUS_SENT      0xfeedfeedUL
 
-static inline unsigned long get_tx_slot(struct fipc_ring_channel *rc)
-{
-	return rc->tx.slot;
-}
-
-static inline unsigned long get_rx_slot(struct fipc_ring_channel *rc)
-{
-	return rc->rx.slot;
-}
-
 static inline unsigned long get_tx_idx(struct fipc_ring_channel *rc)
 {
 	return rc->tx.slot & rc->tx.order_two_mask;
@@ -44,16 +34,6 @@ static inline unsigned long get_tx_idx(struct fipc_ring_channel *rc)
 static inline unsigned long get_rx_idx(struct fipc_ring_channel *rc)
 {
 	return rc->rx.slot & rc->rx.order_two_mask;
-}
-
-static inline void set_tx_slot(struct fipc_ring_channel *rc, unsigned long num)
-{
-	rc->tx.slot = num;
-}
-
-static inline void set_rx_slot(struct fipc_ring_channel *rc, unsigned long num)
-{
-	rc->rx.slot = num;
 }
 
 static inline unsigned long inc_tx_slot(struct fipc_ring_channel *rc)
@@ -78,6 +58,8 @@ get_current_rx_slot(struct fipc_ring_channel *rc)
 	return &rc->rx.buffer[get_rx_idx(rc)];
 }
 
+#if FIPC_DEBUG_LVL >= FIPC_DEBUG_VERB
+
 static inline unsigned long
 rx_msg_to_idx(struct fipc_ring_channel *rc, struct fipc_message *msg)
 {
@@ -89,6 +71,8 @@ tx_msg_to_idx(struct fipc_ring_channel *rc, struct fipc_message *msg)
 {
 	return msg - rc->tx.buffer;
 }
+
+#endif
 
 static inline int check_rx_slot_msg_waiting(struct fipc_message *slot)
 {
