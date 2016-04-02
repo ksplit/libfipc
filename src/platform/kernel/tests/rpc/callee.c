@@ -70,6 +70,8 @@ static inline int send_response(struct fipc_ring_channel *chnl,
 	struct fipc_message *response;
 	/*
 	 * Mark recvd msg slot as available
+	 *
+	 * NOTE: recvd_msg is not valid after this call.
 	 */
 	ret = fipc_recv_msg_end(chnl, recvd_msg);
 	if (ret) {
