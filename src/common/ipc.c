@@ -23,6 +23,11 @@
 #define EXPORT_SYMBOL(x)
 #endif
 
+static inline unsigned long get_tx_slot(struct fipc_ring_channel *rc)
+{
+	return rc->tx.slot;
+}
+
 #define FIPC_MSG_STATUS_AVAILABLE 0xdeaddeadUL
 #define FIPC_MSG_STATUS_SENT      0xfeedfeedUL
 
