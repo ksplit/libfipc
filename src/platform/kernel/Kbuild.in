@@ -13,6 +13,8 @@
 # in the kernel build system.
 src = @abs_top_srcdir@/src/platform/kernel
 
+obj-m += tests/
+
 # This needs to be pasted in here, because the kernel build system will force
 # gcc at the top-level.
 export CC=@CC@
