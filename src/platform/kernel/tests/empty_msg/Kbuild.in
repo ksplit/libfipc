@@ -7,6 +7,6 @@ obj-m = libfipc_test_empty_msg.o
 
 # Path are relative to root test/ dir
 libfipc_test_empty_msg-y += main.o callee.o caller.o
-libfipc_test_empty_msg-y += ../../lib.a
+libfipc_test_empty_msg-y += ../$(LIBFIPC_PATH) # libfipc.a is relative to tests/
 
 ccflags-y += $(CFLAGS) $(AM_CPPFLAGS)
