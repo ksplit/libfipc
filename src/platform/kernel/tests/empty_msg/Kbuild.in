@@ -1,4 +1,3 @@
-
 # @FIPC_AUTOCONF_NOTICE@
 
 # Magic line so we can do out-of-source build
@@ -8,6 +7,6 @@ obj-m = libfipc_test_empty_msg.o
 
 # Path are relative to root test/ dir
 libfipc_test_empty_msg-y += main.o callee.o caller.o
-libfipc_test_rpc-y += ../../lib.a
+libfipc_test_empty_msg-y += ../../lib.a
 
 ccflags-y += $(CFLAGS) $(AM_CPPFLAGS)
