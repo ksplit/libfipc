@@ -1,7 +1,7 @@
 /*
  * libfipc_platform.h
  *
- * Kernel-specific defs part of the public API
+ * Userland-specific defs part of the public API
  *
  * Copyright: University of Utah
  */
