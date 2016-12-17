@@ -9,6 +9,7 @@
 #define LIBFIPC_PLATFORM_H
 
 #include <linux/bug.h>
+#include "libfipc_platform_internal.h"
 
 /* BUILD CHECKS ------------------------------------------------------------ */
 

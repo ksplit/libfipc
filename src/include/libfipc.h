@@ -331,7 +331,7 @@ int fipc_recv_msg_end(struct fipc_ring_channel *chnl,
 static inline							        \
 unsigned long fipc_get_reg##idx(struct fipc_message *msg)		\
 {									\
-	BUILD_BUG_ON(idx >= FIPC_NR_REGS);				\
+	FIPC_BUILD_BUG_ON(idx >= FIPC_NR_REGS);				\
 	return msg->regs[idx];						\
 }									\
 static inline								\
