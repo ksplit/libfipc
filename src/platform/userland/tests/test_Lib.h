@@ -101,7 +101,7 @@ void release_control_of_CPU ( void )
 static inline
 pthread_t* test_fipc_spawn_thread_with_channel ( Header* channel, void* (*threadfn) (void* data), int cpu_pin )
 {
-	pthread_t* thread;
+	pthread_t* thread = NULL;
 
 	if ( pthread_create( thread, NULL, threadfn, channel ) )
 	{
@@ -338,8 +338,9 @@ static inline
 uint64_t test_Average_Stopwatch_Delay ( void )
 {
 	uint64_t delayCostAcc = 0;
+        int i; 
 	
-	for ( int i = 0; i < STOPWATCH_TEST_REPITIONS; ++i )
+	for ( i = 0; i < STOPWATCH_TEST_REPITIONS; ++i )
 	{
 		uint64_t start = test_fipc_start_stopwatch();
 		uint64_t end   = test_fipc_stop_stopwatch();
