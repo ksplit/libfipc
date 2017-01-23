@@ -49,6 +49,8 @@ void* caller(void *_caller_channel_header)
     Header* chan = _caller_channel_header;
 	unsigned long transaction_id;
 	unsigned long start, end;
+	uint64_t avgDelay = test_Average_Stopwatch_Delay();
+	printf("AvgDelay: %lu\n", avgDelay);
 	int ret = 0;
 
 	pthread_mutex_lock( &caller_mutex );
@@ -71,7 +73,7 @@ void* caller(void *_caller_channel_header)
 			pthread_exit(&ret);
 		}
 
-		printf("\t%lu\n", end - start);
+		printf("\t%lu\n", end - start - avgDelay);
 	}
 
 	printf("%s\n", "Complete");

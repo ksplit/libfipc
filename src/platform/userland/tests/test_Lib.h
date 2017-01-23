@@ -92,23 +92,60 @@ void take_control_of_CPU ( void )
 static inline
 void release_control_of_CPU ( void )
 {
-	// Disable Interrupts
+	// Restore Interrupts
 }
 
 /**
- * TODO: Write Description
+ * Thread spawn function that passes the channel to the newly created thread and pins the thread to cpu_pin.
  */
 static inline
 pthread_t* test_fipc_spawn_thread_with_channel ( Header* channel, void* (*threadfn) (void* data), int cpu_pin )
 {
-	pthread_t* thread = NULL;
+	pthread_t* thread = malloc( sizeof(pthread_t) );
+//	pthread_attr_t tattr;
+	struct sched_param param;
+
+/*	if ( pthread_attr_init ( &tattr ) )
+	{
+		fprintf(stderr, "%s\n", "Error while initializing thread attributes.");
+		return NULL;
+	}
+
+	if ( pthread_attr_getschedparam ( &tattr, &param ) )
+	{
+		fprintf(stderr, "%s\n", "Error while polling thread attributes.");
+		return NULL;
+	}
+
+	param.sched_priority = sched_get_priority_max(SCHED_RR);
+	//printf("%d, %d, %d\n", sched_getscheduler(0), SCHED_OTHER, sched_get_priority_max(SCHED_OTHER));
+
+	if ( pthread_attr_setschedparam ( &tattr, &param ) )
+	{
+		fprintf(stderr, "%s\n", "Error while setting thread attributes.");
+		return NULL;
+	}
+
+	if ( pthread_create( thread, &tattr, threadfn, channel ) )
+	{
+		fprintf(stderr, "%s\n", "Error while creating thread");
+		return NULL;
+	}*/
 
 	if ( pthread_create( thread, NULL, threadfn, channel ) )
 	{
 		fprintf(stderr, "%s\n", "Error while creating thread");
 		return NULL;
 	}
-	
+
+	param.sched_priority = sched_get_priority_max(SCHED_RR);
+
+	if ( pthread_setschedparam( *thread, SCHED_RR, &param ) )
+	{
+		fprintf(stderr, "%s\n", "Error while setting thread priority");
+		return NULL;
+	}
+
 	if ( pin_thread_to_CPU( *thread, cpu_pin ) )
 	{
 		fprintf(stderr, "%s%d\n", "Error while pinning thread to CPU: ", cpu_pin);
@@ -184,9 +221,16 @@ int test_fipc_create_channel ( size_t bufferOrder, Header** h1, Header** h2 )
 	
 	// Initialize Headers
 	errorCode = fipc_ring_channel_init( tempH1, bufferOrder, buffer1, buffer2 );
-	errorCode = errorCode |
-					fipc_ring_channel_init( tempH2, bufferOrder, buffer2, buffer1 );
-	
+	if ( errorCode )
+	{
+		free ( buffer1 );
+		free ( buffer2 );
+		free ( tempH1 );
+		free ( tempH2 );
+		return errorCode;
+	}
+
+	errorCode = fipc_ring_channel_init( tempH2, bufferOrder, buffer2, buffer1 );
 	if ( errorCode )
 	{
 		free ( buffer1 );
@@ -265,9 +309,6 @@ int test_fipc_blocking_send_start ( Header* channel, Message** out )
 	return 0;
 }
 
-/**
- * TODO: write description
- */
 static inline
 uint64_t test_fipc_start_stopwatch ( void )
 {
@@ -302,9 +343,6 @@ uint64_t test_fipc_start_stopwatch ( void )
 	return stamp;
 }
 
-/**
- * TODO: write description
- */
 static inline
 uint64_t test_fipc_stop_stopwatch ( void )
 {
@@ -332,13 +370,13 @@ uint64_t test_fipc_stop_stopwatch ( void )
 }
 
 /**
- * TODO: write description
+ * This helper function returns average cost of using the stopwatch.
  */
 static inline
 uint64_t test_Average_Stopwatch_Delay ( void )
 {
 	uint64_t delayCostAcc = 0;
-        int i; 
+    int i; 
 	
 	for ( i = 0; i < STOPWATCH_TEST_REPITIONS; ++i )
 	{
@@ -351,6 +389,9 @@ uint64_t test_Average_Stopwatch_Delay ( void )
 }
 #endif
 
+/**
+ * An integer log base 2 helper function.
+ */
 static inline
 unsigned int ilog2 (unsigned int val)
 {
