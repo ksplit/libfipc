@@ -11,7 +11,7 @@
 #include <libfipc.h>
 #include "../test_Lib.h"
 
-#define TRANSACTIONS 60
+#define TRANSACTIONS 10000
 
 // Thread Main Functions
 void* callee(void *_callee_channel_header);
