@@ -279,7 +279,8 @@ int test_fipc_blocking_recv_start ( Header* channel, Message** out )
 			return ret;
 		}
 
-		pthread_yield(); // cpu_relax();
+		asm volatile("pause\n": : :"memory");
+		//pthread_yield(); // cpu_relax();
 	}
 
 	return 0;
@@ -302,8 +303,9 @@ int test_fipc_blocking_send_start ( Header* channel, Message** out )
 		{
 			return ret;
 		}
-
-		pthread_yield(); // cpu_relax();
+           
+		asm volatile("pause\n": : :"memory");
+		//pthread_yield(); // cpu_relax();
 	}
 
 	return 0;
