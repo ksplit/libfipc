@@ -188,7 +188,7 @@ int test_fipc_create_channel ( size_t bufferOrder, Header** h1, Header** h2 )
 	// Allocate Buffer Pages
 	buffer1 = aligned_alloc( PAGE_SIZE, PAGES_NEEDED(bufferOrder)*PAGE_SIZE );
 	buffer2 = aligned_alloc( PAGE_SIZE, PAGES_NEEDED(bufferOrder)*PAGE_SIZE );
-	
+	printf("BUFFER: %p\t%p\n", buffer1, buffer2);
 	if ( buffer1 == NULL || buffer2 == NULL )
 	{
 		free ( buffer1 );

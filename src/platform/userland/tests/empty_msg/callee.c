@@ -22,6 +22,7 @@ int do_one_msg ( Header* chan )
 		return ret;
 	}
 	
+	printf("MESSAGE: %p\n", request);
 	ret = fipc_recv_msg_end( chan, request );
 	if ( ret )
 	{
@@ -35,6 +36,7 @@ int do_one_msg ( Header* chan )
 		return ret;
 	}
 	
+	printf("MESSAGE: %p\n", response);
 	ret = fipc_send_msg_end( chan, response );
 	if ( ret )
 	{
