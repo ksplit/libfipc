@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <limits.h>
+#include <libfipc.h>
 
 typedef struct fipc_ring_channel header_t;
 typedef struct fipc_message      message_t;

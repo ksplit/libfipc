@@ -10,8 +10,8 @@
  * NOTE: This library assumes an x86 architecture.
  */
 
-#ifndef LIBFIPC_TEST_TIME_LIBRARY_LOCK
-#define LIBFIPC_TEST_TIME_LIBRARY_LOCK
+#ifndef LIBFIPC_TEST_THREAD_LIBRARY_LOCK
+#define LIBFIPC_TEST_THREAD_LIBRARY_LOCK
 
 /**
  * This inline helper function pins the specified process to the specified core. 
@@ -54,7 +54,7 @@ int fipc_test_thread_pin_thread_to_CPU ( pthread_t thread, size_t cpu_pin )
 static inline
 int fipc_test_thread_pin_this_thread_to_CPU ( size_t cpu_pin )
 {
-	return pin_thread_to_CPU( pthread_self(), cpu_pin );
+	return fipc_test_thread_pin_thread_to_CPU( pthread_self(), cpu_pin );
 }
 
 /**
@@ -64,7 +64,7 @@ int fipc_test_thread_pin_this_thread_to_CPU ( size_t cpu_pin )
 static inline
 int fipc_test_thread_pin_this_process_to_CPU ( size_t cpu_pin )
 {
-	return pin_process_to_CPU( 0, cpu_pin );
+	return fipc_test_thread_pin_process_to_CPU( 0, cpu_pin );
 }
 
 /**
@@ -114,7 +114,7 @@ pthread_t* fipc_test_thread_spawn_on_CPU ( void* (*threadfn)(void* data),
 		return NULL;
 	}
 
-	if ( pin_thread_to_CPU( *thread, cpu_pin ) )
+	if ( fipc_test_thread_pin_thread_to_CPU( *thread, cpu_pin ) )
 	{
 		#ifdef FIPC_TEST_DEBUG
 			fprintf( stderr, "%s%d\n", "Error while pinning thread to CPU: ",
@@ -131,7 +131,7 @@ pthread_t* fipc_test_thread_spawn_on_CPU ( void* (*threadfn)(void* data),
 /**
  * This function deallocates a thread created with spawn_thread_on_CPU.
  */
-int fipc_test_thread_free_thread ( pthread* thread )
+int fipc_test_thread_free_thread ( pthread_t* thread )
 {
 	free ( thread );
 	return 0;

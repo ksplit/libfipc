@@ -19,7 +19,7 @@ void* requester ( void* data )
 	fipc_test_mfence();
 	
 	// Wait to begin test
-	pthread_mutex_lock( &sender_mutex );
+	pthread_mutex_lock( &requester_mutex );
 
 	start = fipc_test_get_timestamp();
 
@@ -46,8 +46,8 @@ void* responder ( void* data )
 	fipc_test_mfence();
 	
 	// Wait to begin test
-	pthread_mutex_lock( &receiver_mutex );
-	pthread_mutex_unlock( &sender_mutex );
+	pthread_mutex_lock( &responder_mutex );
+	pthread_mutex_unlock( &requester_mutex );
 
 	// Load request cache line from requester, who has it in modified state
 	while ( reqt_buffer.regs[0] == 0 )
@@ -64,9 +64,6 @@ void* responder ( void* data )
 
 int main ( void )
 {
-	volatile cache_line_t reqt_buffer;
-	volatile cache_line_t resp_buffer;
-	
 	// Begin critical section
 	pthread_mutex_init( &requester_mutex, NULL );
 	pthread_mutex_init( &responder_mutex, NULL );
@@ -100,12 +97,12 @@ int main ( void )
 	pthread_mutex_unlock( &responder_mutex );
 	
 	// Wait for thread completion
-	fipc_test_wait_for_thread( &requester_mutex );
-	fipc_test_wait_for_thread( &responder_mutex );
+	fipc_test_thread_wait_for_thread( requester_thread );
+	fipc_test_thread_wait_for_thread( responder_thread );
 	
 	// Clean up
-	fipc_test_thread_free_thread( &requester_mutex );
-	fipc_test_thread_free_thread( &responder_mutex );
+	fipc_test_thread_free_thread( requester_thread );
+	fipc_test_thread_free_thread( responder_thread );
 	pthread_exit( NULL );
 	return 0;
 }
