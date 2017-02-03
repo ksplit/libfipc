@@ -41,7 +41,7 @@ uint64_t fipc_test_get_timestamp_lf ( void )
 {
 	uint64_t stamp;
 	
-	lfence();
+	fipc_test_lfence();
 	
 	asm volatile
 	(
@@ -64,7 +64,7 @@ uint64_t fipc_test_get_timestamp_sf ( void )
 {
 	uint64_t stamp;
 	 
-	sfence();
+	fipc_test_sfence();
 	
 	asm volatile
 	(
@@ -87,7 +87,7 @@ uint64_t fipc_test_get_timestamp_mf ( void )
 {
 	uint64_t stamp;
 	
-	mfence();
+	fipc_test_mfence();
 	
 	asm volatile
 	(
