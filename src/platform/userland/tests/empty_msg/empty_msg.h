@@ -1,15 +1,18 @@
-/*
- * empty_msg.h
+/**
+ * @File     : empty_msg.h
+ * @Author   : Charles Jacobsen
+ * @Author   : Abdullah Younis
+ * @Copyright: University of Utah
  *
- * Internal defs
+ * This test sends an empty message in a round trip using the fipc library.
  *
- * Copyright: University of Utah
+ * NOTE: This program assumes an x86 architecture.
  */
+
 #ifndef LIBFIPC_EMPTY_MSG_TEST_H
 #define LIBFIPC_EMPTY_MSG_TEST_H
 
-#include <libfipc.h>
-#include "../test_Lib.h"
+#include "../libfipc_test.h"
 
 #define TRANSACTIONS 10000
 

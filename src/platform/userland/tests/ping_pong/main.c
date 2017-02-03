@@ -1,7 +1,21 @@
-#include "../libfipc_test.h"
+/**
+ * @File     : main.c
+ * @Author   : Abdullah Younis
+ * @Copyright: University of Utah
+ *
+ * This test ping pongs a cache line from one core to another core, and back
+ * around.
+ *
+ * NOTE: This test assumes an x86 architecture.
+ *
+ * CITE: http://spcl.inf.ethz.ch/Publications/.pdf/ramos-hoefler-cc-modeling.pdf
+ */
+
+ #include "../libfipc_test.h"
 
 #define REQUESTER_CPU 1
 #define RESPONDER_CPU 3
+#define TRANSACTIONS  100
 
 // Global Variables = Test Shared Memory
 pthread_mutex_t requester_mutex;
@@ -9,31 +23,52 @@ pthread_mutex_t responder_mutex;
 volatile cache_line_t reqt_buffer;
 volatile cache_line_t resp_buffer;
 
-void* requester ( void* data )
+void request ( void )
 {
-	uint64_t start;
-	uint64_t end;
-	
-	// Get modified state of reqt_buffer
-	reqt_buffer.regs[0] = 0;
-	fipc_test_mfence();
-	
-	// Wait to begin test
-	pthread_mutex_lock( &requester_mutex );
-
-	start = fipc_test_get_timestamp();
-
 	// Get modified state of reqt_buffer
 	reqt_buffer.regs[0] = 1;
 	fipc_test_mfence();
 
-	// Load request cache line from requester, who has it in modified state
+	// Load respond cache line from responder, who has it in modified state
 	while ( resp_buffer.regs[0] != 1 )
 		fipc_test_pause();
+}
 
-	end = fipc_test_get_timestamp_mf();
+void respond ( void )
+{
+	// Load request cache line from requester, who has it in modified state
+	while ( reqt_buffer.regs[0] == 0 )
+		fipc_test_pause();
 
-	printf("\t%lu\n", end - start);
+	// Get modified state of resp_buffer
+	resp_buffer.regs[0] = 1;
+	fipc_test_mfence();
+}
+
+void* requester ( void* data )
+{
+	uint64_t start;
+	uint64_t end;
+	float sum = 0;
+	
+	// Wait to begin test
+	pthread_mutex_lock( &requester_mutex );
+
+	uint32_t transaction_id;
+	for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
+	{
+		// Get modified state of reqt_buffer
+		reqt_buffer.regs[0] = 0;
+		fipc_test_mfence();
+
+		start = fipc_test_time_get_timestamp_sf();
+		request();
+		end = fipc_test_time_get_timestamp_mf();
+		printf("\t%lu\n", end - start);
+		sum += end - start;
+	}
+
+	printf( "Average Round Trip Cycles:\t%f\n", sum / TRANSACTIONS );
 
 	pthread_exit( 0 );
 	return NULL;
@@ -49,14 +84,13 @@ void* responder ( void* data )
 	pthread_mutex_lock( &responder_mutex );
 	pthread_mutex_unlock( &requester_mutex );
 
-	// Load request cache line from requester, who has it in modified state
-	while ( reqt_buffer.regs[0] == 0 )
-		fipc_test_pause();
 
-	// Get modified state of resp_buffer
-	resp_buffer.regs[0] = 1;
-	fipc_test_mfence();
-	
+	uint32_t transaction_id;
+	for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
+	{
+		respond();
+	}
+
 	pthread_exit( 0 );
 	return NULL;
 }

@@ -16,7 +16,7 @@
  * This function returns a time stamp with no preceding fence instruction.
  */
 static inline
-uint64_t fipc_test_get_timestamp ( void )
+uint64_t fipc_test_time_get_timestamp ( void )
 {
 	uint64_t stamp;
 	 
@@ -37,7 +37,7 @@ uint64_t fipc_test_get_timestamp ( void )
  * This function returns a time stamp with a preceding load fence instruction.
  */
 static inline
-uint64_t fipc_test_get_timestamp_lf ( void )
+uint64_t fipc_test_time_get_timestamp_lf ( void )
 {
 	uint64_t stamp;
 	
@@ -60,7 +60,7 @@ uint64_t fipc_test_get_timestamp_lf ( void )
  * This function returns a time stamp with a preceding store fence instruction.
  */
 static inline
-uint64_t fipc_test_get_timestamp_sf ( void )
+uint64_t fipc_test_time_get_timestamp_sf ( void )
 {
 	uint64_t stamp;
 	 
@@ -83,7 +83,7 @@ uint64_t fipc_test_get_timestamp_sf ( void )
  * This function returns a time stamp a preceding memory fence instruction.
  */
 static inline
-uint64_t fipc_test_get_timestamp_mf ( void )
+uint64_t fipc_test_time_get_timestamp_mf ( void )
 {
 	uint64_t stamp;
 	
@@ -100,6 +100,24 @@ uint64_t fipc_test_get_timestamp_mf ( void )
 	);
 	
 	return stamp;
+}
+
+/**
+ * This function returns the mean of the sample set.
+ */
+static inline
+uint64_t fipc_test_time_get_mean ( uint64_t* sample_set, uint32_t sample_size )
+{
+	register float sum = 0;
+
+	uint64_t i;
+
+	for ( i = 0; i < sample_size; ++i )
+	{
+		sum += sample_set[i];
+	}
+
+	return sum / (float) sample_size;
 }
 
 #endif
