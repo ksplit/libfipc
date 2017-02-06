@@ -15,55 +15,67 @@
 
 #define REQUESTER_CPU 1
 #define RESPONDER_CPU 3
-#define TRANSACTIONS  100
+#define TRANSACTIONS  10000
+#define AVAILABLE 0
+#define SENT      1
 
 // Global Variables = Test Shared Memory
 pthread_mutex_t requester_mutex;
 pthread_mutex_t responder_mutex;
-volatile cache_line_t reqt_buffer;
-volatile cache_line_t resp_buffer;
+cache_line_t reqt_buffer;
+cache_line_t resp_buffer;
 
 void request ( void )
 {
-	// Get modified state of reqt_buffer
-	reqt_buffer.regs[0] = 1;
-	fipc_test_mfence();
-
-	// Load respond cache line from responder, who has it in modified state
-	while ( resp_buffer.regs[0] != 1 )
+	// Wait until message is available (GetS)
+	while ( reqt_buffer.msg_status != AVAILABLE )
 		fipc_test_pause();
+
+	// Send request (GetM)
+	reqt_buffer.msg_status = SENT;
+
+	// Wait until message is received (GetS)
+	while ( resp_buffer.msg_status != SENT )
+		fipc_test_pause();
+
+	// Receive response (GetM)
+	resp_buffer.msg_status = AVAILABLE;
 }
 
 void respond ( void )
 {
-	// Load request cache line from requester, who has it in modified state
-	while ( reqt_buffer.regs[0] == 0 )
+	// Wait until message is received (GetS)
+	while ( reqt_buffer.msg_status != SENT )
 		fipc_test_pause();
 
-	// Get modified state of resp_buffer
-	resp_buffer.regs[0] = 1;
-	fipc_test_mfence();
+	// Receive request (GetM)
+	reqt_buffer.msg_status = AVAILABLE;
+
+
+	// Wait until message is available (GetS)
+	while ( resp_buffer.msg_status != AVAILABLE )
+		fipc_test_pause();
+
+	// Send response (GetM)
+	resp_buffer.msg_status = SENT;
 }
 
 void* requester ( void* data )
 {
 	uint64_t start;
 	uint64_t end;
+	uint32_t transaction_id;
 	float sum = 0;
 	
 	// Wait to begin test
 	pthread_mutex_lock( &requester_mutex );
 
-	uint32_t transaction_id;
 	for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
 	{
-		// Get modified state of reqt_buffer
-		reqt_buffer.regs[0] = 0;
-		fipc_test_mfence();
-
-		start = fipc_test_time_get_timestamp_sf();
+		start = fipc_test_time_get_timestamp();
 		request();
-		end = fipc_test_time_get_timestamp_mf();
+		end   = fipc_test_time_get_timestamp(); // A memory fence here costs ~200 cycles
+
 		printf("\t%lu\n", end - start);
 		sum += end - start;
 	}
