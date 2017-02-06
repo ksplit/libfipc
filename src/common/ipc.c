@@ -277,7 +277,7 @@ fipc_recv_msg_if( header_t *chnl, int (*pred)(message_t *, void *),
 		return -EWOULDBLOCK;
 	}
 
-	message_t* m = get_current_rx_slot( chnl )
+	message_t* m = get_current_rx_slot( chnl );
 
 	if ( !pred(m, data) )
 	{
