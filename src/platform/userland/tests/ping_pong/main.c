@@ -88,10 +88,6 @@ void* requester ( void* data )
 
 void* responder ( void* data )
 {
-	// Get modified state of resp_buffer
-	resp_buffer.regs[0] = 0;
-	fipc_test_mfence();
-	
 	// Wait to begin test
 	pthread_mutex_lock( &responder_mutex );
 	pthread_mutex_unlock( &requester_mutex );
