@@ -33,11 +33,11 @@
  *        to memory buffer 1.) Similarly, for memory buffer 2. So, data
  *        can flow both directions.
  *
- * Each header is a struct fipc_ring_channel. struct fipc_ring_channel
+ * Each header is a header_t. header_t
  * consists of two struct fipc_ring_buf's -- one for each direction (tx/rx).
  *
  * The memory buffers are treated as circular buffers, whose slots are
- * struct fipc_message's.
+ * message_t's.
  *
  *                           memory buffer layout
  *    +--------------+--------------+--------------+--------------+---- ...
@@ -52,7 +52,7 @@
  *
  *         1 - Allocate and initialize the shared memory buffers
  *
- *         2 - Allocate the headers (struct fipc_ring_channel's). These
+ *         2 - Allocate the headers (header_t's). These
  *             can be statically allocated (e.g. global variables).
  *
  *         3 - Initialize the headers
@@ -67,7 +67,7 @@
  *     Thread 1
  *     --------
  *
- *     struct fipc_ring_channel t1_chnl_header;
+ *     header_t t1_chnl_header;
  *
  *     // Allocate shared memory buffers
  *     unsigned int buf_order = .. buffers are 2^buf_order bytes ..
@@ -79,17 +79,17 @@
  *
  *     .... share buffers with Thread 2 ...
  *
- *     // Initialize my struct fipc_ring_channel header
- *     fipc_ring_channel_init(&t1_chnl_header, buf_order, 
- *                            buffer_1, 
+ *     // Initialize my header_t header
+ *     fipc_ring_channel_init(&t1_chnl_header, buf_order,
+ *                            buffer_1,
  *                            buffer_2);
  *
  * Send/Receive
  * ------------
- * 
+ *
  * IMPORTANT: If you plan to share the same tx or rx header on one
- * side of the channel amongst multiple threads, fipc_send_msg_start and 
- * fipc_recv_msg_start/if are NOT thread safe. (Some libfipc users may 
+ * side of the channel amongst multiple threads, fipc_send_msg_start and
+ * fipc_recv_msg_start/if are NOT thread safe. (Some libfipc users may
  * not require it, so we don't do any synchronization internally.) So,
  * you should wrap calls to these functions in locks as necessary. See
  * their documentation for more comments.
@@ -104,7 +104,7 @@
  *     Thread 1
  *     --------
  *
- *     struct fipc_message *msg;
+ *     message_t *msg;
  *     int ret;
  *
  *     do {
@@ -125,7 +125,7 @@
  *     Thread 2
  *     --------
  *
- *     struct fipc_message *msg;
+ *     message_t *msg;
  *     int ret;
  *
  *     do {
@@ -189,18 +189,18 @@ void fipc_fini(void);
  * @buffer_1, @buffer_2: buffers used for channel
  *
  * This *must* be called by exactly one of the sides of the channel
- * before using the channel (probably the same thread that allocated the 
+ * before using the channel (probably the same thread that allocated the
  * buffers themselves should call this). It initializes the slots in
  * the shared buffers.
  *
  * @buffer_1 and @buffer_2 *must* be exactly 2^buf_order bytes (if not,
  * your memory will be corrupted), and the buffers must be big enough
- * to fit at least one struct fipc_message.
+ * to fit at least one message_t.
  */
 int fipc_prep_buffers(unsigned int buf_order, void *buffer_1, void *buffer_2);
 /**
  * fipc_ring_channel_init -- Initialize ring channel header with buffers
- * @chnl: the struct fipc_ring_channel to initialize
+ * @chnl: the header_t to initialize
  * @buf_order: buffers are 2^buf_order bytes
  * @buffer_tx: buffer to use for tx (send) direction
  * @buffer_rx: buffer to use for rx (receive) direction
@@ -208,12 +208,12 @@ int fipc_prep_buffers(unsigned int buf_order, void *buffer_1, void *buffer_2);
  * This function must be called before trying to do a send or receive
  * on the channel.
  *
- * The buffers are required to be at least sizeof(struct fipc_message)
+ * The buffers are required to be at least sizeof(message_t)
  * bytes (at least one message should fit). (Note that because they are
  * a power of 2 number of bytes, they will automatically be a multiple
- * of sizeof(struct fipc_message).)
+ * of sizeof(message_t).)
  */
-int fipc_ring_channel_init(struct fipc_ring_channel *chnl,
+int fipc_ring_channel_init(header_t *chnl,
 			unsigned int buf_order,
 			void *buffer_tx, void *buffer_rx);
 /**
@@ -230,12 +230,12 @@ int fipc_ring_channel_init(struct fipc_ring_channel *chnl,
  *
  * IMPORTANT: This function is NOT thread safe. To make this code fast,
  * we do not do any internal synchronization. If you plan to share the
- * tx buffer amongst several threads, you should wrap a call to this 
+ * tx buffer amongst several threads, you should wrap a call to this
  * function with a tx-specific lock, for example. Once this call has
  * returned, however, a subsequent call will not return the same message.
  */
-int fipc_send_msg_start(struct fipc_ring_channel *chnl,
-			struct fipc_message **msg);
+int fipc_send_msg_start(header_t *chnl,
+			message_t **msg);
 /**
  * fipc_send_msg_end -- Mark a message as ready for receipt from receiver
  * @chnl: the ring channel containing @msg in tx
@@ -246,8 +246,8 @@ int fipc_send_msg_start(struct fipc_ring_channel *chnl,
  *
  * This function is thread safe.
  */
-int fipc_send_msg_end(struct fipc_ring_channel *chnl, 
-		struct fipc_message *msg);
+int fipc_send_msg_end(header_t *chnl,
+		message_t *msg);
 /**
  * fipc_recv_msg_start -- Receive the next message from rx, if available
  * @chnl: the ring channel, whose rx we should receive from
@@ -260,10 +260,10 @@ int fipc_send_msg_end(struct fipc_ring_channel *chnl,
  * thread on the receiving side receives the message (by invoking this
  * function), we increment the cursor by 1.
  *
- * XXX: This implies that if the sender screws up and doesn't send messages 
- * in increasing slot order, the receiver will be stuck waiting. (This 
- * can happen if a thread on the sending side allocates a slot to send 
- * a message in, but doesn't mark the message as ready to be 
+ * XXX: This implies that if the sender screws up and doesn't send messages
+ * in increasing slot order, the receiver will be stuck waiting. (This
+ * can happen if a thread on the sending side allocates a slot to send
+ * a message in, but doesn't mark the message as ready to be
  * received -- i.e., failing to call fipc_send_msg_end.)
  *
  * If there are no messages to be received, returns -EWOULDBLOCK. (More
@@ -276,12 +276,12 @@ int fipc_send_msg_end(struct fipc_ring_channel *chnl,
  *
  * IMPORTANT: This function is NOT thread safe. To make this code fast,
  * we do not do any internal synchronization. If you plan to share the
- * rx buffer amongst several threads, you should wrap a call to this 
+ * rx buffer amongst several threads, you should wrap a call to this
  * function with a rx-specific lock, for example. Once this call has
  * returned, however, a subsequent call will not return the same message.
  */
-int fipc_recv_msg_start(struct fipc_ring_channel *chnl,
-			struct fipc_message **msg);
+int fipc_recv_msg_start(header_t *chnl,
+			message_t **msg);
 /**
  * fipc_recv_msg_if -- Like fipc_recv_msg_start, but conditioned on a predicate
  * @chnl: the ring channel, whose rx we should receive from
@@ -290,8 +290,8 @@ int fipc_recv_msg_start(struct fipc_ring_channel *chnl,
  * @msg: out param, the received message
  *
  * This is like fipc_recv_msg_start, but if there is a message to be
- * received, libfipc will allow @pred to peek at the message to see if the 
- * caller wants to receive it (by looking at values in the message). 
+ * received, libfipc will allow @pred to peek at the message to see if the
+ * caller wants to receive it (by looking at values in the message).
  * libfipc will pass along @data to @pred, providing context.
  *
  * @pred should return non-zero to indicate the caller should receive the
@@ -299,46 +299,46 @@ int fipc_recv_msg_start(struct fipc_ring_channel *chnl,
  *
  * IMPORTANT: This function is NOT thread safe. To make this code fast,
  * we do not do any internal synchronization. If you plan to share the
- * rx buffer amongst several threads, you should wrap a call to this 
+ * rx buffer amongst several threads, you should wrap a call to this
  * function with an rx-specific lock, for example. In that case, you
  * should ensure @pred is simple, as it is would be executed inside of a
  * critical section.
  */
-int fipc_recv_msg_if(struct fipc_ring_channel *chnl,
-		int (*pred)(struct fipc_message *, void *),
+int fipc_recv_msg_if(header_t *chnl,
+		int (*pred)(message_t *, void *),
 		void *data,
-		struct fipc_message **msg);
+		message_t **msg);
 /**
  * fipc_recv_msg_end -- Mark a message as received, so sender can re-use slot
  * @chnl: the ring channel containing @msg in rx
  * @msg: the message to mark as received
+ * @return: non-zero on failure.
  *
- * Returns non-zero on failure. (For now, this never fails, but in case
- * failure is possible in the future, we provide for this possibility.)
+ * NOTE: Currently, this function does not fail.
  *
- * This function is thread safe.
+ * NOTE: This function is thread safe.
  */
-int fipc_recv_msg_end(struct fipc_ring_channel *chnl,
-		struct fipc_message *msg);
+int fipc_recv_msg_end(header_t *chnl,
+		message_t *msg);
 
-/* MESSAGE ACCESSORS ---------------------------------------- */
-
-/* While use of these is not required, it makes your code independent
- * of the layout of struct fipc_message, and does compile time bounds
- * checking. */
+// =============================================================
+// ------------------ MESSAGE ACCESSORS ------------------------
+// =============================================================
+// The use of these functions makes your code independent of the
+// structure of our code, however, they are not required.
 
 #define FIPC_MK_REG_ACCESS(idx)						\
 static inline							        \
-unsigned long fipc_get_reg##idx(struct fipc_message *msg)		\
+uint64_t fipc_get_reg##idx(message_t *msg)		\
 {									\
 	FIPC_BUILD_BUG_ON(idx >= FIPC_NR_REGS);				\
 	return msg->regs[idx];						\
 }									\
 static inline								\
-void fipc_set_reg##idx(struct fipc_message *msg, unsigned long val)	\
+void fipc_set_reg##idx(message_t *msg, uint64_t val)	\
 {									\
 	msg->regs[idx] = val;						\
-}									
+}
 
 FIPC_MK_REG_ACCESS(0)
 FIPC_MK_REG_ACCESS(1)
@@ -349,15 +349,15 @@ FIPC_MK_REG_ACCESS(5)
 FIPC_MK_REG_ACCESS(6)
 
 static inline
-uint32_t fipc_get_flags(struct fipc_message *msg)
+uint32_t fipc_get_flags(message_t *msg)
 {
 	return msg->flags;
 }
 
 static inline
-void fipc_set_flags(struct fipc_message *msg, uint32_t flags)
+void fipc_set_flags(message_t *msg, uint32_t flags)
 {
 	msg->flags = flags;
 }
 
-#endif /* LIBFIPC_H */
+#endif

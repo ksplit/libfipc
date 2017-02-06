@@ -1,125 +1,178 @@
-/*
- * ipc.c
+/**
+ * @File     : ipc.c
+ * @Author   : Anton Burtsev		October  2011
+ * @Author   : Scotty Bauer			February 2015
+ * @Author   : Charles Jacobsen		March    2016
+ * @Author   : Abdullah Younis		January  2017
+ * @Copyright: University of Utah
  *
- * Authors: Anton Burtsev, Scotty Bauer
- * Date:    October 2011,  Feburary 2015
- *
- * Copyright: University of Utah
+ * This code implements the main and helper functions of the fipc library.
  */
 
 #ifdef LCD_DOMAINS
-#include <lcd_config/pre_hook.h>
+	#include <lcd_config/pre_hook.h>
 #endif
 
 #include <libfipc.h>
 #include <libfipc_internal.h>
 
 #ifdef LCD_DOMAINS
-#include <lcd_config/post_hook.h>
+	#include <lcd_config/post_hook.h>
 #endif
 
 #ifndef LINUX_KERNEL_MODULE
-#undef EXPORT_SYMBOL
-#define EXPORT_SYMBOL(x)
+	#undef  EXPORT_SYMBOL
+	#define EXPORT_SYMBOL(x)
 #endif
 
-static inline unsigned long get_tx_slot(struct fipc_ring_channel *rc)
+// Message Statuses
+#define FIPC_MSG_STATUS_AVAILABLE 0xdeadU
+#define FIPC_MSG_STATUS_SENT      0xfeedU
+
+// =============================================================
+// ------------------- HELPER FUNCTIONS ------------------------
+// =============================================================
+
+static inline
+uint64_t get_tx_slot ( header_t* rc )
 {
 	return rc->tx.slot;
 }
 
-#define FIPC_MSG_STATUS_AVAILABLE 0xdeaddeadUL
-#define FIPC_MSG_STATUS_SENT      0xfeedfeedUL
-
-static inline unsigned long get_tx_idx(struct fipc_ring_channel *rc)
+static inline
+uint64_t get_tx_idx ( header_t* rc )
 {
-	return rc->tx.slot & rc->tx.order_two_mask;
+	return rc->tx.slot & rc->tx.mask;
 }
 
-static inline unsigned long get_rx_idx(struct fipc_ring_channel *rc)
+static inline
+uint64_t get_rx_idx ( header_t* rc )
 {
-	return rc->rx.slot & rc->rx.order_two_mask;
+	return rc->rx.slot & rc->rx.mask;
 }
 
-static inline unsigned long inc_tx_slot(struct fipc_ring_channel *rc)
+static inline
+uint64_t inc_tx_slot ( header_t* rc )
 {
 	return (rc->tx.slot++);
 }
 
-static inline unsigned long inc_rx_slot(struct fipc_ring_channel *rc)
+static inline
+uint64_t inc_rx_slot ( header_t* rc )
 {
 	return (rc->rx.slot++);
 }
 
-static inline struct fipc_message* 
-get_current_tx_slot(struct fipc_ring_channel *rc)
+static inline
+void add_tx_slot ( header_t* rc, int amount )
+{
+	rc->tx.slot += amount;
+}
+
+static inline
+void add_rx_slot ( header_t* rc, int amount )
+{
+	rc->rx.slot += amount;
+}
+
+static inline
+message_t* get_current_tx_slot ( header_t* rc )
 {
 	return &rc->tx.buffer[get_tx_idx(rc)];
 }
 
-static inline struct fipc_message* 
-get_current_rx_slot(struct fipc_ring_channel *rc)
+static inline
+message_t* get_current_rx_slot ( header_t* rc )
 {
 	return &rc->rx.buffer[get_rx_idx(rc)];
 }
 
-#if FIPC_DEBUG_LVL >= FIPC_DEBUG_VERB
-
-static inline unsigned long
-rx_msg_to_idx(struct fipc_ring_channel *rc, struct fipc_message *msg)
+static inline
+uint64_t rx_msg_to_idx ( header_t *rc, message_t *msg )
 {
 	return msg - rc->rx.buffer;
 }
 
-static inline unsigned long
-tx_msg_to_idx(struct fipc_ring_channel *rc, struct fipc_message *msg)
+static inline
+uint64_t tx_msg_to_idx ( header_t *rc, message_t *msg )
 {
 	return msg - rc->tx.buffer;
 }
 
-#endif
-
-static inline int check_rx_slot_msg_waiting(struct fipc_message *slot)
+static inline
+int check_rx_slot_msg_waiting ( message_t *slot )
 {
 	return slot->msg_status == FIPC_MSG_STATUS_SENT;
 }
 
-static inline int check_tx_slot_available(struct fipc_message *slot)
+static inline
+int check_tx_slot_available ( message_t *slot )
 {
 	return slot->msg_status == FIPC_MSG_STATUS_AVAILABLE;
 }
 
-static inline unsigned long nr_slots(unsigned int buf_order)
+static inline
+int check_tx_slots_available ( message_t *slot )
 {
-	return (1UL << buf_order) / sizeof(struct fipc_ring_buf);
+	return slot->msg_status == FIPC_MSG_STATUS_AVAILABLE;
 }
 
-static inline unsigned long order_two_mask(unsigned int buf_order)
+static inline
+uint64_t nr_slots ( uint32_t buf_order )
 {
-	return  nr_slots(buf_order) - 1;
+	return (1UL << buf_order) / sizeof(buffer_t);
 }
 
-int 
-LIBFIPC_FUNC_ATTR
-fipc_prep_buffers(unsigned int buf_order, void *buffer_1, void *buffer_2)
+static inline
+uint64_t order_two_mask ( uint32_t buf_order )
 {
-	unsigned long i;
-	struct fipc_message *msg_buffer_1 = buffer_1;
-	struct fipc_message *msg_buffer_2 = buffer_2;
-	/*
-	 * Buffers must be at least as big as one ipc message slot
-	 */
-	if ((1UL << buf_order) < sizeof(struct fipc_message)) {
+	return  nr_slots( buf_order ) - 1;
+}
+
+static inline
+int invalid_buf_order_size ( uint32_t buf_order )
+{
+	// Buffers must be at least as big as one ipc message slot
+	if ( (1UL << buf_order) < sizeof(message_t) )
+	{
 		FIPC_DEBUG(FIPC_DEBUG_ERR,
 			"Buffers are too small (buf_order = %d, so their size is 2^buf_order = %lu bytes); but one fipc message is %lu, so the buffers need to be at least that big\n",
-			buf_order, (1UL << buf_order), 
-			sizeof(struct fipc_message));
-		return -EINVAL;
+			buf_order,
+			(1UL << buf_order),
+			sizeof(message_t) );
+
+		return 1;	// Yes, this is an invalid size.
 	}
-	/*
-	 * Initialize slots as available
-	 */
-	for (i = 0; i < nr_slots(buf_order); i++) {
+
+	return 0;	// No, this is not an invalid size.
+}
+
+static inline
+void ring_buf_init ( buffer_t* ring_buf, uint32_t buf_order, void* buffer )
+{
+	ring_buf->buffer = buffer;
+	ring_buf->mask   = order_two_mask( buf_order );
+}
+
+// =============================================================
+// --------------------- MAIN FUNCTIONS ------------------------
+// =============================================================
+
+int
+LIBFIPC_FUNC_ATTR
+fipc_prep_buffers ( uint32_t buf_order, void *buffer_1, void *buffer_2 )
+{
+	uint64_t i;
+	message_t *msg_buffer_1 = buffer_1;
+	message_t *msg_buffer_2 = buffer_2;
+
+	//Buffers must be at least as big as one ipc message slot
+	if ( invalid_buf_order_size( buf_order ) )
+		return -EINVAL;
+
+	// Initialize slots as available
+	for ( i = 0; i < nr_slots(buf_order); i++ )
+	{
 		msg_buffer_1[i].msg_status = FIPC_MSG_STATUS_AVAILABLE;
 		msg_buffer_2[i].msg_status = FIPC_MSG_STATUS_AVAILABLE;
 	}
@@ -127,211 +180,159 @@ fipc_prep_buffers(unsigned int buf_order, void *buffer_1, void *buffer_2)
 }
 EXPORT_SYMBOL(fipc_prep_buffers);
 
-static void ring_buf_init(struct fipc_ring_buf *ring_buf,
-			unsigned int buf_order,
-			void *buffer)
-{
-	ring_buf->buffer = buffer;
-	ring_buf->order_two_mask = order_two_mask(buf_order);
-}
 
-int 
+int
 LIBFIPC_FUNC_ATTR
-fipc_ring_channel_init(struct fipc_ring_channel *chnl,
-		unsigned int buf_order,
-		void *buffer_tx, void *buffer_rx)
+fipc_ring_channel_init ( header_t *chnl, uint32_t buf_order,
+							void *buffer_tx, void *buffer_rx )
 {
-	/*
-	 * Checks at compile time
-	 */
+	// Compile-time Assertions
 	FIPC_BUILD_BUG_ON_NOT_POWER_OF_2(FIPC_CACHE_LINE_SIZE);
-	FIPC_BUILD_BUG_ON(sizeof(struct fipc_ring_buf) != FIPC_CACHE_LINE_SIZE);
-	FIPC_BUILD_BUG_ON(sizeof(struct fipc_message) != FIPC_CACHE_LINE_SIZE);
-	/*
-	 * Buffers must be as big as one ipc message slot
-	 */
-	if ((1UL << buf_order) < sizeof(struct fipc_message)) {
-		FIPC_DEBUG(FIPC_DEBUG_ERR,
-			"Buffers are too small (buf_order = %d, so their size is 2^buf_order = %lu bytes); but one fipc message is %lu, so the buffers need to be at least that big\n",
-			buf_order, (1UL << buf_order), 
-			sizeof(struct fipc_message));
+	FIPC_BUILD_BUG_ON(sizeof(buffer_t) != FIPC_CACHE_LINE_SIZE);
+	FIPC_BUILD_BUG_ON(sizeof(message_t) != FIPC_CACHE_LINE_SIZE);
+
+	//Buffers must be at least as big as one ipc message slot
+	if ( invalid_buf_order_size( buf_order ) )
 		return -EINVAL;
-	}
-	/*
-	 * Initialize tx and rx
-	 */
-	memset(chnl, 0, sizeof(*chnl));
-	ring_buf_init(&chnl->tx, buf_order, buffer_tx);
-	ring_buf_init(&chnl->rx, buf_order, buffer_rx);
+
+	// TX and RX initialization
+	memset( chnl, 0, sizeof( *chnl ) );
+	ring_buf_init( &chnl->tx, buf_order, buffer_tx );
+	ring_buf_init( &chnl->rx, buf_order, buffer_rx );
 
 	return 0;
 }
 EXPORT_SYMBOL(fipc_ring_channel_init);
 
-int 
+int
 LIBFIPC_FUNC_ATTR
-fipc_send_msg_start(struct fipc_ring_channel *chnl,
-		struct fipc_message **msg)
+fipc_send_msg_start ( header_t *chnl, message_t **msg )
 {
 	int ret = -EWOULDBLOCK;
 
-	if (check_tx_slot_available(get_current_tx_slot(chnl))) {
+	if ( check_tx_slot_available ( get_current_tx_slot( chnl ) ) )
+	{
+		ret                = 0;
+		*msg               = get_current_tx_slot( chnl );
+		// (*msg)->msg_length = 1;
 
-		*msg = get_current_tx_slot(chnl);
-		inc_tx_slot(chnl);
-		ret = 0;
-
+		inc_tx_slot( chnl );
 	}
 
-#if FIPC_DEBUG_LVL >= FIPC_DEBUG_VERB
-
-	if (!ret)
-		fipc_debug("Allocated a slot at index %lu in tx\n",
-			tx_msg_to_idx(chnl, *msg));
+	if ( !ret )
+		FIPC_DEBUG(FIPC_DEBUG_VERB,
+					"Allocated a slot at index %lu in tx\n",
+					tx_msg_to_idx( chnl, *msg ));
 	else
-		fipc_debug("Failed to get a slot, out of slots right now.\n");
-
-#endif
+		FIPC_DEBUG(FIPC_DEBUG_VERB,
+					"Failed to get a slot, out of slots right now.\n");
 
 	return ret;
 }
 EXPORT_SYMBOL(fipc_send_msg_start);
 
-int 
+int
 LIBFIPC_FUNC_ATTR
-fipc_send_msg_end(struct fipc_ring_channel *chnl, 
-		struct fipc_message *msg)
+fipc_send_msg_end ( header_t *chnl, message_t *msg )
 {
 	msg->msg_status = FIPC_MSG_STATUS_SENT;
 
-#if FIPC_DEBUG_LVL >= FIPC_DEBUG_VERB
-
-	fipc_debug("Marking message at idx %lu as sent\n",
-		tx_msg_to_idx(chnl, msg));
-
-#endif
+	FIPC_DEBUG(FIPC_DEBUG_VERB,
+				"Marking message at idx %lu as sent\n",
+				tx_msg_to_idx( chnl, msg ));
 
 	return 0;
 }
 EXPORT_SYMBOL(fipc_send_msg_end);
 
-static int recv_msg_peek(struct fipc_ring_channel *chnl,
-			struct fipc_message **msg)
-{
-	int ret = -EWOULDBLOCK;
-
-	if (check_rx_slot_msg_waiting(get_current_rx_slot(chnl))) {
-
-		*msg = get_current_rx_slot(chnl);
-		ret = 0;
-
-	}
-
-	return ret;
-}
-
-int 
+int
 LIBFIPC_FUNC_ATTR
-fipc_recv_msg_start(struct fipc_ring_channel *chnl,
-		struct fipc_message **msg)
+fipc_recv_msg_start ( header_t *chnl, message_t **msg )
 {
-	int ret;
-	struct fipc_message *m;
-
-	ret = recv_msg_peek(chnl, &m);
-	if (!ret) {
-		/* Message waiting to be received */
-		*msg = m;
-		inc_rx_slot(chnl);
+	if ( !check_rx_slot_msg_waiting( get_current_rx_slot( chnl ) ) )
+	{
+		FIPC_DEBUG(FIPC_DEBUG_VERB, "No messages to receive right now\n");
+		return -EWOULDBLOCK;
 	}
 
-#if FIPC_DEBUG_LVL >= FIPC_DEBUG_VERB
+	*msg = get_current_rx_slot( chnl );
 
-	if (!ret)
-		fipc_debug("Received a message at index %lu in rx\n",
-			rx_msg_to_idx(chnl, *msg));
-	else
-		fipc_debug("No messages to receive right now\n");
+	inc_rx_slot( chnl );
 
-#endif
+	FIPC_DEBUG(FIPC_DEBUG_VERB, "Received a message at index %lu in rx\n",
+									rx_msg_to_idx( chnl, *msg ));
 
-	return ret;
+	return 0;
 }
 EXPORT_SYMBOL(fipc_recv_msg_start);
 
-int 
+int
 LIBFIPC_FUNC_ATTR
-fipc_recv_msg_if(struct fipc_ring_channel *chnl,
-		int (*pred)(struct fipc_message *, void *),
-		void *data,
-		struct fipc_message **msg)
+fipc_recv_msg_if( header_t *chnl, int (*pred)(message_t *, void *),
+					void *data, message_t **msg )
 {
-	int ret;
-	struct fipc_message *m;
-
-	ret = recv_msg_peek(chnl, &m);
-	if (!ret) {
-		/* Message waiting to be received; query predicate */
-		if (pred(m, data)) {
-			/* Caller wants the message */
-			*msg = m;
-			inc_rx_slot(chnl);
-			ret = 0;
-		} else {
-			ret = -ENOMSG;
-		}
+	if ( !check_rx_slot_msg_waiting( get_current_rx_slot( chnl ) ) )
+	{
+		FIPC_DEBUG(FIPC_DEBUG_VERB, "No messages to receive right now\n");
+		return -EWOULDBLOCK;
 	}
 
-#if FIPC_DEBUG_LVL >= FIPC_DEBUG_VERB
+	message_t* m = get_current_rx_slot( chnl )
 
-	if (!ret)
-		fipc_debug("Received a message at index %lu in rx\n",
-			rx_msg_to_idx(chnl, *msg));
-	else
-		fipc_debug("No messages to receive right now, or caller doesn't want it\n");
+	if ( !pred(m, data) )
+	{
+		FIPC_DEBUG(FIPC_DEBUG_VERB, "Message failed predicate; not received\n");
+		return -ENOMSG;
+	}
 
-#endif
+	*msg = m;
+	inc_rx_slot( chnl );
 
-	return ret;
+	FIPC_DEBUG(FIPC_DEBUG_VERB, "Received a message at index %lu in rx\n",
+									rx_msg_to_idx( chnl, *msg ));
+
+	return 0;
 }
 EXPORT_SYMBOL(fipc_recv_msg_if);
 
-int 
+int
 LIBFIPC_FUNC_ATTR
-fipc_recv_msg_end(struct fipc_ring_channel *chnl,
-		struct fipc_message *msg)
+fipc_recv_msg_end ( header_t *chnl, message_t *msg )
 {
 	msg->msg_status = FIPC_MSG_STATUS_AVAILABLE;
-
-#if FIPC_DEBUG_LVL >= FIPC_DEBUG_VERB
-
-	fipc_debug("Marking message at idx %lu as received\n",
-		rx_msg_to_idx(chnl, msg));
-
-#endif
-
+	// Mark msg_length continuous messages as available
+	FIPC_DEBUG(FIPC_DEBUG_VERB, "Marking message at idx %lu as received\n",
+									rx_msg_to_idx( chnl, msg ));
 	return 0;
 }
 EXPORT_SYMBOL(fipc_recv_msg_end);
 
-int 
+int
 LIBFIPC_FUNC_ATTR
-fipc_init(void)
+fipc_init ( void )
 {
-	FIPC_DEBUG(FIPC_DEBUG_VERB,
-		"libfipc initialized\n");
-
+	FIPC_DEBUG(FIPC_DEBUG_VERB, "libfipc initialized\n");
 	return 0;
 }
 EXPORT_SYMBOL(fipc_init);
 
-void 
+void
 LIBFIPC_FUNC_ATTR
-fipc_fini(void)
+fipc_fini ( void )
 {
-	FIPC_DEBUG(FIPC_DEBUG_VERB,
-		"libfipc torn down\n");
-
+	FIPC_DEBUG(FIPC_DEBUG_VERB, "libfipc torn down\n");
 	return;
 }
 EXPORT_SYMBOL(fipc_fini);
+
+int
+LIBFIPC_FUNC_ATTR
+fipc_send_long_msg_start( header_t *chnl, message_t **msg, uint16_t msg_length )
+{
+	int ret = -EWOULDBLOCK;
+	// Check if msg_length continous messages are available
+	// Ship them off
+	// add msg_length to slot
+	return ret;
+}
+EXPORT_SYMBOL(fipc_send_long_msg_start);

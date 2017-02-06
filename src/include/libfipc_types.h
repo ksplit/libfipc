@@ -1,114 +1,83 @@
-/*
- * libfipc_types.h
+/**
+ * @File     : libfipc_types.h
+ * @Author   : Anton Burtsev
+ * @Author   : Scotty Bauer
+ * @Author   : Charles Jacobsen
+ * @Author   : Abdullah Younis
+ * @Copyright: University of Utah
  *
- * Struct definitions, etc. for libfipc library.
- *
- * Copyright: University of Utah
+ * This library contains data structure definitions for types used in libfipc.
  */
+
 #ifndef LIBFIPC_TYPES_H
 #define LIBFIPC_TYPES_H
 
 #include <libfipc_platform_types.h>
 
-/**
- * Assumed cacheline size, in bytes.
- */
-#define FIPC_CACHE_LINE_SIZE 64
+// Assumed cache line size, in bytes
+#ifndef FIPC_CACHE_LINE_SIZE
+	#define FIPC_CACHE_LINE_SIZE 64
+#endif
+
+// The number of 64 bit registers in a single message.
+#define FIPC_NR_REGS ((FIPC_CACHE_LINE_SIZE-8)/8)
+
+// The amount of padding need for the buffers
+#define FIPC_RING_BUF_PADDING (FIPC_CACHE_LINE_SIZE-24)
 
 /**
- * struct fipc_message
+ * This is the smallest unit in the libfipc system, and is in every slot of an
+ * FIPC ring buffer. The fast IPC library gets is efficiency from the size of
+ * this object. This data structure is exactly the same size as the cache line,
+ * which allows us to minimize the amount of cache traffic required to
+ * pass messages.
  *
- * This is the data in each slot in an IPC ring buffer. It should fit
- * into one cache line. All fields are available for use, except
- * msg_status - this is reserved and is used internally by libfipc
- * to track the status of individual message slots in the IPC ring buffer.
- *
- * XXX: This probably needs to be arch-specific in order to fit in a
- * cache line, and to ensure that msg_status can be updated atomically.
- *
- * XXX: The size of the message must be a power of 2.
+ * NOTE: Fields: msg_status and msg_length are reserved for internal use.
  */
-#define FIPC_NR_REGS 7
-struct fipc_message {
-	/**
-	 * Reserved. Used internally to track message status.
-	 */
-	volatile uint32_t msg_status;
-	/**
-	 * Not touched by libfipc.
-	 */
-	uint32_t flags;
-	/**
-	 * Not touched by libfipc.
-	 */
-	unsigned long regs[FIPC_NR_REGS];
-};
+typedef struct fipc_message
+{
+	volatile uint16_t msg_status;	// The status of the message
+	uint16_t msg_length;			// The length of a message
+	uint32_t flags;					// Not touched by libfipc
+	uint64_t regs[FIPC_NR_REGS];	// Not touched by libfipc
+
+} message_t;
 
 /**
- * struct fipc_ring_buf
+ * This is the header for an IPC ring buffer, which is a circular buffer by
+ * design. To accomplish this, a order two mask is applied to the slot index,
+ * which creates a modular or loop-around effect. This mask is quickly computed
+ * at ring buffer initialization time. The mask is given by:
  *
- * This is the header (metadata) for an IPC ring buffer (circular 
- * buffer). Each IPC ring buffer has a producer and consumer; each
- * will maintain its own struct fipc_ring_buf header. (Producers and consumers
- * communicate "where they are" in the IPC buffer using a special message
- * status field in the message slots in the buffer; see struct fipc_message
- * above.)
+ *     [2^buf_order / sizeof(struct fipc_message)] - 1
  *
- * XXX: This definition may need to be arch-specific in general if we want
- * it to be double cacheline sized.
+ * NOTE: Since we require that the message_t is a power of 2, the mask will equal
+ * 2^x-1 for some x.
  */
-#define FIPC_RING_BUF_PADDING \
-	(FIPC_CACHE_LINE_SIZE - (3 * sizeof(unsigned long)))
-struct fipc_ring_buf {
-	/**
-	 * Where *I* am in the IPC buffer. (The other guy knows where I am
-	 * by looking at message statuses.)
-	 */
-	unsigned long slot;
-	/**
-	 * This is pre-computed at ring buffer initialization time so that 
-	 * we can quickly calculate the message slot index, 
-	 * circular-buffer style.
-	 *
-	 * Assuming the buffer itself is 2^buf_order bytes, the mask is given
-	 * by:
-	 *
-	 *    [2^buf_order / sizeof(struct fipc_message)] - 1
-	 *
-	 * Since we require that struct fipc_message is a power of 2,
-	 * this mask will be 2^x - 1 for some x.
-	 */
-	unsigned long order_two_mask;
-	/**
-	 * Pointer to the actual IPC buffer
-	 */
-	struct fipc_message *buffer;
-	/**
-	 * Pad the struct up to a cacheline
-	 */
+typedef struct fipc_ring_buf
+{
+	uint64_t   slot;	// The current slot in the buffer.
+	uint64_t   mask;	// Used to quickly calculate modular message slot index
+	message_t* buffer;	// Pointer to IPC circular buffer data
+
+	// Extra padding to ensure alignment to the cache line
 	uint8_t padding[FIPC_RING_BUF_PADDING];
-};
+
+} buffer_t;
 
 /**
- * struct fipc_ring_channel
- *
- * A full duplex IPC channel, made up of two, one-way IPC ring buffers,
+ * A full duplex IPC channel is made up of two, one-way IPC ring buffers,
  * @tx and @rx.
  *
- * Note: It may seem redundant to store order_two_mask in both ring
- * buffers, rather than putting a common value here. We put redundant
- * values so that e.g. core A can send on the tx buffer while core B can
- * receive on the rx buffer, without any cacheline sharing.
+ * NOTE: It may seem redundant to store two equal mask values in both ring
+ * buffers rather than putting a common value here; however, we put redundant
+ * values so that different cores can communicate with sharing a cache line.
  */
-struct fipc_ring_channel {
-	/**
-	 * Pointer to our sending ring buffer.
-	 */
-	struct fipc_ring_buf tx;
-	/**
-	 * Pointer to our receiving ring buffer.
-	 */
-	struct fipc_ring_buf rx;
-};
+typedef struct fipc_ring_channel
+{
+	buffer_t tx;	// Pointer to our sending ring buffer.
+	buffer_t rx;	// Pointer to our receiving ring buffer.
 
-#endif /* LIBFIPC_TYPES_H */
+} header_t;
+
+#endif

@@ -1,10 +1,14 @@
-/*
- * libfipc_internal.h
+/**
+ * @File     : libfipc_internal.h
+ * @Author   : Anton Burtsev
+ * @Author   : Scotty Bauer
+ * @Author   : Charles Jacobsen
+ * @Author   : Abdullah Younis
+ * @Copyright: University of Utah
  *
- * libfipc-internal defs, not part of public API.
- *
- * Copyright: University of Utah
+ * This library contains internal definitions, which are not part of public API.
  */
+
 #ifndef LIBFIPC_INTERNAL_H
 #define LIBFIPC_INTERNAL_H
 
@@ -23,11 +27,14 @@
 
 #define fipc_debug(fmt, ...) __fipc_debug(fmt,##__VA_ARGS__)
 
-#define FIPC_DEBUG(lvl, fmt, ...) do {				\
-		if (lvl <= FIPC_DEBUG_LVL) {			\
-			fipc_debug(fmt,##__VA_ARGS__);		\
-		}						\
-	} while (0)
+#define FIPC_DEBUG(lvl, fmt, ...)				\
+		do										\
+		{										\
+			if (lvl <= FIPC_DEBUG_LVL)			\
+			{									\
+				fipc_debug(fmt,##__VA_ARGS__);	\
+			}									\
+		} while (0)
 
 
-#endif /* LIBFIPC_INTERNAL_H */
+#endif
