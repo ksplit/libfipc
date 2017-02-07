@@ -11,13 +11,10 @@
 
 #include "../libfipc_test.h"
 
-#define TRANSACTIONS	10000
+#define TRANSACTIONS	100
 #define REQUESTER_CPU	1
 #define RESPONDER_CPU	3
 #define CHANNEL_ORDER	ilog2(sizeof(struct fipc_message))
-
-#define AVAILABLE 0xdeadU
-#define SENT      0xfeedU
 
 // Thread Locks
 pthread_mutex_t requester_mutex;
@@ -25,20 +22,7 @@ pthread_mutex_t responder_mutex;
 
 void request ( header_t* chan )
 {
-	while ( chan->tx.buffer->msg_status != AVAILABLE )
-		fipc_test_pause();
-
-	// Send request (GetM)
-	chan->tx.buffer->msg_status = SENT;
-
-	// Wait until message is received (GetS)
-	while ( chan->rx.buffer->msg_status != SENT )
-		fipc_test_pause();
-
-	// Receive response (GetM)
-	chan->rx.buffer->msg_status = AVAILABLE;
-
-	/* message_t* request;
+	message_t* request;
 	message_t* response;
 
 	// Wait until message is available (GetS)
@@ -47,31 +31,16 @@ void request ( header_t* chan )
 	// Send request (GetM)
 	fipc_send_msg_end ( chan, request );
 
-	// Wait until response is received (GetS)
+	// Wait until message is received (GetS)
 	fipc_test_blocking_recv_start( chan, &response );
 
 	// Receive response (GetM)
-	fipc_recv_msg_end( chan, response );*/
+	fipc_recv_msg_end( chan, response );
 }
 
 void respond ( header_t* chan )
 {
-	// Wait until message is received (GetS)
-	while ( chan->rx.buffer->msg_status != SENT )
-		fipc_test_pause();
-
-	// Receive request (GetM)
-	chan->rx.buffer->msg_status = AVAILABLE;
-
-
-	// Wait until message is available (GetS)
-	while ( chan->tx.buffer->msg_status != AVAILABLE )
-		fipc_test_pause();
-
-	// Send response (GetM)
-	chan->tx.buffer->msg_status = SENT;
-
-	/*message_t* request;
+	message_t* request;
 	message_t* response;
 
 	// Wait until request is received (GetS)
@@ -84,7 +53,7 @@ void respond ( header_t* chan )
 	fipc_test_blocking_send_start( chan, &response );
 
 	// Send response (GetM)
-	fipc_send_msg_end( chan, response );*/
+	fipc_send_msg_end( chan, response );
 }
 
 void* requester ( void* data )

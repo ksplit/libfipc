@@ -208,26 +208,23 @@ int
 LIBFIPC_FUNC_ATTR
 fipc_send_msg_start ( header_t *chnl, message_t **msg )
 {
-	int ret = -EWOULDBLOCK;
-
-	if ( check_tx_slot_available ( get_current_tx_slot( chnl ) ) )
+	if ( ! check_tx_slot_available ( get_current_tx_slot( chnl ) ) )
 	{
-		ret                = 0;
-		*msg               = get_current_tx_slot( chnl );
-		// (*msg)->msg_length = 1;
-
-		inc_tx_slot( chnl );
-	}
-
-	if ( !ret )
-		FIPC_DEBUG(FIPC_DEBUG_VERB,
-					"Allocated a slot at index %lu in tx\n",
-					tx_msg_to_idx( chnl, *msg ));
-	else
 		FIPC_DEBUG(FIPC_DEBUG_VERB,
 					"Failed to get a slot, out of slots right now.\n");
+		return -EWOULDBLOCK;
 
-	return ret;
+	}
+
+	*msg = get_current_tx_slot( chnl );
+	inc_tx_slot( chnl );
+
+	// msg_length = 1
+
+	FIPC_DEBUG(FIPC_DEBUG_VERB, "Allocated a slot at index %lu in tx\n",
+									tx_msg_to_idx( chnl, *msg ));
+
+	return 0;
 }
 EXPORT_SYMBOL(fipc_send_msg_start);
 
@@ -249,20 +246,19 @@ int
 LIBFIPC_FUNC_ATTR
 fipc_recv_msg_start ( header_t *chnl, message_t **msg )
 {
-	if ( !check_rx_slot_msg_waiting( get_current_rx_slot( chnl ) ) )
+	if ( ! check_rx_slot_msg_waiting( get_current_rx_slot( chnl ) ) )
 	{
 		FIPC_DEBUG(FIPC_DEBUG_VERB, "No messages to receive right now\n");
 		return -EWOULDBLOCK;
 	}
 
 	*msg = get_current_rx_slot( chnl );
-
 	inc_rx_slot( chnl );
 
 	FIPC_DEBUG(FIPC_DEBUG_VERB, "Received a message at index %lu in rx\n",
 									rx_msg_to_idx( chnl, *msg ));
 
-	return 0;
+	return 0; // return msg_length
 }
 EXPORT_SYMBOL(fipc_recv_msg_start);
 
@@ -271,21 +267,22 @@ LIBFIPC_FUNC_ATTR
 fipc_recv_msg_if( header_t *chnl, int (*pred)(message_t *, void *),
 					void *data, message_t **msg )
 {
-	if ( !check_rx_slot_msg_waiting( get_current_rx_slot( chnl ) ) )
+	message_t* temp = get_current_rx_slot( chnl );
+
+	if ( !check_rx_slot_msg_waiting( temp ) )
 	{
 		FIPC_DEBUG(FIPC_DEBUG_VERB, "No messages to receive right now\n");
 		return -EWOULDBLOCK;
 	}
 
-	message_t* m = get_current_rx_slot( chnl );
 
-	if ( !pred(m, data) )
+	if ( !pred( temp, data ) )
 	{
 		FIPC_DEBUG(FIPC_DEBUG_VERB, "Message failed predicate; not received\n");
 		return -ENOMSG;
 	}
 
-	*msg = m;
+	*msg = temp;
 	inc_rx_slot( chnl );
 
 	FIPC_DEBUG(FIPC_DEBUG_VERB, "Received a message at index %lu in rx\n",
@@ -301,6 +298,7 @@ fipc_recv_msg_end ( header_t *chnl, message_t *msg )
 {
 	msg->msg_status = FIPC_MSG_STATUS_AVAILABLE;
 	// Mark msg_length continuous messages as available
+
 	FIPC_DEBUG(FIPC_DEBUG_VERB, "Marking message at idx %lu as received\n",
 									rx_msg_to_idx( chnl, msg ));
 	return 0;

@@ -15,7 +15,7 @@
 
 #define REQUESTER_CPU 1
 #define RESPONDER_CPU 3
-#define TRANSACTIONS  10000
+#define TRANSACTIONS  100000
 #define AVAILABLE 0
 #define SENT      1
 
@@ -82,6 +82,7 @@ void* requester ( void* data )
 
 	printf( "Average Round Trip Cycles:\t%f\n", sum / TRANSACTIONS );
 
+	pthread_mutex_unlock( &requester_mutex );
 	pthread_exit( 0 );
 	return NULL;
 }
@@ -90,7 +91,6 @@ void* responder ( void* data )
 {
 	// Wait to begin test
 	pthread_mutex_lock( &responder_mutex );
-	pthread_mutex_unlock( &requester_mutex );
 
 
 	uint32_t transaction_id;
@@ -99,6 +99,7 @@ void* responder ( void* data )
 		respond();
 	}
 
+	pthread_mutex_unlock( &responder_mutex );
 	pthread_exit( 0 );
 	return NULL;
 }
@@ -133,10 +134,8 @@ int main ( void )
 	}
 	
 	// End critical section = start threads
-	// NOTE: We only unlock the responder lock, which in turn will unlock the
-	//       the requester lock; this way we ensure correct states of each
-	//       cache line prior to starting the test.
 	pthread_mutex_unlock( &responder_mutex );
+	pthread_mutex_unlock( &requester_mutex );
 	
 	// Wait for thread completion
 	fipc_test_thread_wait_for_thread( requester_thread );
