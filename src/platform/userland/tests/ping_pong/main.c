@@ -15,49 +15,57 @@
 
 #define REQUESTER_CPU 1
 #define RESPONDER_CPU 3
-#define TRANSACTIONS  100000
+#define TRANSACTIONS  1000000
 #define AVAILABLE 0
 #define SENT      1
 
 // Global Variables = Test Shared Memory
 pthread_mutex_t requester_mutex;
 pthread_mutex_t responder_mutex;
-cache_line_t reqt_buffer;
-cache_line_t resp_buffer;
+cache_line_t reqt_buffer = { .msg_status = 0} ;
+cache_line_t resp_buffer = { .msg_status = 0} ;
 
-void request ( void )
+unsigned long resp_sequence = 1; 
+unsigned long req_sequence = 1;
+
+static inline void request ( void )
 {
 	// Wait until message is available (GetS)
-	while ( reqt_buffer.msg_status != AVAILABLE )
-		fipc_test_pause();
+	//while ( reqt_buffer.msg_status != AVAILABLE )
+	//	fipc_test_pause();
 
 	// Send request (GetM)
-	reqt_buffer.msg_status = SENT;
+	reqt_buffer.msg_status = req_sequence;
 
 	// Wait until message is received (GetS)
-	while ( resp_buffer.msg_status != SENT )
+	while ( resp_buffer.msg_status != req_sequence )
 		fipc_test_pause();
 
 	// Receive response (GetM)
-	resp_buffer.msg_status = AVAILABLE;
+	//resp_buffer.msg_status = AVAILABLE;
+        req_sequence ++;
+        //printf("req_seq:%lu\n", req_sequence); 
 }
 
-void respond ( void )
+static inline void respond ( void )
 {
 	// Wait until message is received (GetS)
-	while ( reqt_buffer.msg_status != SENT )
+	while ( reqt_buffer.msg_status != resp_sequence )
 		fipc_test_pause();
 
 	// Receive request (GetM)
-	reqt_buffer.msg_status = AVAILABLE;
+	//reqt_buffer.msg_status = AVAILABLE;
 
 
 	// Wait until message is available (GetS)
-	while ( resp_buffer.msg_status != AVAILABLE )
-		fipc_test_pause();
+	//while ( resp_buffer.msg_status != AVAILABLE )
+	//	fipc_test_pause();
 
 	// Send response (GetM)
-	resp_buffer.msg_status = SENT;
+	resp_buffer.msg_status = resp_sequence;
+	//reqt_buffer.msg_status = AVAILABLE;
+        resp_sequence ++; 
+        //printf("resp_seq:%lu\n", resp_sequence);
 }
 
 void* requester ( void* data )
@@ -72,11 +80,15 @@ void* requester ( void* data )
 
 	for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
 	{
+                //resp_buffer.msg_status = AVAILABLE;
+               
 		start = fipc_test_time_get_timestamp();
 		request();
 		end   = fipc_test_time_get_timestamp(); // A memory fence here costs ~200 cycles
 
-		printf("\t%lu\n", end - start);
+                //resp_buffer.msg_status = AVAILABLE;        
+               
+		//printf("\t%lu\n", end - start);
 		sum += end - start;
 	}
 
@@ -96,7 +108,9 @@ void* responder ( void* data )
 	uint32_t transaction_id;
 	for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
 	{
-		respond();
+		respond(); 
+                //reqt_buffer.msg_status = AVAILABLE;
+
 	}
 
 	pthread_mutex_unlock( &responder_mutex );
