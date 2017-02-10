@@ -13,8 +13,8 @@
 
  #include "../libfipc_test.h"
 
-#define REQUESTER_CPU 1
-#define RESPONDER_CPU 3
+#define REQUESTER_CPU 0
+#define RESPONDER_CPU 2
 #define TRANSACTIONS  1000000
 #define AVAILABLE 0
 #define SENT      1
@@ -22,11 +22,14 @@
 // Global Variables = Test Shared Memory
 pthread_mutex_t requester_mutex;
 pthread_mutex_t responder_mutex;
-cache_line_t reqt_buffer = { .msg_status = 0} ;
-cache_line_t resp_buffer = { .msg_status = 0} ;
+volatile cache_line_t reqt_buffer = { .msg_status = 0} ;
+volatile cache_line_t resp_buffer = { .msg_status = 0} ;
 
-unsigned long resp_sequence = 1; 
-unsigned long req_sequence = 1;
+#define likely(x)       __builtin_expect(!!(x), 1)
+#define unlikely(x)     __builtin_expect(!!(x), 0)
+
+unsigned long __attribute__((aligned(64))) resp_sequence = 1; 
+unsigned long __attribute__((aligned(64))) req_sequence = 1;
 
 static inline void request ( void )
 {
@@ -38,19 +41,19 @@ static inline void request ( void )
 	reqt_buffer.msg_status = req_sequence;
 
 	// Wait until message is received (GetS)
-	while ( resp_buffer.msg_status != req_sequence )
+	while ( likely(resp_buffer.msg_status != req_sequence) )
 		fipc_test_pause();
 
 	// Receive response (GetM)
 	//resp_buffer.msg_status = AVAILABLE;
-        req_sequence ++;
-        //printf("req_seq:%lu\n", req_sequence); 
+	req_sequence ++;
+	//printf("req_seq:%lu\n", req_sequence); 
 }
 
 static inline void respond ( void )
 {
 	// Wait until message is received (GetS)
-	while ( reqt_buffer.msg_status != resp_sequence )
+	while ( likely(reqt_buffer.msg_status != resp_sequence ))
 		fipc_test_pause();
 
 	// Receive request (GetM)
@@ -64,35 +67,40 @@ static inline void respond ( void )
 	// Send response (GetM)
 	resp_buffer.msg_status = resp_sequence;
 	//reqt_buffer.msg_status = AVAILABLE;
-        resp_sequence ++; 
-        //printf("resp_seq:%lu\n", resp_sequence);
+	resp_sequence ++;
+	//printf("resp_seq:%lu\n", resp_sequence);
 }
 
 void* requester ( void* data )
 {
 	uint64_t start;
 	uint64_t end;
-	uint32_t transaction_id;
-	float sum = 0;
+	uint32_t __attribute__((aligned(64))) transaction_id;
+	unsigned long long sum = 0;
 	
 	// Wait to begin test
 	pthread_mutex_lock( &requester_mutex );
+	start = RDTSC_START();
 
 	for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
 	{
                 //resp_buffer.msg_status = AVAILABLE;
-               
-		start = fipc_test_time_get_timestamp();
+		//start = RDTSC_START();
+              
+		//start = fipc_test_time_get_timestamp();
 		request();
-		end   = fipc_test_time_get_timestamp(); // A memory fence here costs ~200 cycles
+		//end   = fipc_test_time_get_timestamp(); // A memory fence here costs ~200 cycles
 
                 //resp_buffer.msg_status = AVAILABLE;        
-               
+		//end = RDTSCP();
+		//sum += end - start;
+       
 		//printf("\t%lu\n", end - start);
-		sum += end - start;
 	}
+	end = RDTSCP();
+	sum += end - start;
 
-	printf( "Average Round Trip Cycles:\t%f\n", sum / TRANSACTIONS );
+	printf( "Average Round Trip Cycles:%llu\n", sum / TRANSACTIONS );
 
 	pthread_mutex_unlock( &requester_mutex );
 	pthread_exit( 0 );
@@ -105,7 +113,7 @@ void* responder ( void* data )
 	pthread_mutex_lock( &responder_mutex );
 
 
-	uint32_t transaction_id;
+	uint32_t __attribute__((aligned(64))) transaction_id;
 	for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
 	{
 		respond(); 
