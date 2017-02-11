@@ -15,13 +15,13 @@
 
 #define REQUESTER_CPU 0
 #define RESPONDER_CPU 2
-#define TRANSACTIONS  1000
+#define TRANSACTIONS  1000000
 
 // Global Variables = Test Shared Memory
 pthread_mutex_t requester_mutex;
 pthread_mutex_t responder_mutex;
-volatile cache_line_t reqt_buffer = { .msg_status = 0} ;
-volatile cache_line_t resp_buffer = { .msg_status = 0} ;
+volatile unsigned long __attribute__((aligned(64))) req_line;
+volatile unsigned long __attribute__((aligned(64))) resp_line;
 
 
 #define likely(x)       __builtin_expect(!!(x), 1)
@@ -34,10 +34,10 @@ static inline void request_2_lines ( void )
 {
 	// Wait until message is available (GetS)
 	// Send request (GetM)
-	reqt_buffer.msg_status = req_sequence;
+	req_line = req_sequence;
 
 	// Wait until message is received (GetS)
-	while ( likely(resp_buffer.msg_status != req_sequence) )
+	while ( likely(resp_line != req_sequence) )
 		fipc_test_pause();
 
 	req_sequence ++;
@@ -46,22 +46,24 @@ static inline void request_2_lines ( void )
 static inline void respond_2_lines ( void )
 {
 	// Wait until message is received (GetS)
-	while ( likely(reqt_buffer.msg_status != resp_sequence ))
+	while ( likely(req_line != resp_sequence ))
 		fipc_test_pause();
 
 	// Send response (GetM)
-	resp_buffer.msg_status = resp_sequence;
+	resp_line = resp_sequence;
 
 	resp_sequence ++;
 }
 
 static inline void request ( void )
 {
+	// Wait until message is available (GetS)
 	// Send request (GetM)
-	reqt_buffer.msg_status = req_sequence;
+	req_line = req_sequence;
 
 	// Wait until message is received (GetS)
-	while ( unlikely(reqt_buffer.msg_status != (req_sequence + 1)))
+	while ( unlikely(req_line != (req_sequence + 1)))
+
 		fipc_test_pause();
 
 	req_sequence += 2;
@@ -70,12 +72,13 @@ static inline void request ( void )
 static inline void respond ( void )
 {
 	// Wait until message is received (GetS)
-	while ( unlikely(reqt_buffer.msg_status != resp_sequence ))
+	while ( unlikely(req_line != resp_sequence ))
 		fipc_test_pause();
 
-	// Send response (GetM)
-	reqt_buffer.msg_status = resp_sequence + 1;
 
+
+	// Send response (GetM)
+	req_line = resp_sequence + 1;
 	resp_sequence += 2;
 }
 void* requester ( void* data )
