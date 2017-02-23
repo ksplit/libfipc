@@ -15,7 +15,7 @@
 
 #define REQUESTER_CPU 0
 #define RESPONDER_CPU 2
-#define TRANSACTIONS  1000000
+#define TRANSACTIONS  7500
 
 // Global Variables = Test Shared Memory
 pthread_mutex_t requester_mutex;
@@ -62,8 +62,7 @@ static inline void request ( void )
 	req_line = req_sequence;
 
 	// Wait until message is received (GetS)
-	while ( unlikely(req_line != (req_sequence + 1)))
-
+	while ( unlikely( req_line != ( req_sequence + 1 ) ) )
 		fipc_test_pause();
 
 	req_sequence += 2;
@@ -72,10 +71,8 @@ static inline void request ( void )
 static inline void respond ( void )
 {
 	// Wait until message is received (GetS)
-	while ( unlikely(req_line != resp_sequence ))
+	while ( unlikely( req_line != resp_sequence ) )
 		fipc_test_pause();
-
-
 
 	// Send response (GetM)
 	req_line = resp_sequence + 1;
@@ -87,55 +84,62 @@ void* requester ( void* data )
 	uint64_t __attribute__((aligned(64))) end;
 	uint32_t __attribute__((aligned(64))) transaction_id;
 	unsigned long long __attribute__((aligned(64))) sum = 0;
+	uint64_t stimes[TRANSACTIONS];
+	uint64_t dtimes[TRANSACTIONS];
 	
 	// Wait to begin test
 	pthread_mutex_lock( &requester_mutex );
-	start = RDTSC_START();
+//	start = RDTSC_START();
 //	start = fipc_test_time_get_timestamp();
 
-	for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
+	for ( transaction_id = 0; transaction_id < TRANSACTIONS; /*transaction_id++*/ )
 	{
-		//start = RDTSC_START();
+		start = RDTSC_START();
 		//start = fipc_test_time_get_timestamp();
 		request();
 		//request_2_lines();
 		//vend   = fipc_test_time_get_timestamp(); // A memory fence here costs ~200 cycles
 
-		//end = RDTSCP();
-		//sum += end - start;
-       
+		end = RDTSCP();
+		stimes[transaction_id++] = end - start;
+		// sum += end - start;
+	   
 		//printf("\t%lu\n", end - start);
 	}
 //	end   = fipc_test_time_get_timestamp(); // A memory fence here costs ~200 cycles
 
-	end = RDTSCP();
-	sum += end - start;
+//	end = RDTSCP();
+//	sum += end - start;
 
-	printf("Ping pong (one cache line) Average Round Trip Cycles:%llu\n", sum / TRANSACTIONS );
+//	printf("Ping pong (one cache line) Average Round Trip Cycles:%lu\n", fipc_test_time_get_mean(stimes, TRANSACTIONS) );
+	RDTSC_START();
+	fipc_test_time_print_info( stimes, TRANSACTIONS );
 
-        req_sequence = 1;
+	req_sequence = 1;
 	sum = 0;
 
-       	start = RDTSC_START();
+	//start = RDTSC_START();
 
-	for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
+	for ( transaction_id = 0; transaction_id < TRANSACTIONS; /*transaction_id++*/ )
 	{
-		//start = RDTSC_START();
+		start = RDTSC_START();
 		//start = fipc_test_time_get_timestamp();
 		request_2_lines();
 		//vend   = fipc_test_time_get_timestamp(); // A memory fence here costs ~200 cycles
 
-		//end = RDTSCP();
+		end = RDTSCP();
+		dtimes[transaction_id++] = end - start;
 		//sum += end - start;
-       
+	   
 		//printf("\t%lu\n", end - start);
 	}
 
-	end = RDTSCP();
-	sum += end - start;
+	//end = RDTSCP();
+	//sum += end - start;
 
-	printf("Ping pong (two cache lines) Average Round Trip Cycles:%llu\n", sum / TRANSACTIONS );
-
+	// printf("Ping pong (two cache lines) Average Round Trip Cycles:%llu\n", sum / TRANSACTIONS );
+	RDTSC_START();
+	fipc_test_time_print_info( dtimes, TRANSACTIONS );
 
 
 	pthread_mutex_unlock( &requester_mutex );
@@ -155,7 +159,7 @@ void* responder ( void* data )
 		respond();
 	}
 
-        resp_sequence = 1; 
+		resp_sequence = 1; 
 
 	for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
 	{
