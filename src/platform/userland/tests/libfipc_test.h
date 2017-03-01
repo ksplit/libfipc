@@ -18,6 +18,9 @@
 #define fipc_test_pause()    asm volatile ( "pause\n": : :"memory" );
 #define fipc_test_clflush(X) asm volatile("clflush %0" : "+m" (*(volatile char*)X))
 
+#define likely(x)       __builtin_expect(!!(x), 1)
+#define unlikely(x)     __builtin_expect(!!(x), 0)
+
 #define NUM_CORES sysconf(_SC_NPROCESSORS_ONLN)
 #define PAGE_SIZE sysconf(_SC_PAGESIZE)
 
@@ -32,9 +35,11 @@
 #include <libfipc.h>
 
 typedef struct fipc_message cache_line_t;
+typedef CACHE_ALIGNED unsigned long long cache_aligned_ull_int_t;
 
 #include "libfipc_test_time.h"
 #include "libfipc_test_thread.h"
+#include "libfipc_test_stat.h"
 
 /**
  * This function initializes the two headers referenced by h1 and h2 to point

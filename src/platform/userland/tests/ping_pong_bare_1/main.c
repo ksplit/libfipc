@@ -15,6 +15,7 @@
 
 #define REQUESTER_CPU 0
 #define RESPONDER_CPU 2
+#define LOGIN_CPU     1
 #define TRANSACTIONS  1000000
 
 // Global Variables = Test Shared Memory
@@ -26,31 +27,6 @@ volatile cache_aligned_ull_int_t resp_line;
 
 cache_aligned_ull_int_t resp_sequence = 1; 
 cache_aligned_ull_int_t req_sequence = 1;
-
-static inline void request_2_lines ( void )
-{
-	// Wait until message is available (GetS)
-	// Send request (GetM)
-	req_line = req_sequence;
-
-	// Wait until message is received (GetS)
-	while ( likely(resp_line != req_sequence) )
-		fipc_test_pause();
-
-	req_sequence ++;
-}
-
-static inline void respond_2_lines ( void )
-{
-	// Wait until message is received (GetS)
-	while ( likely(req_line != resp_sequence ))
-		fipc_test_pause();
-
-	// Send response (GetM)
-	resp_line = resp_sequence;
-
-	resp_sequence ++;
-}
 
 static inline void request ( void )
 {
@@ -77,67 +53,26 @@ static inline void respond ( void )
 }
 void* requester ( void* data )
 {
-	uint64_t CACHE_ALIGNED start;
-	uint64_t CACHE_ALIGNED end;
-	uint32_t CACHE_ALIGNED transaction_id;
-//	unsigned long long CACHE_ALIGNED sum = 0;
-	uint64_t* times = malloc(TRANSACTIONS*sizeof(uint64_t));
+	register uint64_t CACHE_ALIGNED transaction_id;
+	register uint64_t CACHE_ALIGNED start;
+	register uint64_t CACHE_ALIGNED end;
+	register uint64_t* times = malloc( TRANSACTIONS * sizeof( uint64_t ) );
 	
 	// Wait to begin test
 	pthread_mutex_lock( &requester_mutex );
-//	start = RDTSC_START();
-//	start = fipc_test_time_get_timestamp();
 
-	for ( transaction_id = 0; transaction_id < TRANSACTIONS; /*transaction_id++*/ )
+	for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
 	{
 		start = RDTSC_START();
-		//start = fipc_test_time_get_timestamp();
 		request();
-		//request_2_lines();
-		//vend   = fipc_test_time_get_timestamp(); // A memory fence here costs ~200 cycles
-
 		end = RDTSCP();
-		times[transaction_id++] = end - start;
-		// sum += end - start;
-	   
-		//printf("\t%lu\n", end - start);
-	}
-//	end   = fipc_test_time_get_timestamp(); // A memory fence here costs ~200 cycles
 
-//	end = RDTSCP();
-//	sum += end - start;
-
-//	printf("Ping pong (one cache line) Average Round Trip Cycles:%lu\n", fipc_test_time_get_mean(stimes, TRANSACTIONS) );
-	RDTSC_START();
-	fipc_test_stat_print_info( times, TRANSACTIONS );
-
-	req_sequence = 1;
-//	sum = 0;
-
-	//start = RDTSC_START();
-
-	for ( transaction_id = 0; transaction_id < TRANSACTIONS; /*transaction_id++*/ )
-	{
-		start = RDTSC_START();
-		//start = fipc_test_time_get_timestamp();
-		request_2_lines();
-		//vend   = fipc_test_time_get_timestamp(); // A memory fence here costs ~200 cycles
-
-		end = RDTSCP();
-		times[transaction_id++] = end - start;
-		//sum += end - start;
-	   
-		//printf("\t%lu\n", end - start);
+		times[transaction_id] = end - start;
 	}
 
-	//end = RDTSCP();
-	//sum += end - start;
-
-	// printf("Ping pong (two cache lines) Average Round Trip Cycles:%llu\n", sum / TRANSACTIONS );
-	RDTSC_START();
 	fipc_test_stat_print_info( times, TRANSACTIONS );
 
-	free(times);
+	free( times );
 	pthread_mutex_unlock( &requester_mutex );
 	pthread_exit( 0 );
 	return NULL;
@@ -148,20 +83,11 @@ void* responder ( void* data )
 	// Wait to begin test
 	pthread_mutex_lock( &responder_mutex );
 
-
-	uint32_t CACHE_ALIGNED transaction_id;
+	register uint64_t CACHE_ALIGNED transaction_id;
 	for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
 	{
 		respond();
 	}
-
-		resp_sequence = 1; 
-
-	for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
-	{
-		respond_2_lines(); 
-	}
-
 
 	pthread_mutex_unlock( &responder_mutex );
 	pthread_exit( 0 );
@@ -171,6 +97,8 @@ void* responder ( void* data )
 
 int main ( void )
 {
+	fipc_test_thread_pin_this_process_to_CPU( LOGIN_CPU );
+
 	// Begin critical section
 	pthread_mutex_init( &requester_mutex, NULL );
 	pthread_mutex_init( &responder_mutex, NULL );

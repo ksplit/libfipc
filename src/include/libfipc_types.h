@@ -19,6 +19,11 @@
 	#define FIPC_CACHE_LINE_SIZE 64
 #endif
 
+// Type modifier that aligns the variable to the cache line
+#ifndef CACHE_ALIGNED
+	#define CACHE_ALIGNED __attribute__((aligned(FIPC_CACHE_LINE_SIZE)))
+#endif
+
 // The number of 64 bit registers in a single message.
 #define FIPC_NR_REGS ((FIPC_CACHE_LINE_SIZE-8)/8)
 
@@ -34,10 +39,10 @@
  *
  * NOTE: Fields: msg_status and msg_length are reserved for internal use.
  */
-typedef struct __attribute__((aligned(FIPC_CACHE_LINE_SIZE))) fipc_message
+typedef struct CACHE_ALIGNED fipc_message
 {
-	volatile uint32_t msg_status;	// The status of the message
-	//uint16_t msg_length;			// The length of a message
+	volatile uint16_t msg_status;	// The status of the message
+	uint16_t msg_length;			// The length of a message
 	uint32_t flags;					// Not touched by libfipc
 	uint64_t regs[FIPC_NR_REGS];	// Not touched by libfipc
 
@@ -54,7 +59,7 @@ typedef struct __attribute__((aligned(FIPC_CACHE_LINE_SIZE))) fipc_message
  * NOTE: Since we require that the message_t is a power of 2, the mask will equal
  * 2^x-1 for some x.
  */
-typedef struct fipc_ring_buf
+typedef struct CACHE_ALIGNED fipc_ring_buf
 {
 	uint64_t   slot;	// The current slot in the buffer.
 	uint64_t   mask;	// Used to quickly calculate modular message slot index
@@ -73,7 +78,7 @@ typedef struct fipc_ring_buf
  * buffers rather than putting a common value here; however, we put redundant
  * values so that different cores can communicate with sharing a cache line.
  */
-typedef struct fipc_ring_channel
+typedef struct CACHE_ALIGNED fipc_ring_channel
 {
 	buffer_t tx;	// Pointer to our sending ring buffer.
 	buffer_t rx;	// Pointer to our receiving ring buffer.
