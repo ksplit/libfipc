@@ -15,30 +15,32 @@
 static unsigned long RDTSC_START(void)
 {
 
-        unsigned cycles_low, cycles_high;
+	unsigned cycles_low, cycles_high;
 
-        asm volatile ("CPUID\n\t"
-                      "RDTSC\n\t"
-                      "mov %%edx, %0\n\t"
-                      "mov %%eax, %1\n\t": "=r" (cycles_high), "=r" (cycles_low)::
-                      "%rax", "%rbx", "%rcx", "%rdx");
-        return ((unsigned long) cycles_high << 32) | cycles_low;
+	asm volatile ( "CPUID\n\t"
+				   "RDTSC\n\t"
+				   "mov %%edx, %0\n\t"
+				   "mov %%eax, %1\n\t"
+				   : "=r" (cycles_high), "=r" (cycles_low)::
+				   "%rax", "%rbx", "%rcx", "%rdx");
 
+	return ((unsigned long) cycles_high << 32) | cycles_low;
 }
 
-
+/**
+ * CITE: http://www.intel.com/content/www/us/en/embedded/training/ia-32-ia-64-benchmark-code-execution-paper.html
+ */
 static unsigned long RDTSCP(void)
 {
-        unsigned long tsc;
-        __asm__ __volatile__(
-        "rdtscp;"
-        "shl $32, %%rdx;"
-        "or %%rdx, %%rax"
-        : "=a"(tsc)
-        :
-        : "%rcx", "%rdx");
+	unsigned cycles_low, cycles_high;
 
-        return tsc;
+	asm volatile( "RDTSCP\n\t"
+				  "mov %%edx, %0\n\t"
+				  "mov %%eax, %1\n\t"
+				  "CPUID\n\t": "=r" (cycles_high), "=r" (cycles_low)::
+				  "%rax", "%rbx", "%rcx", "%rdx");
+	
+	return ((unsigned long) cycles_high << 32) | cycles_low;
 }
 
 
@@ -49,7 +51,7 @@ static inline
 uint64_t fipc_test_time_get_timestamp ( void )
 {
 	uint64_t stamp;
-	 
+
 	asm volatile
 	(
 		"rdtsc\n\t"
@@ -58,7 +60,7 @@ uint64_t fipc_test_time_get_timestamp ( void )
 		: "=a" (stamp)
 		:
 		: "rdx"
-	);
+		);
 	
 	return stamp;
 }
@@ -81,7 +83,7 @@ uint64_t fipc_test_time_get_timestamp_lf ( void )
 		: "=a" (stamp)
 		:
 		: "rdx"
-	);
+		);
 	
 	return stamp;
 }
@@ -93,7 +95,7 @@ static inline
 uint64_t fipc_test_time_get_timestamp_sf ( void )
 {
 	uint64_t stamp;
-	 
+
 	fipc_test_sfence();
 	
 	asm volatile
@@ -104,7 +106,7 @@ uint64_t fipc_test_time_get_timestamp_sf ( void )
 		: "=a" (stamp)
 		:
 		: "rdx"
-	);
+		);
 	
 	return stamp;
 }
@@ -127,7 +129,7 @@ uint64_t fipc_test_time_get_timestamp_mf ( void )
 		: "=a" (stamp)
 		:
 		: "rdx"
-	);
+		);
 	
 	return stamp;
 }
