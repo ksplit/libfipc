@@ -28,6 +28,36 @@ volatile cache_aligned_ull_int_t resp_line;
 cache_aligned_ull_int_t resp_sequence = 1; 
 cache_aligned_ull_int_t req_sequence = 1;
 
+/*
+static inline void request ( void )
+{
+	// Wait until message is available (GetS)
+	// Send request (GetM)
+	req_line = req_sequence;
+
+	// Wait until message is received (GetS)
+	while ( likely(resp_line != (req_sequence + 1)) )
+		fipc_test_pause();
+
+	//req_sequence ++;
+	req_sequence = resp_line; 
+}
+
+static inline void respond ( void )
+{
+	// Wait until message is received (GetS)
+	while ( likely(req_line != resp_sequence ))
+		fipc_test_pause();
+
+	// Send response (GetM)
+	//resp_line = resp_sequence;
+	resp_line = req_line + 1;
+
+	//resp_sequence ++;
+	resp_sequence = req_line + 1;
+}
+
+*/
 static inline void request ( void )
 {
 	// Wait until message is available (GetS)
@@ -62,16 +92,23 @@ void* requester ( void* data )
 	// Wait to begin test
 	pthread_mutex_lock( &requester_mutex );
 
+	start = RDTSC_START();
+
+
 	for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
 	{
-		start = RDTSC_START();
+		//start = RDTSC_START();
 		request();
-		end = RDTSCP();
+		//end = RDTSCP();
 
-		times[transaction_id] = end - start;
+		//times[transaction_id] = end - start;
 	}
 
-	fipc_test_stat_print_info( times, TRANSACTIONS );
+	end = RDTSCP();
+
+	//fipc_test_stat_print_info( times, TRANSACTIONS );
+
+	printf("Cycles:%lu\n", (end - start)/TRANSACTIONS); 
 
 	free( times );
 	pthread_mutex_unlock( &requester_mutex );
