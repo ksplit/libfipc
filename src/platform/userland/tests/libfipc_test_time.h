@@ -12,7 +12,8 @@
 #ifndef LIBFIPC_TEST_TIME_LIBRARY_LOCK
 #define LIBFIPC_TEST_TIME_LIBRARY_LOCK
 
-static unsigned long RDTSC_START(void)
+static inline
+uint64_t RDTSC_START ( void )
 {
 
 	unsigned cycles_low, cycles_high;
@@ -24,13 +25,14 @@ static unsigned long RDTSC_START(void)
 				   : "=r" (cycles_high), "=r" (cycles_low)::
 				   "%rax", "%rbx", "%rcx", "%rdx");
 
-	return ((unsigned long) cycles_high << 32) | cycles_low;
+	return ((uint64_t) cycles_high << 32) | cycles_low;
 }
 
 /**
  * CITE: http://www.intel.com/content/www/us/en/embedded/training/ia-32-ia-64-benchmark-code-execution-paper.html
  */
-static unsigned long RDTSCP(void)
+static inline
+uint64_t RDTSCP ( void )
 {
 	unsigned cycles_low, cycles_high;
 
@@ -40,7 +42,7 @@ static unsigned long RDTSCP(void)
 				  "CPUID\n\t": "=r" (cycles_high), "=r" (cycles_low)::
 				  "%rax", "%rbx", "%rcx", "%rdx");
 	
-	return ((unsigned long) cycles_high << 32) | cycles_low;
+	return ((uint64_t) cycles_high << 32) | cycles_low;
 }
 
 

@@ -119,6 +119,15 @@ uint64_t fipc_test_stat_zrange_value ( test_stat_t* stat, float zScore )
 }
 
 /**
+ * This function returns the zScore with the specified value.
+ */
+static inline
+float fipc_test_stat_zscore_value ( test_stat_t* stat, uint64_t value )
+{
+  return (float)(value - stat->normMean) / stat->normStdev;
+}
+
+/**
  * This function counts the number of data points in the zScore range.
  */
 static inline
@@ -164,47 +173,25 @@ static inline
 int fipc_test_stat_print_zhistogram ( uint64_t* sample_set, uint64_t sample_size, test_stat_t* stat )
 {
 
-	uint64_t value_below = 0;
-	uint64_t value_above = fipc_test_stat_zrange_value( stat, -3 );
+	float i = (float)(int)(fipc_test_stat_zscore_value( stat, stat->min ) + 1);
 
+	uint64_t value_below = stat->min;
+	uint64_t value_above = fipc_test_stat_zrange_value( stat, i );
+	
 	printf ( "%lu -> %lu\t: ", value_below, value_above );
-	fipc_test_stat_print_zrange_bar( sample_set, sample_size, stat, -50, -3 );
+	fipc_test_stat_print_zrange_bar( sample_set, sample_size, stat, fipc_test_stat_zscore_value( stat, stat->min ), i );
 	printf( "\n" );
-
-	float i;
-	for ( i = -3; i < -0.5; i += 0.5 )
+	
+	float maxZScore = fipc_test_stat_zscore_value( stat, stat->max );
+	for ( ; i < maxZScore && i < 3; i += 0.5 )
 	{
 		value_below = fipc_test_stat_zrange_value( stat, i );
-		value_above = fipc_test_stat_zrange_value( stat, i+0.5 );
-
+		value_above = ( i+0.5 <= maxZScore ? fipc_test_stat_zrange_value( stat, i+0.5 ) : stat->max );
+		
 		printf ( "%lu -> %lu\t: ", value_below, value_above );
-		fipc_test_stat_print_zrange_bar( sample_set, sample_size, stat, i, i+0.5 );
+		fipc_test_stat_print_zrange_bar( sample_set, sample_size, stat, i, ( i+0.5 <= maxZScore ? i+0.5 : maxZScore ) );
 		printf( "\n" );
 	}
-
-	value_below = fipc_test_stat_zrange_value( stat, -0.5 );
-	value_above = fipc_test_stat_zrange_value( stat, 0.5 );
-
-	printf ( "%lu -> %lu\t: ", value_below, value_above );
-	fipc_test_stat_print_zrange_bar( sample_set, sample_size, stat, -0.5, 0.5 );
-	printf( "\n" );
-
-	for ( i = 0.5; i < 3; i += 0.5 )
-	{
-		value_below = fipc_test_stat_zrange_value( stat, i );
-		value_above = fipc_test_stat_zrange_value( stat, i+0.5 );
-
-		printf ( "%lu -> %lu\t: ", value_below, value_above );
-		fipc_test_stat_print_zrange_bar( sample_set, sample_size, stat, i, i+0.5 );
-		printf( "\n" );
-	}
-
-	value_below = fipc_test_stat_zrange_value( stat, 4 );
-	value_above = stat->max;
-
-	printf ( "%lu -> %lu\t: ", value_below, value_above );
-	fipc_test_stat_print_zrange_bar( sample_set, sample_size, stat, 4, stat->max );
-	printf( "\n" );
 
 	return 0;
 }
