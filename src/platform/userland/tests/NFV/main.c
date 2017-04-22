@@ -105,11 +105,7 @@ int main ( void )
 			fipc_send_msg_end ( forw, txF );
 
 			fipc_test_blocking_recv_start( back, &rxB );
-			rxB->regs[2] = RDTSC_START();
-			times1[transaction_id] = rxB->regs[2] - rxB->regs[0];
-			// printf( "%lu\n", rxB->regs[2] );
-			// printf( "%lu\n", rxB->regs[1] );
-			// printf( "%lu\n", rxB->regs[0] );
+			times1[transaction_id] = RDTSC_START() - rxB->regs[0];
 			fipc_recv_msg_end( back, rxB );
 		}
 
