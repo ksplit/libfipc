@@ -121,11 +121,16 @@ int main ( void )
 		end = RDTSCP();
 
 		uint64_t t_of_h = (end - start)/(2*transaction_id);
-		printf("%lu\n", t_of_h);
+		//printf("%lu\n", t_of_h);
 
-		fipc_test_blocking_recv_start( back, &rxB );
-		offset = rxB->regs[0] + t_of_h - end;
-		fipc_recv_msg_end( back, rxB );
+		fipc_test_blocking_send_start( forw, &txF );
+		txF->regs[0] = RDTSC_START();
+		txF->regs[1] = t_of_h;
+		fipc_send_msg_end ( forw, txF );
+
+		// fipc_test_blocking_recv_start( back, &rxB );
+		// offset = rxB->regs[0] + t_of_h - end;
+		// fipc_recv_msg_end( back, rxB );
 		//fipc_test_stat_print_info( times1, TRANSACTIONS );
 		//fipc_test_stat_print_info( times2, TRANSACTIONS );
 		//fipc_test_stat_print_info( times3, TRANSACTIONS );
@@ -143,10 +148,10 @@ int main ( void )
 			//txB->regs[1] = RDTSC_START();
 			fipc_send_msg_end( back, txB );
 		}
-		end = RDTSCP();
-		fipc_test_blocking_send_start( back, &txB );
-		txB->regs[0] = end;
-		fipc_send_msg_end( back, txB );
+		fipc_test_blocking_recv_start( forw, &rxF );
+		offset = RDTSC_START() - rxF->regs[0] - rxF->regs[1];
+		fipc_recv_msg_end( back, rxF );
+		printf("%lu\n", offset);
 	}
 	else
 	{
@@ -171,13 +176,13 @@ int main ( void )
 			fipc_send_msg_end( back, txB );
 		}
 
-		fipc_test_blocking_recv_start( back, &rxB );
-		message_t temp = *rxB;	
-		fipc_recv_msg_end( back, rxB );
+		fipc_test_blocking_recv_start( forw, &rxF );
+		message_t temp = *rxF;
+		fipc_recv_msg_end( forw, rxF );
 
-		fipc_test_blocking_send_start( back, &txB );
-		(*txB) = temp;
-		fipc_send_msg_end( back, txB );
+		fipc_test_blocking_send_start( forw, &txF );
+		(*txF) = temp;
+		fipc_send_msg_end( forw, txF );
 	}
 
 
