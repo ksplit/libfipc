@@ -16,7 +16,7 @@
 
 #define CHANNEL_ORDER  ilog2(sizeof(message_t))
 #define TRANSACTIONS   1000000
-#define NUM_PROCESSORS 4
+#define NUM_PROCESSORS 3
 
 const char* shm_keysF[] = { "FIPC_NFV_S0_F", "FIPC_NFV_S1_F", "FIPC_NFV_S2_F" }; 
 const char* shm_keysB[] = { "FIPC_NFV_S0_B", "FIPC_NFV_S1_B", "FIPC_NFV_S2_B" }; 
@@ -44,9 +44,9 @@ uint64_t func4 ( uint64_t i )
 int main ( void )
 {
 	///////////// Setup Processes
-	// Create 4 processes: P0, P1, P2, P3
+	// Create n processes: P0, P1, P2, ..., Pn-1
 	int rank;
-	for ( rank = 0; rank < 3; rank++ )
+	for ( rank = 0; rank < NUM_PROCESSORS - 1; rank++ )
 	{
 		pid_t child = fork();
 		if ( child == 0 )
@@ -70,7 +70,7 @@ int main ( void )
 	// The channel for communication in the forward direction is the forw channel.
 	// The channel for communication in the reverse direction is the back channel.
 	//
-	// NOTE: In this test, P0 will not receive; likewise, P3 will not send
+	// NOTE: In this test, P0 will not receive; likewise, Pn-1 will not send
 
 	header_t*  forw = NULL;
 	header_t*  back = NULL;
@@ -94,61 +94,92 @@ int main ( void )
 	///////////// Time Synchronization
 
 	register uint64_t CACHE_ALIGNED transaction_id;
-	register uint64_t* times1 = malloc( TRANSACTIONS * sizeof( uint64_t ) );
+	register uint64_t CACHE_ALIGNED start;
+	register uint64_t CACHE_ALIGNED end;
+	register uint64_t CACHE_ALIGNED offset; // Represents the difference in time between P0 and PN
+
+	//register uint64_t* times1 = malloc( TRANSACTIONS * sizeof( uint64_t ) );
+	//register uint64_t* times2 = malloc( TRANSACTIONS * sizeof( uint64_t ) );
+	//register uint64_t* times3 = malloc( TRANSACTIONS * sizeof( uint64_t ) );
 
 	if ( rank == 0 )
 	{
+		start = RDTSC_START();
 		for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
 		{
 			fipc_test_blocking_send_start( forw, &txF );
-			txF->regs[0] = RDTSC_START();
+			//txF->regs[0] = RDTSC_START();
 			fipc_send_msg_end ( forw, txF );
 
 			fipc_test_blocking_recv_start( back, &rxB );
-			times1[transaction_id] = RDTSC_START() - rxB->regs[0];
+			//uint64_t timestamp = RDTSC_START();
+			//times1[transaction_id] = ( timestamp - rxB->regs[0] ) >> 1;
+			//times2[transaction_id] = ( rxB->regs[1] - times1[transaction_id] ) - rxB->regs[0];
+			//times3[transaction_id] = ( rxB->regs[1] - rxB->regs[0] - times2[transaction_id] );
 			fipc_recv_msg_end( back, rxB );
 		}
+		end = RDTSCP();
 
-		fipc_test_stat_print_info( times1, TRANSACTIONS );
+		uint64_t t_of_h = (end - start)/(2*transaction_id);
+		printf("%lu\n", t_of_h);
+
+		fipc_test_blocking_recv_start( back, &rxB );
+		offset = rxB->regs[0] + t_of_h - end;
+		fipc_recv_msg_end( back, rxB );
+		//fipc_test_stat_print_info( times1, TRANSACTIONS );
+		//fipc_test_stat_print_info( times2, TRANSACTIONS );
+		//fipc_test_stat_print_info( times3, TRANSACTIONS );
 	}
 	else if ( rank == NUM_PROCESSORS - 1 )
 	{
 		for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
 		{
 			fipc_test_blocking_recv_start( forw, &rxF );
-			uint64_t temp = rxF->regs[0];
+			//uint64_t temp = rxF->regs[0];
 			fipc_recv_msg_end( forw, rxF );
 
 			fipc_test_blocking_send_start( back, &txB );
-			txB->regs[0] = temp;
+			//txB->regs[0] = temp;
+			//txB->regs[1] = RDTSC_START();
 			fipc_send_msg_end( back, txB );
 		}
+		end = RDTSCP();
+		fipc_test_blocking_send_start( back, &txB );
+		txB->regs[0] = end;
+		fipc_send_msg_end( back, txB );
 	}
 	else
 	{
 		for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
 		{
+			//message_t temp;
+
 			fipc_test_blocking_recv_start( forw, &rxF );
-			uint64_t temp = rxF->regs[0];
+			//temp = *rxF;
 			fipc_recv_msg_end( forw, rxF );
 
 			fipc_test_blocking_send_start( forw, &txF );
-			txF->regs[0] = temp;
+			//(*txF) = temp;
 			fipc_send_msg_end( forw, txF );
 
 			fipc_test_blocking_recv_start( back, &rxB );
-			rxB->regs[0] = temp;
+			//temp = *rxB;	
 			fipc_recv_msg_end( back, rxB );
 
 			fipc_test_blocking_send_start( back, &txB );
-			txB->regs[0] = temp;
+			//(*txB) = temp;
 			fipc_send_msg_end( back, txB );
 		}
+
+		fipc_test_blocking_recv_start( back, &rxB );
+		message_t temp = *rxB;	
+		fipc_recv_msg_end( back, rxB );
+
+		fipc_test_blocking_send_start( back, &txB );
+		(*txB) = temp;
+		fipc_send_msg_end( back, txB );
 	}
 
-
-	// register uint64_t CACHE_ALIGNED start;
-	// register uint64_t CACHE_ALIGNED end;
 
 	// #ifndef FIPC_TEST_TIME_PER_TRANSACTION
 	// 	start = RDTSC_START();
