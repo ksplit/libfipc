@@ -14,7 +14,7 @@
 #define TRANSACTIONS	1000
 #define REQUESTER_CPU	1
 #define RESPONDER_CPU	3
-#define CHANNEL_ORDER	13
+#define CHANNEL_ORDER	ilog2(sizeof(message_t))
 
 // Thread Locks
 pthread_mutex_t requester_mutex;
