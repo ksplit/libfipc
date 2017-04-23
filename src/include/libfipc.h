@@ -197,7 +197,9 @@ void fipc_fini(void);
  * your memory will be corrupted), and the buffers must be big enough
  * to fit at least one message_t.
  */
-int fipc_prep_buffers(unsigned int buf_order, void *buffer_1, void *buffer_2);
+
+int fipc_prep_buffer  ( uint32_t buf_order, void* buffer );
+int fipc_prep_buffers ( uint32_t buf_order, void *buffer_1, void *buffer_2 );
 /**
  * fipc_ring_channel_init -- Initialize ring channel header with buffers
  * @chnl: the header_t to initialize
@@ -213,9 +215,10 @@ int fipc_prep_buffers(unsigned int buf_order, void *buffer_1, void *buffer_2);
  * a power of 2 number of bytes, they will automatically be a multiple
  * of sizeof(message_t).)
  */
-int fipc_ring_channel_init(header_t *chnl,
-			unsigned int buf_order,
-			void *buffer_tx, void *buffer_rx);
+int fipc_ring_channel_init ( header_t* chnl, uint32_t buf_order, void* buffer_tx, void* buffer_rx );
+int fipc_tx_channel_init ( header_t* chnl, uint32_t buf_order, void* buffer_tx );
+int fipc_rx_channel_init ( header_t* chnl, uint32_t buf_order, void* buffer_rx );
+
 /**
  * fipc_send_msg_start -- Allocate a slot from tx buffer for sending
  * @chnl: the ring channel, whose tx we should allocate from

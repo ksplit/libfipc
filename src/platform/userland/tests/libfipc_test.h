@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <sched.h>
 #include <unistd.h>
+#include <errno.h>
 #include <pthread.h>
 #include <limits.h>
 #include <libfipc.h>
@@ -40,14 +41,14 @@ typedef CACHE_ALIGNED unsigned long long cache_aligned_ull_int_t;
 #include "libfipc_test_time.h"
 #include "libfipc_test_thread.h"
 #include "libfipc_test_stat.h"
+#include "libfipc_test_shm.h"
 
 /**
  * This function initializes the two headers referenced by h1 and h2 to point
  * to shared memory buffers of size 2^buffer_order
  */
 static inline
-int fipc_test_create_channel ( size_t buffer_order, header_t** h1,
-													header_t** h2 )
+int fipc_test_create_channel ( size_t buffer_order, header_t** h1, header_t** h2 )
 {
 	int       error_code = 0;
 	void*     buffer1    = NULL;
@@ -98,15 +99,13 @@ int fipc_test_create_channel ( size_t buffer_order, header_t** h1,
 	}
 
 	// (4) Initialize Headers
-	error_code = fipc_ring_channel_init( tempH1, buffer_order,
-														buffer1, buffer2 );
+	error_code = fipc_ring_channel_init( tempH1, buffer_order, buffer1, buffer2 );
 	if ( error_code )
 	{
 		goto fail6;
 	}
 
-	error_code = fipc_ring_channel_init( tempH2, buffer_order,
-														buffer2, buffer1 );
+	error_code = fipc_ring_channel_init( tempH2, buffer_order, buffer2, buffer1 );
 	if ( error_code )
 	{
 		goto fail7;
@@ -163,7 +162,7 @@ int fipc_test_blocking_recv_start ( header_t* channel, message_t** out )
 		{
 			return ret;
 		}
-
+		
 		fipc_test_pause();
 	}
 

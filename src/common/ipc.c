@@ -160,11 +160,32 @@ void ring_buf_init ( buffer_t* ring_buf, uint32_t buf_order, void* buffer )
 
 int
 LIBFIPC_FUNC_ATTR
+fipc_prep_buffer ( uint32_t buf_order, void* buffer )
+{
+	uint64_t i;
+	message_t* msg_buffer = buffer;
+
+	//Buffer must be at least as big as one ipc message slot
+	if ( invalid_buf_order_size( buf_order ) )
+		return -EINVAL;
+
+	// Initialize slots as available
+	for ( i = 0; i < nr_slots(buf_order); i++ )
+	{
+		msg_buffer[i].msg_status = FIPC_MSG_STATUS_AVAILABLE;
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL(fipc_prep_buffer);
+
+int
+LIBFIPC_FUNC_ATTR
 fipc_prep_buffers ( uint32_t buf_order, void *buffer_1, void *buffer_2 )
 {
 	uint64_t i;
-	message_t *msg_buffer_1 = buffer_1;
-	message_t *msg_buffer_2 = buffer_2;
+	message_t* msg_buffer_1 = buffer_1;
+	message_t* msg_buffer_2 = buffer_2;
 
 	//Buffers must be at least as big as one ipc message slot
 	if ( invalid_buf_order_size( buf_order ) )
@@ -176,6 +197,7 @@ fipc_prep_buffers ( uint32_t buf_order, void *buffer_1, void *buffer_2 )
 		msg_buffer_1[i].msg_status = FIPC_MSG_STATUS_AVAILABLE;
 		msg_buffer_2[i].msg_status = FIPC_MSG_STATUS_AVAILABLE;
 	}
+
 	return 0;
 }
 EXPORT_SYMBOL(fipc_prep_buffers);
@@ -183,8 +205,8 @@ EXPORT_SYMBOL(fipc_prep_buffers);
 
 int
 LIBFIPC_FUNC_ATTR
-fipc_ring_channel_init ( header_t *chnl, uint32_t buf_order,
-							void *buffer_tx, void *buffer_rx )
+fipc_ring_channel_init ( header_t* chnl, uint32_t buf_order,
+							void* buffer_tx, void* buffer_rx )
 {
 	// Compile-time Assertions
 	FIPC_BUILD_BUG_ON_NOT_POWER_OF_2(FIPC_CACHE_LINE_SIZE);
@@ -196,13 +218,55 @@ fipc_ring_channel_init ( header_t *chnl, uint32_t buf_order,
 		return -EINVAL;
 
 	// TX and RX initialization
-	memset( chnl, 0, sizeof( *chnl ) );
+	memset( chnl, 0, sizeof( header_t ) );
 	ring_buf_init( &chnl->tx, buf_order, buffer_tx );
 	ring_buf_init( &chnl->rx, buf_order, buffer_rx );
 
 	return 0;
 }
 EXPORT_SYMBOL(fipc_ring_channel_init);
+
+int
+LIBFIPC_FUNC_ATTR
+fipc_tx_channel_init ( header_t* chnl, uint32_t buf_order, void* buffer_tx )
+{
+	// Compile-time Assertions
+	FIPC_BUILD_BUG_ON_NOT_POWER_OF_2(FIPC_CACHE_LINE_SIZE);
+	FIPC_BUILD_BUG_ON(sizeof(buffer_t) != FIPC_CACHE_LINE_SIZE);
+	FIPC_BUILD_BUG_ON(sizeof(message_t) != FIPC_CACHE_LINE_SIZE);
+
+	//Buffers must be at least as big as one ipc message slot
+	if ( invalid_buf_order_size( buf_order ) )
+		return -EINVAL;
+
+	// TX and RX initialization
+	memset( chnl, 0, sizeof( buffer_t ) );
+	ring_buf_init( &chnl->tx, buf_order, buffer_tx );
+
+	return 0;
+}
+EXPORT_SYMBOL(fipc_tx_channel_init);
+
+int
+LIBFIPC_FUNC_ATTR
+fipc_rx_channel_init ( header_t* chnl, uint32_t buf_order, void* buffer_rx )
+{
+	// Compile-time Assertions
+	FIPC_BUILD_BUG_ON_NOT_POWER_OF_2(FIPC_CACHE_LINE_SIZE);
+	FIPC_BUILD_BUG_ON(sizeof(buffer_t) != FIPC_CACHE_LINE_SIZE);
+	FIPC_BUILD_BUG_ON(sizeof(message_t) != FIPC_CACHE_LINE_SIZE);
+
+	//Buffers must be at least as big as one ipc message slot
+	if ( invalid_buf_order_size( buf_order ) )
+		return -EINVAL;
+
+	// TX and RX initialization
+	memset( (buffer_t*)chnl + 1, 0, sizeof( buffer_t ) );
+	ring_buf_init( &chnl->rx, buf_order, buffer_rx );
+
+	return 0;
+}
+EXPORT_SYMBOL(fipc_tx_channel_init);
 
 int
 LIBFIPC_FUNC_ATTR
