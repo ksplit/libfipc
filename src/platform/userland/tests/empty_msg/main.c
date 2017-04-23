@@ -11,7 +11,7 @@
 
 #include "../libfipc_test.h"
 
-#define TRANSACTIONS	1000
+#define TRANSACTIONS	10000000
 #define REQUESTER_CPU	1
 #define RESPONDER_CPU	3
 #define CHANNEL_ORDER	ilog2(sizeof(message_t))
@@ -119,6 +119,12 @@ int main ( void )
 
 	fipc_init();
 	fipc_test_create_channel( CHANNEL_ORDER, &requester_header, &responder_header );
+
+	if ( requester_header == NULL || responder_header == NULL )
+	{
+		fprintf( stderr, "%s\n", "Error while creating channel" );
+		return -1;
+	}
 
 	// Create Threads
 	pthread_t* requester_thread = fipc_test_thread_spawn_on_CPU ( requester, requester_header, REQUESTER_CPU );
