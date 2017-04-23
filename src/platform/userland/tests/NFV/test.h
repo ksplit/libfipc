@@ -15,8 +15,8 @@
 #include "../libfipc_test.h"
 #include "functions.h"
 
-#define CHANNEL_ORDER  ilog2(sizeof(message_t))
-#define TRANSACTIONS   10000000LU
+#define CHANNEL_ORDER  ilog2(sizeof(message_t)) + 7
+#define TRANSACTIONS   100000LU
 #define MAX_LINES_USED 8
 #define NUM_PROCESSORS 3
 

@@ -1,2 +1,14 @@
-all:
-	gcc -Wall -g -D_GNU_SOURCE main.c ../../../../common/ipc.c -I../../../../include -I../../include -o nfv -O3 -lrt -lm
+CC:=gcc
+CFLAGS:=-Wall -D_GNU_SOURCE -pthread -O3 -lrt -lm
+INCLUDE_DIRS:=-I../../../../include -I../../include
+TARGET:=$(notdir $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))))
+DEP:=main.c ../../../../common/ipc.c
+
+compile: $(DEP)
+	$(CC) $(INCLUDE_DIRS) $(DEP) -o $(TARGET) $(CFLAGS)
+
+clean:
+	rm -f $(TARGET)
+
+run:
+	./$(TARGET)

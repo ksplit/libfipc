@@ -3,7 +3,7 @@
 int main ( void )
 {
 	///////////// Setup Processes
-
+	
 	// Create n processes: P0, P1, P2, ..., Pn-1
 	uint64_t rank;
 	for ( rank = 0; rank < NUM_PROCESSORS - 1; rank++ )
@@ -16,7 +16,6 @@ int main ( void )
 	// Pin Px to processor x
 	fipc_test_thread_pin_this_process_to_CPU( rank );
 
-	printf( "Hello1 from process %lu.\n", rank );
 	///////////// Setup IPC Mechanism
 
 	fipc_init();
@@ -52,7 +51,12 @@ int main ( void )
 		fipc_test_shm_create_half_channel( CHANNEL_ORDER, &back, shm_keysB[rank - 1], FIPC_TEST_TRANSMIT );
 	}
 
-	printf( "Hello2 from process %lu.\n", rank );
+	if ( forw == NULL || back == NULL )
+	{
+		fprintf( stderr, "%s\n", "Error when creating channels" );
+		return -1;
+	}
+
 	///////////// Time Synchronization
 
 	register uint64_t CACHE_ALIGNED transaction_id;
@@ -120,7 +124,6 @@ int main ( void )
 		fipc_send_msg_end( forw, txF );
 	}
 
-	printf( "Hello3 from process %lu.\n", rank );
 	///////////// Main Test
 
 	// Setup Packet Space
@@ -259,7 +262,6 @@ int main ( void )
 		end = RDTSCP();
 	#endif
 
-	printf( "Hello4 from process %lu.\n", rank );
 	///////////// Synchronized display of test metrics
 
 	if ( rank == 0 )
@@ -289,7 +291,8 @@ int main ( void )
 		fipc_recv_msg_end( forw, rxF );
 
 		#ifndef FIPC_TEST_TIME_PER_TRANSACTION
-			printf( "Time to send %lu messages through the pipeline: %lu\n", TRANSACTIONS, end - start - sync_offset );
+			printf( "Cycles to send %lu messages through the pipeline: %lu\n", TRANSACTIONS, end - start - sync_offset );
+			printf( "Average cycles to send one message through the pipeline: %lu\n", (end - start - sync_offset) / TRANSACTIONS );
 			printf( "Time Sync Offset: %lu\n", sync_offset );
 		#else
 			printf( "Process %lu's stats", rank );

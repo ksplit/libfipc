@@ -84,47 +84,8 @@ int fipc_test_shm_unlink ( const char* key )
 	return shm_unlink( key );
 }
 
-// /**
-//  * This function creates/gets and attaches a region of shared memory and places
-//  * it in attachPoint.
-//  */
-// static inline
-// int fipc_test_shm_get_attach ( key_t key, size_t size, void** attachPoint )
-// {
-// 	int shmid = shmget( key, size, IPC_CREAT | 0666 );
-
-// 		printf("shmid = %d\n", shmid);
-// 	if ( shmid < 0 )
-// 		return shmid;
-
-// 		printf("2\n");
-// 	if ( shmctl( shmid, IPC_RMID, NULL ) )
-// 		return -1;
-
-// 		printf("3\n");
-// 	void* shm = shmat( shmid, NULL, 0 );
-
-// 		printf("%d\n", errno);
-// 	if ( shm == (void*)-1 )
-// 		return -1;
-
-// 		printf("5\n");
-// 	*attachPoint = shm;
-
-// 	return 0;
-// }
-
-// /**
-//  * This function detaches the region of shared memory pointed to by shm.
-//  */
-// static inline
-// int fipc_test_shm_detach ( void* shm )
-// {
-// 	return shmdt( shm );
-// }
-
 /**
- * This function 
+ * This function creates half of a channel, either the rx or tx end.
  */
 static inline
 int fipc_test_shm_create_half_channel ( size_t buffer_order, header_t** header, const char* key, int tx )
