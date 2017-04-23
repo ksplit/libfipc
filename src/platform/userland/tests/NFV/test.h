@@ -15,6 +15,9 @@
 #include "../libfipc_test.h"
 #include "functions.h"
 
+#define FIPC_TEST_LATENCY
+//#define FIPC_TEST_TIME_PER_TRANSACTION
+
 #define CHANNEL_ORDER  ilog2(sizeof(message_t)) + 7
 #define TRANSACTIONS   100000LU
 #define MAX_LINES_USED 8

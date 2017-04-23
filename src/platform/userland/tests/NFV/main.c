@@ -3,7 +3,7 @@
 int main ( void )
 {
 	///////////// Setup Processes
-	
+
 	// Create n processes: P0, P1, P2, ..., Pn-1
 	uint64_t rank;
 	for ( rank = 0; rank < NUM_PROCESSORS - 1; rank++ )
@@ -139,7 +139,7 @@ int main ( void )
 
 	#ifdef FIPC_TEST_LATENCY
 		register uint64_t lat_start;
-		register uint64_t* latencyTimes;
+		register uint64_t* latencyTimes = NULL;
 
 		if ( rank == NUM_PROCESSORS-1 )
 			latencyTimes = malloc( TRANSACTIONS * sizeof( uint64_t ) );
@@ -152,7 +152,7 @@ int main ( void )
 		for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
 		{
 			// Take at most 1 time stamp, if necessary
-			#if  defined(FIPC_TEST_TIME_PER_TRANSACTION) || defined(FIPC_TEST_LATENCY)
+			#if defined(FIPC_TEST_TIME_PER_TRANSACTION) || defined(FIPC_TEST_LATENCY)
 				uint64_t timestamp = RDTSC_START();
 			#endif
 
@@ -207,7 +207,7 @@ int main ( void )
 			// Apply pipeline function to packet
 			packet_ptr = pipe_func[rank]( (int64_t*)packet_ptr, MAX_LINES_USED*(FIPC_CACHE_LINE_SIZE/8) );
 
-			#if  defined(FIPC_TEST_TIME_PER_TRANSACTION) || defined(FIPC_TEST_LATENCY)
+			#if defined(FIPC_TEST_TIME_PER_TRANSACTION) || defined(FIPC_TEST_LATENCY)
 				end = RDTSCP();
 			#endif
 
@@ -216,7 +216,7 @@ int main ( void )
 			#endif
 
 			#ifdef FIPC_TEST_LATENCY
-				latencyTimes[transaction_id] = end - lat_start;
+				latencyTimes[transaction_id] = end - lat_start - sync_offset;
 			#endif
 		}
 	}
@@ -267,7 +267,7 @@ int main ( void )
 	if ( rank == 0 )
 	{
 		#ifdef FIPC_TEST_TIME_PER_TRANSACTION
-			printf( "Process %lu's stats", rank );
+			printf( "Process %lu's stats\n", rank );
 			fipc_test_stat_print_info( times, TRANSACTIONS );
 		#endif
 
@@ -295,12 +295,12 @@ int main ( void )
 			printf( "Average cycles to send one message through the pipeline: %lu\n", (end - start - sync_offset) / TRANSACTIONS );
 			printf( "Time Sync Offset: %lu\n", sync_offset );
 		#else
-			printf( "Process %lu's stats", rank );
+			printf( "Process %lu's stats\n", rank );
 			fipc_test_stat_print_info( times, TRANSACTIONS );
 		#endif
 
 		#ifdef FIPC_TEST_LATENCY
-			printf( "Latency Statistics" );
+			printf( "Latency Statistics\n" );
 			fipc_test_stat_print_info( latencyTimes, TRANSACTIONS );
 		#endif
 	}
@@ -311,7 +311,7 @@ int main ( void )
 		fipc_recv_msg_end( forw, rxF );
 
 		#ifdef FIPC_TEST_TIME_PER_TRANSACTION
-			printf( "Process %lu's stats", rank );
+			printf( "Process %lu's stats\n", rank );
 			fipc_test_stat_print_info( times, TRANSACTIONS );
 		#endif
 
