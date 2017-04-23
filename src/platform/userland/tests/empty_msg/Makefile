@@ -1,5 +1,14 @@
-all:
-	gcc -Wall -D_GNU_SOURCE main.c caller.c callee.c empty_msg.h ../../../../common/ipc.c -I../../../../include -I../../include -o empty_msg -pthread 
+CC:=gcc
+CFLAGS:=-Wall -D_GNU_SOURCE -pthread -O3 -lm
+INCLUDE_DIRS:=-I../../../../include -I../../include
+TARGET:=$(notdir $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))))
+DEP:=main.c ../../../../common/ipc.c
 
-all2:
-	gcc -Wall -D_GNU_SOURCE main2.c ../../../../common/ipc.c -I../../../../include -I../../include -o empty_msg2 -pthread 
+compile: $(DEP)
+	$(CC) $(INCLUDE_DIRS) $(DEP) -o $(TARGET) $(CFLAGS)
+
+clean:
+	rm -f $(TARGET)
+
+run:
+	./$(TARGET)
