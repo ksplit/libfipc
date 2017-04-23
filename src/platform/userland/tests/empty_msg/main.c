@@ -11,10 +11,10 @@
 
 #include "../libfipc_test.h"
 
-#define TRANSACTIONS	10000000
+#define TRANSACTIONS	1000
 #define REQUESTER_CPU	1
 #define RESPONDER_CPU	3
-#define CHANNEL_ORDER	ilog2(sizeof(struct fipc_message))
+#define CHANNEL_ORDER	13
 
 // Thread Locks
 pthread_mutex_t requester_mutex;

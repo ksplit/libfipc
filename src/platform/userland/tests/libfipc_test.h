@@ -25,7 +25,7 @@
 #define PAGE_SIZE sysconf(_SC_PAGESIZE)
 
 #define PAGES_NEEDED(x) \
-				(1UL << ((x) < PAGE_SIZE ? 0 : (x) - PAGE_SIZE))
+				(1UL << ((1UL << (x)) < PAGE_SIZE ? 0 : (x) - PAGE_SIZE))
 
 #include <stdlib.h>
 #include <sched.h>
