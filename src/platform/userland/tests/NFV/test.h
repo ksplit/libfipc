@@ -9,17 +9,17 @@
  *
  * NOTE: This test assumes an x86 architecture.
  *
- * NOTE: This test assumes a computer with 2-16 processing units.
+ * NOTE: This test assumes a computer with 2-32 processing units.
  */
 
 #include "../libfipc_test.h"
 #include "functions.h"
 
-#define FIPC_TEST_LATENCY
+//#define FIPC_TEST_LATENCY
 //#define FIPC_TEST_TIME_PER_TRANSACTION
 
 #define CHANNEL_ORDER  ilog2(sizeof(message_t)) + 7
-#define TRANSACTIONS   100000LU
+#define TRANSACTIONS   1000000LU
 #define MAX_LINES_USED 8
 #define NUM_PROCESSORS 3
 
@@ -39,7 +39,23 @@ const char* shm_keysF[] =
 	"FIPC_NFV_S11_F",
 	"FIPC_NFV_S12_F",
 	"FIPC_NFV_S13_F",
-	"FIPC_NFV_S14_F"
+	"FIPC_NFV_S14_F",
+	"FIPC_NFV_S15_F",
+	"FIPC_NFV_S16_F",
+	"FIPC_NFV_S17_F",
+	"FIPC_NFV_S18_F",
+	"FIPC_NFV_S19_F",
+	"FIPC_NFV_S20_F",
+	"FIPC_NFV_S21_F",
+	"FIPC_NFV_S22_F",
+	"FIPC_NFV_S23_F",
+	"FIPC_NFV_S24_F",
+	"FIPC_NFV_S25_F",
+	"FIPC_NFV_S26_F",
+	"FIPC_NFV_S27_F",
+	"FIPC_NFV_S28_F",
+	"FIPC_NFV_S29_F",
+	"FIPC_NFV_S30_F"
 };
 
 const char* shm_keysB[] =
@@ -58,11 +74,43 @@ const char* shm_keysB[] =
 	"FIPC_NFV_S11_B",
 	"FIPC_NFV_S12_B",
 	"FIPC_NFV_S13_B",
-	"FIPC_NFV_S14_B"
+	"FIPC_NFV_S14_B",
+	"FIPC_NFV_S15_B",
+	"FIPC_NFV_S16_B",
+	"FIPC_NFV_S17_B",
+	"FIPC_NFV_S18_B",
+	"FIPC_NFV_S19_B",
+	"FIPC_NFV_S20_B",
+	"FIPC_NFV_S21_B",
+	"FIPC_NFV_S22_B",
+	"FIPC_NFV_S23_B",
+	"FIPC_NFV_S24_B",
+	"FIPC_NFV_S25_B",
+	"FIPC_NFV_S26_B",
+	"FIPC_NFV_S27_B",
+	"FIPC_NFV_S28_B",
+	"FIPC_NFV_S29_B",
+	"FIPC_NFV_S30_B"
 };
 
 void* (* const pipe_func[])(void*, const uint64_t) =
 {
+	XOR_checksum,
+	SUM_checksum,
+	MUL_checksum,
+	Fletcher_checksum,
+	XOR_checksum,
+	SUM_checksum,
+	MUL_checksum,
+	Fletcher_checksum,
+	XOR_checksum,
+	SUM_checksum,
+	MUL_checksum,
+	Fletcher_checksum,
+	XOR_checksum,
+	SUM_checksum,
+	MUL_checksum,
+	Fletcher_checksum,
 	XOR_checksum,
 	SUM_checksum,
 	MUL_checksum,
