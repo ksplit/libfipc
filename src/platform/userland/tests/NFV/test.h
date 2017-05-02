@@ -13,7 +13,6 @@
  */
 
 #include "../libfipc_test.h"
-#include "functions.h"
 
 //#define FIPC_TEST_LATENCY
 //#define FIPC_TEST_TIME_PER_TRANSACTION
@@ -22,6 +21,9 @@
 #define TRANSACTIONS   1000000LU
 #define MAX_LINES_USED 8
 #define NUM_PROCESSORS 3
+#define CPU_OPERATIONS 1000LU
+
+#include "functions.h"
 
 const char* shm_keysF[] =
 {
@@ -95,37 +97,37 @@ const char* shm_keysB[] =
 
 void* (* const pipe_func[])(void*, const uint64_t) =
 {
-	XOR_checksum,
-	SUM_checksum,
-	MUL_checksum,
+	CPU_intense,
 	Fletcher_checksum,
-	XOR_checksum,
-	SUM_checksum,
-	MUL_checksum,
+	CPU_intense,
 	Fletcher_checksum,
-	XOR_checksum,
-	SUM_checksum,
-	MUL_checksum,
+	CPU_intense,
 	Fletcher_checksum,
-	XOR_checksum,
-	SUM_checksum,
-	MUL_checksum,
+	CPU_intense,
 	Fletcher_checksum,
-	XOR_checksum,
-	SUM_checksum,
-	MUL_checksum,
+	CPU_intense,
 	Fletcher_checksum,
-	XOR_checksum,
-	SUM_checksum,
-	MUL_checksum,
+	CPU_intense,
 	Fletcher_checksum,
-	XOR_checksum,
-	SUM_checksum,
-	MUL_checksum,
+	CPU_intense,
 	Fletcher_checksum,
-	XOR_checksum,
-	SUM_checksum,
-	MUL_checksum,
+	CPU_intense,
+	Fletcher_checksum,
+	CPU_intense,
+	Fletcher_checksum,
+	CPU_intense,
+	Fletcher_checksum,
+	CPU_intense,
+	Fletcher_checksum,
+	CPU_intense,
+	Fletcher_checksum,
+	CPU_intense,
+	Fletcher_checksum,
+	CPU_intense,
+	Fletcher_checksum,
+	CPU_intense,
+	Fletcher_checksum,
+	CPU_intense,
 	Fletcher_checksum
 };
 

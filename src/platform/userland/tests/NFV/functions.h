@@ -40,6 +40,20 @@ static void* MUL_checksum ( void* pkt, const uint64_t num_words )
 	return pkt;
 }
 
+static void* CPU_intense ( void* pkt, const uint64_t num_words )
+{
+	uint64_t* data = (uint64_t*) pkt;
+
+	if ( num_words == 0 )
+		return 0;
+
+	uint64_t i;
+	for ( i = 1; i < CPU_OPERATIONS; ++i )
+		data[0] *= (data[0] + i);
+	
+	return pkt;
+}
+
 static void* Fletcher_checksum ( void* pkt, const uint64_t num_words )
 {
 	uint32_t* data = (uint32_t*) pkt;
