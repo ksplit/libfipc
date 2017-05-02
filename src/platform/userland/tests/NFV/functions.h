@@ -2,9 +2,6 @@ static void* XOR_checksum ( void* pkt, const uint64_t num_words )
 {
 	uint64_t* data = (uint64_t*) pkt;
 
-	if ( num_words == 0 )
-		return 0;
-
 	int i;
 	for ( i = 1; i < num_words; ++i )
 		data[0] ^= data[i];
@@ -15,9 +12,6 @@ static void* XOR_checksum ( void* pkt, const uint64_t num_words )
 static void* SUM_checksum ( void* pkt, const uint64_t num_words )
 {
 	uint64_t* data = (uint64_t*) pkt;
-	
-	if ( num_words == 0 )
-		return 0;
 
 	int i;
 	for ( i = 1; i < num_words; ++i )
@@ -30,9 +24,6 @@ static void* MUL_checksum ( void* pkt, const uint64_t num_words )
 {
 	uint64_t* data = (uint64_t*) pkt;
 
-	if ( num_words == 0 )
-		return 0;
-
 	uint64_t i;
 	for ( i = 1; i < num_words; ++i )
 		data[0] *= data[i];
@@ -43,9 +34,6 @@ static void* MUL_checksum ( void* pkt, const uint64_t num_words )
 static void* CPU_intense ( void* pkt, const uint64_t num_words )
 {
 	uint64_t* data = (uint64_t*) pkt;
-
-	if ( num_words == 0 )
-		return 0;
 
 	uint64_t i;
 	for ( i = 1; i < CPU_OPERATIONS; ++i )
