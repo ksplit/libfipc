@@ -131,6 +131,42 @@ void* (* const pipe_func[])(void*, const uint64_t) =
 	Fletcher_checksum
 };
 
+const uint64_t cpu_map[] =
+{
+	1,
+	5,
+	9,
+	13,
+	17,
+	21,
+	25,
+	29,
+	0,
+	4,
+	8,
+	12,
+	2,
+	6,
+	10,
+	14,
+	18,
+	22,
+	26,
+	30,
+	16,
+	20,
+	24,
+	28,
+	3,
+	7,
+	11,
+	15,
+	19,
+	23,
+	27,
+	31
+};
+
 typedef struct packet
 {
 	cache_line_t data[MAX_LINES_USED] CACHE_ALIGNED;

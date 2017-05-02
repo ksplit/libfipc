@@ -14,7 +14,7 @@ int main ( void )
 	}
 
 	// Pin Px to processor x
-	fipc_test_thread_pin_this_process_to_CPU( rank );
+	fipc_test_thread_pin_this_process_to_CPU( cpu_map[rank] );
 
 	///////////// Setup IPC Mechanism
 
