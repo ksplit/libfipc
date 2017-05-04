@@ -1,5 +1,8 @@
 static void* XOR_checksum ( void* pkt, const uint64_t num_words )
 {
+	if ( num_words == 0 )
+		return pkt;
+	
 	uint64_t* data = (uint64_t*) pkt;
 
 	int i;
@@ -11,6 +14,9 @@ static void* XOR_checksum ( void* pkt, const uint64_t num_words )
 
 static void* SUM_checksum ( void* pkt, const uint64_t num_words )
 {
+	if ( num_words == 0 )
+		return pkt;
+	
 	uint64_t* data = (uint64_t*) pkt;
 
 	int i;
@@ -22,6 +28,9 @@ static void* SUM_checksum ( void* pkt, const uint64_t num_words )
 
 static void* MUL_checksum ( void* pkt, const uint64_t num_words )
 {
+	if ( num_words == 0 )
+		return pkt;
+	
 	uint64_t* data = (uint64_t*) pkt;
 
 	uint64_t i;
@@ -33,6 +42,9 @@ static void* MUL_checksum ( void* pkt, const uint64_t num_words )
 
 static void* CPU_intense ( void* pkt, const uint64_t num_words )
 {
+	if ( num_words == 0 )
+		return pkt;
+	
 	uint64_t* data = (uint64_t*) pkt;
 
 	uint64_t i;
@@ -44,6 +56,9 @@ static void* CPU_intense ( void* pkt, const uint64_t num_words )
 
 static void* Fletcher_checksum ( void* pkt, const uint64_t num_words )
 {
+	if ( num_words == 0 )
+		return pkt;
+	
 	uint32_t* data = (uint32_t*) pkt;
 
 	uint64_t sum1 = 0;
@@ -64,6 +79,9 @@ static void* Fletcher_checksum ( void* pkt, const uint64_t num_words )
 // CITE: https://locklessinc.com/articles/tcp_checksum/
 static void* TCPIP_checksum ( void* pkt, const uint64_t num_words )
 {
+	if ( num_words == 0 )
+		return pkt;
+	
 	unsigned size = num_words*8;
 	unsigned long long sum = 0;
 	const unsigned long long *b = (unsigned long long *) pkt;
@@ -114,6 +132,9 @@ static void* TCPIP_checksum ( void* pkt, const uint64_t num_words )
 	t4 = t1 >> 16;
 	t3 += t4;
 	if (t3 < t4) t3++;
+
+	unsigned short* data = (unsigned short*) pkt;
+	data[0] = ~t3;
 
 	return pkt;
 }
