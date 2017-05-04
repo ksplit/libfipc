@@ -18,11 +18,11 @@
 //#define FIPC_TEST_TIME_PER_TRANSACTION
 
 #define CHANNEL_ORDER    ilog2(sizeof(message_t)) + 7
-#define TRANSACTIONS     10000000LU
+#define TRANSACTIONS     1000000LU
 #define NUM_PROCESSORS   32
 #define CPU_OPERATIONS   0LU
-#define MAX_LINES_USED   0
-#define LINES_PER_PACKET 1
+#define MAX_LINES_USED   16
+#define LINES_PER_PACKET 16
 
 #include "functions.h"
 
