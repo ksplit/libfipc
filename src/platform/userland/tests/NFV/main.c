@@ -13,7 +13,7 @@ int main ( void )
 			break;
 	}
 
-	// Pin Px to processor x
+	// Pin Px to processor cpu_map[x]
 	fipc_test_thread_pin_this_process_to_CPU( cpu_map[rank] );
 
 	///////////// Setup IPC Mechanism
@@ -345,12 +345,96 @@ int main ( void )
 
 	///////////// Synchronized cleanup
 
-//	printf( "Hello from process %lu.\n", rank );
 
-	//if ( rank != 3 )
-	//	fipc_test_shm_unlink( shm_keys[rank] );
+	if ( rank == 0 )
+	{
+		fipc_test_blocking_send_start( forw, &txF );
+		fipc_send_msg_end ( forw, txF );
+		fipc_test_blocking_recv_start( back, &rxB );
+		fipc_recv_msg_end( back, rxB );
 
-	//fipc_test_shm_free_half_channel( chan );
+		fipc_test_shm_free_half_channel( forw )
+		fipc_test_shm_free_half_channel( back );
+
+		fipc_test_shm_unlink( shm_keysF[rank] );
+		fipc_test_shm_unlink( shm_keysB[rank] );
+
+		#ifndef FIPC_TEST_PASS_BY_COPY
+			fipc_test_shm_unlink( "FIPC_NFV_PACKET_SPACE" );
+		#else
+			fipc_test_shm_unlink( shm_keysP[rank] );
+		#endif
+
+		#ifdef FIPC_TEST_TIME_PER_TRANSACTION
+			free ( times );
+		#endif
+	}
+	else if ( rank == NUM_PROCESSORS-1 )
+	{
+		fipc_test_blocking_recv_start( forw, &rxF );
+		fipc_recv_msg_end( forw, rxF );
+		fipc_test_blocking_send_start( back, &txB );
+		fipc_send_msg_end ( back, txB );
+
+		fipc_test_shm_free_half_channel( forw )
+		fipc_test_shm_free_half_channel( back );
+
+		fipc_test_shm_unlink( shm_keysF[rank - 1] );
+		fipc_test_shm_unlink( shm_keysB[rank - 1] );
+
+		#ifndef FIPC_TEST_PASS_BY_COPY
+			fipc_test_shm_unlink( "FIPC_NFV_PACKET_SPACE" );
+		#else
+			fipc_test_shm_unlink( shm_keysP[rank - 1] );
+			fipc_test_shm_unlink( shm_keysP[rank] );
+		#endif
+
+		#ifdef FIPC_TEST_TIME_PER_TRANSACTION
+			free ( times );
+		#endif
+
+		#ifdef FIPC_TEST_LATENCY
+			free ( latencyTimes );
+		#endif
+	}
+	else
+	{
+		fipc_test_blocking_recv_start( forw, &rxF );
+		message_t temp = *rxF;
+		fipc_recv_msg_end( forw, rxF );
+
+		fipc_test_blocking_send_start( forw, &txF );
+		*txF = temp;
+		fipc_send_msg_end( forw, txF );
+
+		fipc_test_blocking_recv_start( back, &rxB );
+		temp = *rxB;
+		fipc_recv_msg_end( back, rxB );
+
+		fipc_test_blocking_send_start( back, &txB );
+		*txB = temp;
+		fipc_send_msg_end( back, txB );
+
+		fipc_test_shm_free_half_channel( forw )
+		fipc_test_shm_free_half_channel( back );
+
+		fipc_test_shm_unlink( shm_keysF[rank] );
+		fipc_test_shm_unlink( shm_keysB[rank] );
+
+		fipc_test_shm_unlink( shm_keysF[rank - 1] );
+		fipc_test_shm_unlink( shm_keysB[rank - 1] );
+
+		#ifndef FIPC_TEST_PASS_BY_COPY
+			fipc_test_shm_unlink( "FIPC_NFV_PACKET_SPACE" );
+		#else
+			fipc_test_shm_unlink( shm_keysP[rank - 1] );
+			fipc_test_shm_unlink( shm_keysP[rank] );
+		#endif
+			
+		#ifdef FIPC_TEST_TIME_PER_TRANSACTION
+			free ( times );
+		#endif
+	}
 
 	fipc_fini();
 	return 0;
