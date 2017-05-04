@@ -81,26 +81,26 @@ static void* TCPIP_checksum ( void* pkt, const uint64_t num_words )
 	}
 
 	/* Handle tail less than 8-bytes long */
-	pkt = (const char *) b;
+	const char* buf = (const char *) b;
 	if (size & 4)
 	{
-		unsigned s = *(unsigned *)pkt;
+		unsigned s = *(unsigned *)buf;
 		sum += s;
 		if (sum < s) sum++;
-		pkt += 4;
+		buf += 4;
 	}
 
 	if (size & 2)
 	{
-		unsigned short s = *(unsigned short *) pkt;
+		unsigned short s = *(unsigned short *) buf;
 		sum += s;
 		if (sum < s) sum++;
-		pkt += 2;
+		buf += 2;
 	}
 
 	if (size)
 	{
-		unsigned char s = *(unsigned char *) pkt;
+		unsigned char s = *(unsigned char *) buf;
 		sum += s;
 		if (sum < s) sum++;
 	}
