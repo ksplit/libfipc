@@ -17,13 +17,92 @@
 //#define FIPC_TEST_LATENCY
 //#define FIPC_TEST_TIME_PER_TRANSACTION
 
-#define CHANNEL_ORDER  ilog2(sizeof(message_t)) + 7
-#define TRANSACTIONS   1000000LU
-#define MAX_LINES_USED 8
-#define NUM_PROCESSORS 3
-#define CPU_OPERATIONS 1000LU
+#define CHANNEL_ORDER    ilog2(sizeof(message_t)) + 7
+#define TRANSACTIONS     10000000LU
+#define NUM_PROCESSORS   32
+#define CPU_OPERATIONS   0LU
+#define MAX_LINES_USED   0
+#define LINES_PER_PACKET 1
 
 #include "functions.h"
+
+typedef struct packet
+{
+	cache_line_t data[LINES_PER_PACKET] CACHE_ALIGNED;
+
+} packet_t;
+
+void* (* const pipe_func[])(void*, const uint64_t) =
+{
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum,
+	TCPIP_checksum
+};
+
+const uint64_t cpu_map[] =
+{
+	1,
+	5,
+	9,
+	13,
+	17,
+	21,
+	25,
+	29,
+	0,
+	4,
+	8,
+	12,
+	2,
+	6,
+	10,
+	14,
+	18,
+	22,
+	26,
+	30,
+	16,
+	20,
+	24,
+	28,
+	3,
+	7,
+	11,
+	15,
+	19,
+	23,
+	27,
+	31
+};
 
 const char* shm_keysF[] =
 {
@@ -94,81 +173,3 @@ const char* shm_keysB[] =
 	"FIPC_NFV_S29_B",
 	"FIPC_NFV_S30_B"
 };
-
-void* (* const pipe_func[])(void*, const uint64_t) =
-{
-	CPU_intense,
-	Fletcher_checksum,
-	CPU_intense,
-	Fletcher_checksum,
-	CPU_intense,
-	Fletcher_checksum,
-	CPU_intense,
-	Fletcher_checksum,
-	CPU_intense,
-	Fletcher_checksum,
-	CPU_intense,
-	Fletcher_checksum,
-	CPU_intense,
-	Fletcher_checksum,
-	CPU_intense,
-	Fletcher_checksum,
-	CPU_intense,
-	Fletcher_checksum,
-	CPU_intense,
-	Fletcher_checksum,
-	CPU_intense,
-	Fletcher_checksum,
-	CPU_intense,
-	Fletcher_checksum,
-	CPU_intense,
-	Fletcher_checksum,
-	CPU_intense,
-	Fletcher_checksum,
-	CPU_intense,
-	Fletcher_checksum,
-	CPU_intense,
-	Fletcher_checksum
-};
-
-const uint64_t cpu_map[] =
-{
-	1,
-	5,
-	9,
-	13,
-	17,
-	21,
-	25,
-	29,
-	0,
-	4,
-	8,
-	12,
-	2,
-	6,
-	10,
-	14,
-	18,
-	22,
-	26,
-	30,
-	16,
-	20,
-	24,
-	28,
-	3,
-	7,
-	11,
-	15,
-	19,
-	23,
-	27,
-	31
-};
-
-typedef struct packet
-{
-	cache_line_t data[MAX_LINES_USED] CACHE_ALIGNED;
-
-} packet_t;
