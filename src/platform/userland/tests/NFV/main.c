@@ -127,9 +127,18 @@ int main ( void )
 	///////////// Main Test
 
 	// Setup Packet Space
-	packet_t* packet_space;
-	fipc_test_shm_get( "FIPC_NFV_PACKET_SPACE", TRANSACTIONS * sizeof( packet_t ), (void**)&packet_space );
-	// printf("%lu\n", sizeof( packet_t) );
+	#ifndef FIPC_TEST_PASS_BY_COPY
+		packet_t* packet_space;
+		fipc_test_shm_get( "FIPC_NFV_PACKET_SPACE", TRANSACTIONS * sizeof( packet_t ), (void**)&packet_space );
+	#else
+		packet_t* packet_space_back = NULL;
+		packet_t* packet_space_forw = NULL;
+
+		if ( rank != 0 )
+			fipc_test_shm_get( shm_keysP[rank - 1], TRANSACTIONS * sizeof( packet_t ), (void**)&packet_space_back );
+
+		fipc_test_shm_get( shm_keysP[rank], TRANSACTIONS * sizeof( packet_t ), (void**)&packet_space_forw );
+	#endif
 	
 	#ifndef FIPC_TEST_TIME_PER_TRANSACTION
 		start = RDTSC_START();
@@ -165,7 +174,11 @@ int main ( void )
 			#endif
 
 			// Get the initial packet
-			packet_ptr = &packet_space[transaction_id];
+			#ifdef FIPC_TEST_PASS_BY_COPY
+				packet_ptr = &packet_space_forw[transaction_id];
+			#else
+				packet_ptr = &packet_space[transaction_id];
+			#endif
 
 			// Apply pipeline function to packet
 			packet_ptr = pipe_func[rank]( (int64_t*)packet_ptr, MAX_LINES_USED*(FIPC_CACHE_LINE_SIZE/8) );
@@ -204,6 +217,11 @@ int main ( void )
 
 			fipc_recv_msg_end( forw, rxF );
 
+			#ifdef FIPC_TEST_PASS_BY_COPY
+				packet_ptr = &packet_space_forw[transaction_id];
+				memcpy( &packet_space_forw[transaction_id], packet_ptr, sizeof( packet_t ) );
+			#endif
+
 			// Apply pipeline function to packet
 			packet_ptr = pipe_func[rank]( (int64_t*)packet_ptr, MAX_LINES_USED*(FIPC_CACHE_LINE_SIZE/8) );
 
@@ -237,6 +255,11 @@ int main ( void )
 			#endif
 
 			fipc_recv_msg_end( forw, rxF );
+
+			#ifdef FIPC_TEST_PASS_BY_COPY
+				packet_ptr = &packet_space_forw[transaction_id];
+				memcpy( &packet_space_forw[transaction_id], packet_ptr, sizeof( packet_t ) );
+			#endif
 
 			// Apply pipeline function to packet
 			packet_ptr = pipe_func[rank]( (int64_t*)packet_ptr, MAX_LINES_USED*(FIPC_CACHE_LINE_SIZE/8) );
