@@ -58,7 +58,6 @@ int main ( void )
 	}
 
 	///////////// Time Synchronization
-
 	register uint64_t CACHE_ALIGNED transaction_id;
 	register uint64_t CACHE_ALIGNED start;
 	register uint64_t CACHE_ALIGNED end;
@@ -140,18 +139,18 @@ int main ( void )
 		fipc_test_shm_get( shm_keysP[rank], TRANSACTIONS * sizeof( packet_t ), (void**)&packet_space_forw );
 	#endif
 	
-	#ifndef FIPC_TEST_TIME_PER_TRANSACTION
-		start = RDTSC_START();
-	#else
-		register uint64_t* times = malloc( TRANSACTIONS * sizeof( uint64_t ) );
-	#endif
-
 	#ifdef FIPC_TEST_LATENCY
 		register uint64_t lat_start;
 		register uint64_t* latencyTimes = NULL;
 
 		if ( rank == NUM_PROCESSORS-1 )
 			latencyTimes = malloc( TRANSACTIONS * sizeof( uint64_t ) );
+	#endif
+
+	#ifndef FIPC_TEST_TIME_PER_TRANSACTION
+		start = RDTSC_START();
+	#else
+		register uint64_t* times = malloc( TRANSACTIONS * sizeof( uint64_t ) );
 	#endif
 
 	packet_t* packet_ptr;
@@ -430,7 +429,7 @@ int main ( void )
 			fipc_test_shm_unlink( shm_keysP[rank - 1] );
 			fipc_test_shm_unlink( shm_keysP[rank] );
 		#endif
-			
+
 		#ifdef FIPC_TEST_TIME_PER_TRANSACTION
 			free ( times );
 		#endif
