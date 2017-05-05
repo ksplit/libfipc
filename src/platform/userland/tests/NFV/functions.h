@@ -138,3 +138,15 @@ static void* TCPIP_checksum ( void* pkt, const uint64_t num_words )
 
 	return pkt;
 }
+
+static void* TTL_Update_simulation ( void* pkt, const uint64_t num_words )
+{
+	if ( num_words == 0 )
+		return pkt;
+	
+	uint64_t* data = (uint64_t*) pkt;
+
+	data[0]++;
+	
+	return pkt;
+}
