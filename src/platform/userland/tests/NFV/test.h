@@ -17,6 +17,7 @@
 //#define FIPC_TEST_LATENCY
 //#define FIPC_TEST_TIME_PER_TRANSACTION
 //#define FIPC_TEST_PASS_BY_COPY
+#define FIPC_TEST_TIME_SYNC
 
 #define CHANNEL_ORDER    ilog2(sizeof(message_t)) + 7
 #define TRANSACTIONS     1000000LU
@@ -137,7 +138,8 @@ const char* shm_keysF[] =
 	"FIPC_NFV_S27_F",
 	"FIPC_NFV_S28_F",
 	"FIPC_NFV_S29_F",
-	"FIPC_NFV_S30_F"
+	"FIPC_NFV_S30_F",
+	"FIPC_NFV_S31_F"
 };
 
 const char* shm_keysB[] =
@@ -172,7 +174,8 @@ const char* shm_keysB[] =
 	"FIPC_NFV_S27_B",
 	"FIPC_NFV_S28_B",
 	"FIPC_NFV_S29_B",
-	"FIPC_NFV_S30_B"
+	"FIPC_NFV_S30_B",
+	"FIPC_NFV_S31_B"
 };
 
 const char* shm_keysP[] =
