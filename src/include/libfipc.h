@@ -237,8 +237,8 @@ int fipc_rx_channel_init ( header_t* chnl, uint32_t buf_order, void* buffer_rx )
  * function with a tx-specific lock, for example. Once this call has
  * returned, however, a subsequent call will not return the same message.
  */
-int fipc_send_msg_start(header_t *chnl,
-			message_t **msg);
+int fipc_send_msg_start      ( header_t* chnl, message_t** msg );
+int fipc_send_long_msg_start ( header_t* chnl, message_t** msg, uint16_t len );
 /**
  * fipc_send_msg_end -- Mark a message as ready for receipt from receiver
  * @chnl: the ring channel containing @msg in tx
@@ -249,8 +249,8 @@ int fipc_send_msg_start(header_t *chnl,
  *
  * This function is thread safe.
  */
-int fipc_send_msg_end(header_t *chnl,
-		message_t *msg);
+int fipc_send_msg_end ( header_t* chnl, message_t* msg );
+
 /**
  * fipc_recv_msg_start -- Receive the next message from rx, if available
  * @chnl: the ring channel, whose rx we should receive from

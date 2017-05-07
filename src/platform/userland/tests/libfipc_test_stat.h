@@ -284,6 +284,7 @@ int fipc_test_stat_print_info ( uint64_t* sample_set, uint64_t sample_size )
 	printf ( "Average value: %f\n", stats.mean );
 	printf ( "Minimum value: %lu\n", stats.min );
 	printf ( "Maximum value: %lu\n", stats.max );
+	printf ( "Sample size: %lu\n", stats.N );
 	printf ( "Standard Deviation: %f\n", stats.stdev );
 	printf ( "Absolute Deviation: %f\n", stats.abdev );
 	printf ( "Outlier Count: %lu\n", stats.outliers );

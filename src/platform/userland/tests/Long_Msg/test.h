@@ -15,10 +15,10 @@
 
 //#define FIPC_TEST_TIME_PER_TRANSACTION
 
-#define CHANNEL_ORDER    ilog2(sizeof(message_t)) + 7
+#define CHANNEL_ORDER    ilog2(sizeof(message_t)) + 5
 #define TRANSACTIONS     1000000LU
-#define NUM_PROCESSORS   32
-#define MSG_LENGTH       5
+#define NUM_PROCESSORS   8
+#define MSG_LENGTH       1
 
 const uint64_t cpu_map[] =
 {
@@ -58,36 +58,36 @@ const uint64_t cpu_map[] =
 
 const char* shm_keys[] =
 {
-	"FIPC_NFV_S0_F",
-	"FIPC_NFV_S1_F",
-	"FIPC_NFV_S2_F",
-	"FIPC_NFV_S3_F",
-	"FIPC_NFV_S4_F",
-	"FIPC_NFV_S5_F",
-	"FIPC_NFV_S6_F",
-	"FIPC_NFV_S7_F",
-	"FIPC_NFV_S8_F",
-	"FIPC_NFV_S9_F",
-	"FIPC_NFV_S10_F",
-	"FIPC_NFV_S11_F",
-	"FIPC_NFV_S12_F",
-	"FIPC_NFV_S13_F",
-	"FIPC_NFV_S14_F",
-	"FIPC_NFV_S15_F",
-	"FIPC_NFV_S16_F",
-	"FIPC_NFV_S17_F",
-	"FIPC_NFV_S18_F",
-	"FIPC_NFV_S19_F",
-	"FIPC_NFV_S20_F",
-	"FIPC_NFV_S21_F",
-	"FIPC_NFV_S22_F",
-	"FIPC_NFV_S23_F",
-	"FIPC_NFV_S24_F",
-	"FIPC_NFV_S25_F",
-	"FIPC_NFV_S26_F",
-	"FIPC_NFV_S27_F",
-	"FIPC_NFV_S28_F",
-	"FIPC_NFV_S29_F",
-	"FIPC_NFV_S30_F",
-	"FIPC_NFV_S31_F"
+	"FIPC_LM_S0",
+	"FIPC_LM_S1",
+	"FIPC_LM_S2",
+	"FIPC_LM_S3",
+	"FIPC_LM_S4",
+	"FIPC_LM_S5",
+	"FIPC_LM_S6",
+	"FIPC_LM_S7",
+	"FIPC_LM_S8",
+	"FIPC_LM_S9",
+	"FIPC_LM_S10",
+	"FIPC_LM_S11",
+	"FIPC_LM_S12",
+	"FIPC_LM_S13",
+	"FIPC_LM_S14",
+	"FIPC_LM_S15",
+	"FIPC_LM_S16",
+	"FIPC_LM_S17",
+	"FIPC_LM_S18",
+	"FIPC_LM_S19",
+	"FIPC_LM_S20",
+	"FIPC_LM_S21",
+	"FIPC_LM_S22",
+	"FIPC_LM_S23",
+	"FIPC_LM_S24",
+	"FIPC_LM_S25",
+	"FIPC_LM_S26",
+	"FIPC_LM_S27",
+	"FIPC_LM_S28",
+	"FIPC_LM_S29",
+	"FIPC_LM_S30",
+	"FIPC_LM_S31"
 };
