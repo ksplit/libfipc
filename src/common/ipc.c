@@ -305,7 +305,7 @@ EXPORT_SYMBOL(fipc_send_msg_start);
 
 int
 LIBFIPC_FUNC_ATTR
-fipc_send_long_msg_start ( header_t *chnl, message_t **msg, uint64_t len )
+fipc_send_long_msg_start ( header_t *chnl, message_t **msg, uint16_t len )
 {
 	if ( chnl == NULL || chnl->tx == NULL )
 		return -EINVAL;
