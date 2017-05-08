@@ -1,4 +1,17 @@
-#include "test.h"
+/**
+ * @File     : main.c
+ * @Author   : Abdullah Younis
+ *
+ * This test passes a simulated packet through a series of processes, which
+ * represent composed functions. This is done using separate address spaces
+ * to isolate the functions.
+ *
+ * NOTE: This test assumes an x86 architecture.
+ *
+ * NOTE: This test assumes a computer with 2-32 processing units.
+ */
+
+ #include "test.h"
 
 int main ( void )
 {
@@ -6,7 +19,7 @@ int main ( void )
 
 	// Create n processes: P0, P1, P2, ..., Pn-1
 	uint64_t rank;
-	for ( rank = 0; rank < NUM_PROCESSORS - 1; rank++ )
+	for ( rank = 0; rank < NUM_PROCESSORS-1; rank++ )
 	{
 		pid_t child = fork();
 		if ( child == 0 )
@@ -20,206 +33,36 @@ int main ( void )
 
 	fipc_init();
 
-	// Each header is capable of bidirectional communication; however,
-	// we are dealing with composed functions, so our messages only
-	// move in one direction. Therefore, we use the headers in a unidirectional
-	// fashion. Each header's receive buffer talks to the previous process,
-	// where each header's transmit buffer talks to the next process.
-	//
-	// For time synchronization we need a reversed channel.
-	// The channel for communication in the forward direction is the forw channel.
-	// The channel for communication in the reverse direction is the back channel.
-	//
-	// NOTE: In this test, P0 will not receive; likewise, Pn-1 will not send
+	header_t*  chan = NULL;
+	message_t* tx   = NULL;
+	message_t* rx   = NULL;
 
-	header_t*  forw = NULL;
-	header_t*  back = NULL;
+	fipc_test_shm_create_half_channel( CHANNEL_ORDER, &chan, shm_keys[rank], FIPC_TEST_TRANSMIT );
+	fipc_test_shm_create_half_channel( CHANNEL_ORDER, &chan, shm_keys[rank == 0 ? NUM_PROCESSORS-1 : rank - 1], FIPC_TEST_RECEIVE );
 
-	message_t* txF  = NULL;
-	message_t* rxF  = NULL;
-	message_t* txB  = NULL;
-	message_t* rxB  = NULL;
-
-	if ( rank != NUM_PROCESSORS-1 )
-	{
-		fipc_test_shm_create_half_channel( CHANNEL_ORDER, &forw, shm_keysF[rank], FIPC_TEST_TRANSMIT );
-		fipc_test_shm_create_half_channel( CHANNEL_ORDER, &back, shm_keysB[rank], FIPC_TEST_RECEIVE );
-	}
-	if ( rank != 0 )
-	{
-		fipc_test_shm_create_half_channel( CHANNEL_ORDER, &forw, shm_keysF[rank - 1], FIPC_TEST_RECEIVE );
-		fipc_test_shm_create_half_channel( CHANNEL_ORDER, &back, shm_keysB[rank - 1], FIPC_TEST_TRANSMIT );
-	}
-
-	#ifndef FIPC_TEST_TIME_SYNC
-		if ( rank == NUM_PROCESSORS-1 )
-			fipc_test_create_half_channel( CHANNEL_ORDER, &forw, shm_keysF[rank], FIPC_TEST_TRANSMIT );
-		else if ( rank == 0 )
-			fipc_test_create_half_channel( CHANNEL_ORDER, &forw, shm_keysF[NUM_PROCESSORS-1], FIPC_TEST_RECEIVE );
-	#endif
-
-	if ( forw == NULL || back == NULL )
+	if ( chan == NULL )
 	{
 		fprintf( stderr, "%s\n", "Error when creating channels" );
 		return -1;
 	}
 
-	register uint64_t CACHE_ALIGNED transaction_id;
-	register uint64_t CACHE_ALIGNED start;
-	register uint64_t CACHE_ALIGNED end;
-	register uint64_t CACHE_ALIGNED sync_offset = 0; // Represents the difference in time between P0 and PN
+	///////////// Test Variables
 
-	///////////// Time Synchronization
+	register uint64_t  CACHE_ALIGNED transaction_id;
+	register uint64_t  CACHE_ALIGNED start;
+	register uint64_t  CACHE_ALIGNED end;
+	register packet_t* CACHE_ALIGNED packet_ptr = malloc ( sizeof( packet_t ) );
 
-	#ifdef FIPC_TEST_TIME_SYNC
-		if ( rank == 0 )
-		{
-			start = RDTSC_START();
-			for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
-			{
-				fipc_test_blocking_send_start( forw, &txF );
-				fipc_send_msg_end ( forw, txF );
-
-				fipc_test_blocking_recv_start( back, &rxB );
-				fipc_recv_msg_end( back, rxB );
-			}
-			end = RDTSCP();
-
-			fipc_test_blocking_send_start( forw, &txF );
-			txF->regs[0] = (end - start)/(2*transaction_id); // Cycles to send an empty message through the pipeline
-			txF->regs[1] = RDTSC_START();
-			fipc_send_msg_end ( forw, txF );
-		}
-		else if ( rank == NUM_PROCESSORS - 1 )
-		{
-			for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
-			{
-				fipc_test_blocking_recv_start( forw, &rxF );
-				fipc_recv_msg_end( forw, rxF );
-
-				fipc_test_blocking_send_start( back, &txB );
-				fipc_send_msg_end( back, txB );
-			}
-
-			fipc_test_blocking_recv_start( forw, &rxF );
-			sync_offset = RDTSC_START() - rxF->regs[1] - rxF->regs[0];
-			fipc_recv_msg_end( back, rxF );
-			// printf("%lu\n", sync_offset);
-		}
-		else
-		{
-			for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
-			{
-				fipc_test_blocking_recv_start( forw, &rxF );
-				fipc_recv_msg_end( forw, rxF );
-
-				fipc_test_blocking_send_start( forw, &txF );
-				fipc_send_msg_end( forw, txF );
-
-				fipc_test_blocking_recv_start( back, &rxB );
-				fipc_recv_msg_end( back, rxB );
-
-				fipc_test_blocking_send_start( back, &txB );
-				fipc_send_msg_end( back, txB );
-			}
-
-			fipc_test_blocking_recv_start( forw, &rxF );
-			message_t temp = *rxF;
-			fipc_recv_msg_end( forw, rxF );
-
-			fipc_test_blocking_send_start( forw, &txF );
-			(*txF) = temp;
-			fipc_send_msg_end( forw, txF );
-		}
-	#endif
-
-	///////////// Main Test
-
-	// Setup Packet Space
-	#ifndef FIPC_TEST_PASS_BY_COPY
-		packet_t* packet_space;
-		fipc_test_shm_get( "FIPC_NFV_PACKET_SPACE", TRANSACTIONS * sizeof( packet_t ), (void**)&packet_space );
-	#else
-		packet_t* packet_space_back = NULL;
-		packet_t* packet_space_forw = NULL;
-
-		if ( rank != 0 )
-			fipc_test_shm_get( shm_keysP[rank - 1], TRANSACTIONS * sizeof( packet_t ), (void**)&packet_space_back );
-
-		fipc_test_shm_get( shm_keysP[rank], TRANSACTIONS * sizeof( packet_t ), (void**)&packet_space_forw );
-	#endif
-	
-	#ifdef FIPC_TEST_LATENCY
-		register uint64_t lat_start;
-		register uint64_t* latencyTimes = NULL;
-
-		#ifdef FIPC_TEST_TIME_SYNC
-			if ( rank == NUM_PROCESSORS-1 )
-		#else
-			if ( rank == 0 )
-		#endif
-			latencyTimes = malloc( TRANSACTIONS * sizeof( uint64_t ) );
-	#endif
+	///////////// Throughput Test
 
 	#ifndef FIPC_TEST_TIME_PER_TRANSACTION
+		uint64_t throughput_time = 0;
 		start = RDTSC_START();
 	#else
-		register uint64_t* times = malloc( TRANSACTIONS * sizeof( uint64_t ) );
+		register uint64_t* throughput_times = malloc( TRANSACTIONS * sizeof( uint64_t ) );
 	#endif
 
-	packet_t* packet_ptr;
-
 	if ( rank == 0 )
-	{
-		for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
-		{
-			// Take at most 1 time stamp, if necessary
-			#if defined(FIPC_TEST_TIME_PER_TRANSACTION) || defined(FIPC_TEST_LATENCY)
-				uint64_t timestamp = RDTSC_START();
-			#endif
-
-			#ifdef FIPC_TEST_TIME_PER_TRANSACTION
-				start = timestamp;
-			#endif
-
-			#ifdef FIPC_TEST_LATENCY
-				lat_start = timestamp;
-			#endif
-
-			// Get the initial packet
-			#ifdef FIPC_TEST_PASS_BY_COPY
-				packet_ptr = &packet_space_forw[transaction_id];
-			#else
-				packet_ptr = &packet_space[transaction_id];
-			#endif
-
-			// Apply pipeline function to packet
-			packet_ptr = pipe_func[rank]( (int64_t*)packet_ptr, MAX_LINES_USED*(FIPC_CACHE_LINE_SIZE/8) );
-
-			// Send a pointer to the packet in a message to the next process
-			fipc_test_blocking_send_start( forw, &txF );
-			txF->regs[0] = (uint64_t) packet_ptr;
-
-			#ifdef FIPC_TEST_LATENCY
-				txF->regs[1] = lat_start;
-			#endif
-
-			fipc_send_msg_end ( forw, txF );
-
-			#ifdef FIPC_TEST_TIME_PER_TRANSACTION
-				end = RDTSCP();
-				times[transaction_id] = end - start;
-			#endif
-
-			#if defined(FIPC_TEST_TIME_SYNC) && defined(FIPC_TEST_LATENCY)
-				fipc_test_blocking_recv_start( forw, &rxF );
-				uint64_t lat_end = rxF->regs[1];
-				latencyTimes[transaction_id] = lat_end - lat_start;
-				fipc_recv_msg_end( forw, &rxF );
-			#endif
-		}
-	}
-	else if ( rank == NUM_PROCESSORS - 1 )
 	{
 		for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
 		{
@@ -227,41 +70,39 @@ int main ( void )
 				start = RDTSC_START();
 			#endif
 
-			// Receive message and store packet pointer locally
-			fipc_test_blocking_recv_start( forw, &rxF );
-			packet_ptr = (packet_t*) rxF->regs[0];
-
-			#ifdef FIPC_TEST_LATENCY
-				lat_start = rxF->regs[1];
-			#endif
-
-			fipc_recv_msg_end( forw, rxF );
-
-			#ifdef FIPC_TEST_PASS_BY_COPY
-				packet_ptr = &packet_space_forw[transaction_id];
-				memcpy( &packet_space_forw[transaction_id], packet_ptr, sizeof( packet_t ) );
-			#endif
-
-			// Apply pipeline function to packet
+			// Apply function to packet
 			packet_ptr = pipe_func[rank]( (int64_t*)packet_ptr, MAX_LINES_USED*(FIPC_CACHE_LINE_SIZE/8) );
 
-			#if defined(FIPC_TEST_TIME_PER_TRANSACTION) \
-				|| (defined(FIPC_TEST_LATENCY) && defined(FIPC_TEST_TIME_SYNC)
-				end = RDTSCP();
-			#endif
+			// Send packet to next stage
+			fipc_test_blocking_long_send_start( chan, &tx, LINES_PER_PACKET+1 );
+			memcpy( &tx->regs[8], packet_ptr, sizeof( packet_t ) );
+			fipc_send_msg_end ( chan, tx );
 
 			#ifdef FIPC_TEST_TIME_PER_TRANSACTION
-				times[transaction_id] = end - start;
+				end = RDTSCP();
+				throughput_times[transaction_id] = end - start;
+			#endif
+		}
+	}
+	else if ( rank == NUM_PROCESSORS-1 )
+	{
+		for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
+		{
+			#ifdef FIPC_TEST_TIME_PER_TRANSACTION
+				start = RDTSC_START();
 			#endif
 
-			#ifdef FIPC_TEST_LATENCY
-				#ifdef FIPC_TEST_TIME_SYNC
-					latencyTimes[transaction_id] = end - lat_start - sync_offset;
-				#else
-					fipc_test_blocking_send_start( forw, &txF );
-					txF->regs[1] = lat_start;
-					fipc_send_msg_end( forw, txF );
-				#endif
+			// Get packet from previous stage
+			fipc_test_blocking_recv_start( chan, &rx );
+			memcpy( packet_ptr, &rx->regs[8], sizeof( packet_t ) );
+			fipc_recv_msg_end( chan, rx );
+
+			// Apply function to packet
+			packet_ptr = pipe_func[rank]( (int64_t*)packet_ptr, MAX_LINES_USED*(FIPC_CACHE_LINE_SIZE/8) );
+
+			#ifdef FIPC_TEST_TIME_PER_TRANSACTION
+				end = RDTSCP();
+				throughput_times[transaction_id] = end - start;
 			#endif
 		}
 	}
@@ -273,44 +114,96 @@ int main ( void )
 				start = RDTSC_START();
 			#endif
 
-			// Receive message and store packet pointer locally
-			fipc_test_blocking_recv_start( forw, &rxF );
-			packet_ptr = (packet_t*) rxF->regs[0];
+			// Get packet from previous stage
+			fipc_test_blocking_recv_start( chan, &rx );
+			memcpy( packet_ptr, &rx->regs[8], sizeof( packet_t ) );
+			fipc_recv_msg_end( chan, rx );
 
-			#ifdef FIPC_TEST_LATENCY
-				lat_start = rxF->regs[1];
-			#endif
-
-			fipc_recv_msg_end( forw, rxF );
-
-			#ifdef FIPC_TEST_PASS_BY_COPY
-				packet_ptr = &packet_space_forw[transaction_id];
-				memcpy( &packet_space_forw[transaction_id], packet_ptr, sizeof( packet_t ) );
-			#endif
-
-			// Apply pipeline function to packet
+			// Apply function to packet
 			packet_ptr = pipe_func[rank]( (int64_t*)packet_ptr, MAX_LINES_USED*(FIPC_CACHE_LINE_SIZE/8) );
 
-			// Send a pointer to the packet in a message to the next process
-			fipc_test_blocking_send_start( forw, &txF );
-			txF->regs[0] = (uint64_t) packet_ptr;
-
-			#ifdef FIPC_TEST_LATENCY
-				txF->regs[1] = lat_start;
-			#endif
-
-			fipc_send_msg_end ( forw, txF );
+			// Send packet to next stage
+			fipc_test_blocking_long_send_start( chan, &tx, LINES_PER_PACKET+1 );
+			memcpy( &tx->regs[8], packet_ptr, sizeof( packet_t ) );
+			fipc_send_msg_end ( chan, tx );
 
 			#ifdef FIPC_TEST_TIME_PER_TRANSACTION
 				end = RDTSCP();
-				times[transaction_id] = end - start;
+				throughput_times[transaction_id] = end - start;
 			#endif
 		}
 	}
 
 	#ifndef FIPC_TEST_TIME_PER_TRANSACTION
 		end = RDTSCP();
+		throughput_time = (end - start) / TRANSACTIONS;
 	#endif
+
+	///////////// Latency Test
+
+	register uint64_t* latency_times = NULL;
+
+	if ( rank == 0 )
+	{
+		latency_times = malloc( TRANSACTIONS * sizeof( uint64_t ) );
+
+		for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
+		{
+			// Start Time
+			start = RDTSC_START();
+
+			// Apply function to packet
+			packet_ptr = pipe_func[rank]( (int64_t*)packet_ptr, MAX_LINES_USED*(FIPC_CACHE_LINE_SIZE/8) );
+
+			// Send packet to next stage
+			fipc_test_blocking_long_send_start( chan, &tx, LINES_PER_PACKET+1 );
+			memcpy( &tx->regs[8], packet_ptr, sizeof( packet_t ) );
+			fipc_send_msg_end ( chan, tx );
+
+			// Wait for finished message from the last process
+			fipc_test_blocking_recv_start( chan, &rx );
+			fipc_recv_msg_end( chan, rx );
+
+			// End time
+			end = RDTSCP();
+			latency_times[ transaction_id ] = end - start;
+		}
+	}
+	else if ( rank == NUM_PROCESSORS-1 )
+	{
+		for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
+		{
+			// Get packet from previous stage
+			fipc_test_blocking_recv_start( chan, &rx );
+			memcpy( packet_ptr, &rx->regs[8], sizeof( packet_t ) );
+			fipc_recv_msg_end( chan, rx );
+
+			// Apply function to packet
+			packet_ptr = pipe_func[rank]( (int64_t*)packet_ptr, MAX_LINES_USED*(FIPC_CACHE_LINE_SIZE/8) );
+
+			// Send finished message to process 0
+			fipc_test_blocking_send_start( chan, &tx );
+			fipc_send_msg_end ( chan, tx );
+		}
+	}
+	else
+	{
+		for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
+		{
+			// Get packet from previous stage
+			fipc_test_blocking_recv_start( chan, &rx );
+			memcpy( packet_ptr, &rx->regs[8], sizeof( packet_t ) );
+			fipc_recv_msg_end( chan, rx );
+
+			// Apply function to packet
+			packet_ptr = pipe_func[rank]( (int64_t*)packet_ptr, MAX_LINES_USED*(FIPC_CACHE_LINE_SIZE/8) );
+
+			// Send packet to next stage
+			fipc_test_blocking_long_send_start( chan, &tx, LINES_PER_PACKET+1 );
+			memcpy( &tx->regs[8], packet_ptr, sizeof( packet_t ) );
+			fipc_send_msg_end ( chan, tx );
+		}
+	}
 
 	///////////// Synchronized display of test metrics
 
@@ -318,164 +211,60 @@ int main ( void )
 	{
 		#ifdef FIPC_TEST_TIME_PER_TRANSACTION
 			printf( "Process %lu's stats\n", rank );
-			fipc_test_stat_print_info( times, TRANSACTIONS );
+			fipc_test_stat_print_info( throughput_times, TRANSACTIONS );
 		#endif
 
-		#if ! defined(FIPC_TEST_TIME_PER_TRANSACTION) && defined(FIPC_TEST_TIME_SYNC)
-			printf( "Cycles to send %lu messages through the pipeline: %lu\n", TRANSACTIONS, end - start - sync_offset );
-			printf( "Average cycles to send one message through the pipeline: %lu\n", (end - start - sync_offset) / TRANSACTIONS );
-			printf( "Time Sync Offset: %lu\n", sync_offset );
-		#endif
+		printf( "Latency Statistics\n" );
+		fipc_test_stat_print_info( latency_times, TRANSACTIONS );
 
-		#if defined(FIPC_TEST_LATENCY) && ! defined(FIPC_TEST_TIME_SYNC)
-			printf( "Latency Statistics\n" );
-			fipc_test_stat_print_info( latencyTimes, TRANSACTIONS );
-		#endif
-
-		fipc_test_blocking_send_start( forw, &txF );
-
-		#if ! defined(FIPC_TEST_TIME_PER_TRANSACTION) && defined(FIPC_TEST_TIME_SYNC)
-			txF->regs[0] = start;
-		#endif
-
-		fipc_send_msg_end ( forw, txF );
-
+		fipc_test_blocking_send_start( chan, &tx );
+		fipc_send_msg_end ( chan, tx );
 	}
 	else if ( rank == NUM_PROCESSORS-1 )
 	{
-		fipc_test_blocking_recv_start( forw, &rxF );
+		fipc_test_blocking_recv_start( chan, &rx );
+		fipc_recv_msg_end( chan, rx );
 
-		#if ! defined(FIPC_TEST_TIME_PER_TRANSACTION) && defined(FIPC_TEST_TIME_SYNC)
-			start = rxF->regs[0];
-		#endif
-
-		fipc_recv_msg_end( forw, rxF );
-
-		#if ! defined(FIPC_TEST_TIME_PER_TRANSACTION) && defined(FIPC_TEST_TIME_SYNC)
-			printf( "Cycles to send %lu messages through the pipeline: %lu\n", TRANSACTIONS, end - start - sync_offset );
-			printf( "Average cycles to send one message through the pipeline: %lu\n", (end - start - sync_offset) / TRANSACTIONS );
-			printf( "Time Sync Offset: %lu\n", sync_offset );
-		#endif
-
-		#ifdef FIPC_TEST_TIME_PER_TRANSACTION
+		#ifndef FIPC_TEST_TIME_PER_TRANSACTION
+			double bytesPerSecond = ((double) 1 / ( (double) throughput_time / (FIPC_CACHE_LINE_SIZE*MSG_LENGTH) ))*2200000000;
+			printf( "Average cycles to send one message through the pipeline: %lu\n", throughput_time );
+			printf( "Throughput: %f bytes/second\n", bytesPerSecond );
+		#else
 			printf( "Process %lu's stats\n", rank );
-			fipc_test_stat_print_info( times, TRANSACTIONS );
-		#endif
-
-		#if defined(FIPC_TEST_LATENCY) && defined(FIPC_TEST_TIME_SYNC)
-			printf( "Latency Statistics\n" );
-			fipc_test_stat_print_info( latencyTimes, TRANSACTIONS );
+			fipc_test_stat_print_info( throughput_times, TRANSACTIONS );
 		#endif
 	}
 	else
 	{
-		fipc_test_blocking_recv_start( forw, &rxF );
-		message_t temp = *rxF;
-		fipc_recv_msg_end( forw, rxF );
+		fipc_test_blocking_recv_start( chan, &rx );
+		message_t temp = *rx;
+		fipc_recv_msg_end( chan, rx );
 
 		#ifdef FIPC_TEST_TIME_PER_TRANSACTION
 			printf( "Process %lu's stats\n", rank );
-			fipc_test_stat_print_info( times, TRANSACTIONS );
+			fipc_test_stat_print_info( throughput_times, TRANSACTIONS );
 		#endif
 
-		fipc_test_blocking_send_start( forw, &txF );
-		*txF = temp;
-		fipc_send_msg_end( forw, txF );
+		fipc_test_blocking_send_start( chan, &tx );
+		*tx = temp;
+		fipc_send_msg_end( chan, tx );
 	}
 
-	///////////// Synchronized cleanup
+	///////////// Clean Up
 
+	fipc_test_shm_free_half_channel( chan );
+	fipc_test_shm_unlink( shm_keys[rank] );
+	fipc_test_shm_unlink( shm_keys[rank == 0 ? NUM_PROCESSORS-1 : rank - 1] );
+
+	#ifdef FIPC_TEST_TIME_PER_TRANSACTION
+		free ( throughput_times );
+	#endif
 
 	if ( rank == 0 )
-	{
-		fipc_test_blocking_send_start( forw, &txF );
-		fipc_send_msg_end ( forw, txF );
-		fipc_test_blocking_recv_start( back, &rxB );
-		fipc_recv_msg_end( back, rxB );
+		free ( latency_times );
 
-		fipc_test_shm_free_half_channel( forw )
-		fipc_test_shm_free_half_channel( back );
-
-		fipc_test_shm_unlink( shm_keysF[rank] );
-		fipc_test_shm_unlink( shm_keysB[rank] );
-
-		#ifndef FIPC_TEST_PASS_BY_COPY
-			fipc_test_shm_unlink( "FIPC_NFV_PACKET_SPACE" );
-		#else
-			fipc_test_shm_unlink( shm_keysP[rank] );
-		#endif
-
-		#ifdef FIPC_TEST_TIME_PER_TRANSACTION
-			free ( times );
-		#endif
-	}
-	else if ( rank == NUM_PROCESSORS-1 )
-	{
-		fipc_test_blocking_recv_start( forw, &rxF );
-		fipc_recv_msg_end( forw, rxF );
-		fipc_test_blocking_send_start( back, &txB );
-		fipc_send_msg_end ( back, txB );
-
-		fipc_test_shm_free_half_channel( forw )
-		fipc_test_shm_free_half_channel( back );
-
-		fipc_test_shm_unlink( shm_keysF[rank - 1] );
-		fipc_test_shm_unlink( shm_keysB[rank - 1] );
-
-		#ifndef FIPC_TEST_PASS_BY_COPY
-			fipc_test_shm_unlink( "FIPC_NFV_PACKET_SPACE" );
-		#else
-			fipc_test_shm_unlink( shm_keysP[rank - 1] );
-			fipc_test_shm_unlink( shm_keysP[rank] );
-		#endif
-
-		#ifdef FIPC_TEST_TIME_PER_TRANSACTION
-			free ( times );
-		#endif
-
-		#ifdef FIPC_TEST_LATENCY
-			free ( latencyTimes );
-		#endif
-	}
-	else
-	{
-		fipc_test_blocking_recv_start( forw, &rxF );
-		message_t temp = *rxF;
-		fipc_recv_msg_end( forw, rxF );
-
-		fipc_test_blocking_send_start( forw, &txF );
-		*txF = temp;
-		fipc_send_msg_end( forw, txF );
-
-		fipc_test_blocking_recv_start( back, &rxB );
-		temp = *rxB;
-		fipc_recv_msg_end( back, rxB );
-
-		fipc_test_blocking_send_start( back, &txB );
-		*txB = temp;
-		fipc_send_msg_end( back, txB );
-
-		fipc_test_shm_free_half_channel( forw )
-		fipc_test_shm_free_half_channel( back );
-
-		fipc_test_shm_unlink( shm_keysF[rank] );
-		fipc_test_shm_unlink( shm_keysB[rank] );
-
-		fipc_test_shm_unlink( shm_keysF[rank - 1] );
-		fipc_test_shm_unlink( shm_keysB[rank - 1] );
-
-		#ifndef FIPC_TEST_PASS_BY_COPY
-			fipc_test_shm_unlink( "FIPC_NFV_PACKET_SPACE" );
-		#else
-			fipc_test_shm_unlink( shm_keysP[rank - 1] );
-			fipc_test_shm_unlink( shm_keysP[rank] );
-		#endif
-
-		#ifdef FIPC_TEST_TIME_PER_TRANSACTION
-			free ( times );
-		#endif
-	}
-
+	free ( packet_ptr );
+	
 	fipc_fini();
 	return 0;
 }

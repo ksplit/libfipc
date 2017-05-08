@@ -1,81 +1,3 @@
-static void* XOR_checksum ( void* pkt, const uint64_t num_words )
-{
-	if ( num_words == 0 )
-		return pkt;
-	
-	uint64_t* data = (uint64_t*) pkt;
-
-	int i;
-	for ( i = 1; i < num_words; ++i )
-		data[0] ^= data[i];
-	
-	return pkt;
-}
-
-static void* SUM_checksum ( void* pkt, const uint64_t num_words )
-{
-	if ( num_words == 0 )
-		return pkt;
-	
-	uint64_t* data = (uint64_t*) pkt;
-
-	int i;
-	for ( i = 1; i < num_words; ++i )
-		data[0] += data[i];
-	
-	return pkt;
-}
-
-static void* MUL_checksum ( void* pkt, const uint64_t num_words )
-{
-	if ( num_words == 0 )
-		return pkt;
-	
-	uint64_t* data = (uint64_t*) pkt;
-
-	uint64_t i;
-	for ( i = 1; i < num_words; ++i )
-		data[0] *= data[i];
-	
-	return pkt;
-}
-
-static void* CPU_intense ( void* pkt, const uint64_t num_words )
-{
-	if ( num_words == 0 )
-		return pkt;
-	
-	uint64_t* data = (uint64_t*) pkt;
-
-	uint64_t i;
-	for ( i = 1; i < CPU_OPERATIONS; ++i )
-		data[0] *= (data[0] + i);
-	
-	return pkt;
-}
-
-static void* Fletcher_checksum ( void* pkt, const uint64_t num_words )
-{
-	if ( num_words == 0 )
-		return pkt;
-	
-	uint32_t* data = (uint32_t*) pkt;
-
-	uint64_t sum1 = 0;
-	uint64_t sum2 = 0;
-
-	uint64_t i;
-	for ( i = 0; i < num_words; ++i )
-	{
-		sum1 = ( sum1 + data[i] ) % 4294967296;
-		sum2 = ( sum2 + sum1    ) % 4294967296;
-	}
-
-	((uint64_t*)pkt)[0] = ( sum2 << 32 ) | sum1;
-
-	return pkt;
-}
-
 // CITE: https://locklessinc.com/articles/tcp_checksum/
 static void* TCPIP_checksum ( void* pkt, const uint64_t num_words )
 {
@@ -139,7 +61,7 @@ static void* TCPIP_checksum ( void* pkt, const uint64_t num_words )
 	return pkt;
 }
 
-static void* TTL_Update_simulation ( void* pkt, const uint64_t num_words )
+static void* TTL_Decrement ( void* pkt, const uint64_t num_words )
 {
 	if ( num_words == 0 )
 		return pkt;
@@ -150,3 +72,85 @@ static void* TTL_Update_simulation ( void* pkt, const uint64_t num_words )
 	
 	return pkt;
 }
+
+///////////// Unused for Final Testing
+
+static void* XOR_checksum ( void* pkt, const uint64_t num_words )
+{
+	if ( num_words == 0 )
+		return pkt;
+	
+	uint64_t* data = (uint64_t*) pkt;
+
+	int i;
+	for ( i = 1; i < num_words; ++i )
+		data[0] ^= data[i];
+	
+	return pkt;
+}
+
+static void* SUM_checksum ( void* pkt, const uint64_t num_words )
+{
+	if ( num_words == 0 )
+		return pkt;
+	
+	uint64_t* data = (uint64_t*) pkt;
+
+	int i;
+	for ( i = 1; i < num_words; ++i )
+		data[0] += data[i];
+	
+	return pkt;
+}
+
+static void* MUL_checksum ( void* pkt, const uint64_t num_words )
+{
+	if ( num_words == 0 )
+		return pkt;
+	
+	uint64_t* data = (uint64_t*) pkt;
+
+	uint64_t i;
+	for ( i = 1; i < num_words; ++i )
+		data[0] *= data[i];
+	
+	return pkt;
+}
+
+static void* CPU_intense ( void* pkt, const uint64_t num_words )
+{
+	if ( num_words == 0 )
+		return pkt;
+	
+	uint64_t* data = (uint64_t*) pkt;
+
+	uint64_t i;
+	for ( i = 1; i < 1000000; ++i )
+		data[0] *= (data[0] + i);
+	
+	return pkt;
+}
+
+static void* Fletcher_checksum ( void* pkt, const uint64_t num_words )
+{
+	if ( num_words == 0 )
+		return pkt;
+	
+	uint32_t* data = (uint32_t*) pkt;
+
+	uint64_t sum1 = 0;
+	uint64_t sum2 = 0;
+
+	uint64_t i;
+	for ( i = 0; i < num_words; ++i )
+	{
+		sum1 = ( sum1 + data[i] ) % 4294967296;
+		sum2 = ( sum2 + sum1    ) % 4294967296;
+	}
+
+	((uint64_t*)pkt)[0] = ( sum2 << 32 ) | sum1;
+
+	return pkt;
+}
+
+
