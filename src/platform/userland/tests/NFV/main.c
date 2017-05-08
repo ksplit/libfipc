@@ -226,7 +226,7 @@ int main ( void )
 		fipc_recv_msg_end( chan, rx );
 
 		#ifndef FIPC_TEST_TIME_PER_TRANSACTION
-			double bytesPerSecond = ((double) 1 / ( (double) throughput_time / (FIPC_CACHE_LINE_SIZE*MSG_LENGTH) ))*2200000000;
+			double bytesPerSecond = ((double) 1 / ( (double) throughput_time / (FIPC_CACHE_LINE_SIZE*LINES_PER_PACKET) ))*3400000000;
 			printf( "Average cycles to send one message through the pipeline: %lu\n", throughput_time );
 			printf( "Throughput: %f bytes/second\n", bytesPerSecond );
 		#else
