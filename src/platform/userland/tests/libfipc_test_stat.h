@@ -288,6 +288,7 @@ int fipc_test_stat_print_info ( uint64_t* sample_set, uint64_t sample_size )
 	printf ( "Standard Deviation: %f\n", stats.stdev );
 	printf ( "Absolute Deviation: %f\n", stats.abdev );
 	printf ( "Outlier Count: %lu\n", stats.outliers );
+	printf ( "Outlier Threshold: %lu\n", stats.thresh );
 	printf ( "Normalized Mean: %f\n", stats.normMean );
 	printf ( "Normalized Standard Deviation: %f\n", stats.normStdev );
 	printf ( "Normalized Absolute Deviation: %f\n", stats.normAbdev );

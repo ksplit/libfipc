@@ -76,8 +76,8 @@ int main ( void )
 				start = RDTSC_START();
 			#endif
 
-			//fipc_test_blocking_long_send_start( chan, &tx, MSG_LENGTH );
-			fipc_test_blocking_send_start( chan, &tx );
+			fipc_test_blocking_long_send_start( chan, &tx, MSG_LENGTH );
+			//fipc_test_blocking_send_start( chan, &tx );
 			tx->regs[0] = transaction_id;
 			fipc_send_msg_end ( chan, tx );
 
@@ -134,8 +134,8 @@ int main ( void )
 			fipc_test_blocking_recv_start( chan, &rx );
 			fipc_recv_msg_end( chan, rx );
 
-			//fipc_test_blocking_long_send_start( chan, &tx, MSG_LENGTH );
-			fipc_test_blocking_send_start( chan, &tx );
+			fipc_test_blocking_long_send_start( chan, &tx, MSG_LENGTH );
+			//fipc_test_blocking_send_start( chan, &tx );
 			fipc_send_msg_end ( chan, tx );
 
 			#ifdef FIPC_TEST_TIME_PER_TRANSACTION
@@ -155,36 +155,26 @@ int main ( void )
 	///////////// Latency Test
 
 	register uint64_t* latency_times = NULL;
-	register uint64_t  latency_index = 0;
-	if ( rank == 0 )   latency_times = malloc( TRANSACTIONS * sizeof( uint64_t ) );
 
 	if ( rank == 0 )
 	{
+		latency_times = malloc( TRANSACTIONS * sizeof( uint64_t ) );
+
 		for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
 		{
 			start = RDTSC_START();
 
-			//fipc_test_blocking_long_send_start( chan, &tx, MSG_LENGTH );
-			fipc_test_blocking_send_start( chan, &tx );
+			fipc_test_blocking_long_send_start( chan, &tx, MSG_LENGTH );
+			//fipc_test_blocking_send_start( chan, &tx );
 			tx->regs[2] = start;
 			fipc_send_msg_end ( chan, tx );
 
-			if ( fipc_recv_msg_start( chan, &rx ) == -EWOULDBLOCK )
-				continue;
-
-			start = rx->regs[2];
-			fipc_recv_msg_end( chan, rx );
-
-			latency_times[ latency_index++ ] = RDTSCP() - start;
-		}
-
-		while ( latency_index < TRANSACTIONS )
-		{
 			fipc_test_blocking_recv_start( chan, &rx );
 			start = rx->regs[2];
 			fipc_recv_msg_end( chan, rx );
 
-			latency_times[ latency_index++ ] = RDTSCP() - start;
+			end = RDTSCP();
+			latency_times[ transaction_id ] = end - start;
 		}
 	}
 	else
@@ -195,8 +185,8 @@ int main ( void )
 			start = rx->regs[2];
 			fipc_recv_msg_end( chan, rx );
 
-			//fipc_test_blocking_long_send_start( chan, &tx, MSG_LENGTH );
-			fipc_test_blocking_send_start( chan, &tx );
+			fipc_test_blocking_long_send_start( chan, &tx, MSG_LENGTH );
+			//fipc_test_blocking_send_start( chan, &tx );
 			tx->regs[2] = start;
 			fipc_send_msg_end ( chan, tx );
 		}
@@ -225,7 +215,9 @@ int main ( void )
 		fipc_recv_msg_end( chan, rx );
 
 		#ifndef FIPC_TEST_TIME_PER_TRANSACTION
+			double bytesPerSecond = ((double) 1 / ( (double) throughput_time / (FIPC_CACHE_LINE_SIZE*MSG_LENGTH) ))*2200000000;
 			printf( "Average cycles to send one message through the pipeline: %lu\n", throughput_time );
+			printf( "Throughput: %f bytes/second\n", bytesPerSecond );
 		#else
 			printf( "Process %lu's stats\n", rank );
 			fipc_test_stat_print_info( throughput_times, TRANSACTIONS );

@@ -15,10 +15,10 @@
 
 //#define FIPC_TEST_TIME_PER_TRANSACTION
 
-#define CHANNEL_ORDER    ilog2(sizeof(message_t)) + 5
-#define TRANSACTIONS     1000000LU
+#define CHANNEL_ORDER    ilog2(sizeof(message_t)) + 16
+#define TRANSACTIONS     100000LU
 #define NUM_PROCESSORS   8
-#define MSG_LENGTH       1
+#define MSG_LENGTH       2
 
 const uint64_t cpu_map[] =
 {
