@@ -71,7 +71,7 @@ int main ( void )
 			#endif
 
 			// Apply function to packet
-			packet_ptr = pipe_func[rank]( (int64_t*)packet_ptr, MAX_LINES_USED*(FIPC_CACHE_LINE_SIZE/8) );
+			packet_ptr = pipe_func[rank]( packet_ptr, MAX_LINES_USED*(FIPC_CACHE_LINE_SIZE/8) );
 
 			// Send packet to next stage
 			fipc_test_blocking_long_send_start( chan, &tx, LINES_PER_PACKET+1 );
@@ -98,7 +98,7 @@ int main ( void )
 			fipc_recv_msg_end( chan, rx );
 
 			// Apply function to packet
-			packet_ptr = pipe_func[rank]( (int64_t*)packet_ptr, MAX_LINES_USED*(FIPC_CACHE_LINE_SIZE/8) );
+			packet_ptr = pipe_func[rank]( packet_ptr, MAX_LINES_USED*(FIPC_CACHE_LINE_SIZE/8) );
 
 			#ifdef FIPC_TEST_TIME_PER_TRANSACTION
 				end = RDTSCP();
@@ -120,7 +120,7 @@ int main ( void )
 			fipc_recv_msg_end( chan, rx );
 
 			// Apply function to packet
-			packet_ptr = pipe_func[rank]( (int64_t*)packet_ptr, MAX_LINES_USED*(FIPC_CACHE_LINE_SIZE/8) );
+			packet_ptr = pipe_func[rank]( packet_ptr, MAX_LINES_USED*(FIPC_CACHE_LINE_SIZE/8) );
 
 			// Send packet to next stage
 			fipc_test_blocking_long_send_start( chan, &tx, LINES_PER_PACKET+1 );
@@ -153,7 +153,7 @@ int main ( void )
 			start = RDTSC_START();
 
 			// Apply function to packet
-			packet_ptr = pipe_func[rank]( (int64_t*)packet_ptr, MAX_LINES_USED*(FIPC_CACHE_LINE_SIZE/8) );
+			packet_ptr = pipe_func[rank]( packet_ptr, MAX_LINES_USED*(FIPC_CACHE_LINE_SIZE/8) );
 
 			// Send packet to next stage
 			fipc_test_blocking_long_send_start( chan, &tx, LINES_PER_PACKET+1 );
@@ -179,7 +179,7 @@ int main ( void )
 			fipc_recv_msg_end( chan, rx );
 
 			// Apply function to packet
-			packet_ptr = pipe_func[rank]( (int64_t*)packet_ptr, MAX_LINES_USED*(FIPC_CACHE_LINE_SIZE/8) );
+			packet_ptr = pipe_func[rank]( packet_ptr, MAX_LINES_USED*(FIPC_CACHE_LINE_SIZE/8) );
 
 			// Send finished message to process 0
 			fipc_test_blocking_send_start( chan, &tx );
@@ -196,7 +196,7 @@ int main ( void )
 			fipc_recv_msg_end( chan, rx );
 
 			// Apply function to packet
-			packet_ptr = pipe_func[rank]( (int64_t*)packet_ptr, MAX_LINES_USED*(FIPC_CACHE_LINE_SIZE/8) );
+			packet_ptr = pipe_func[rank]( packet_ptr, MAX_LINES_USED*(FIPC_CACHE_LINE_SIZE/8) );
 
 			// Send packet to next stage
 			fipc_test_blocking_long_send_start( chan, &tx, LINES_PER_PACKET+1 );

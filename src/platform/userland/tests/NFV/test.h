@@ -15,11 +15,11 @@
 
 //#define FIPC_TEST_TIME_PER_TRANSACTION
 
-#define CHANNEL_ORDER    ilog2(sizeof(message_t)) + 16
-#define TRANSACTIONS     1000000LU
+#define CHANNEL_ORDER    ilog2(sizeof(message_t)) + 7
+#define TRANSACTIONS     1000LU
 #define NUM_PROCESSORS   4
-#define LINES_PER_PACKET 16
-#define MAX_LINES_USED   16
+#define LINES_PER_PACKET 1
+#define MAX_LINES_USED   1
 
 #include "functions.h"
 
@@ -68,36 +68,35 @@ void* (* const pipe_func[])(void*, const uint64_t) =
 const uint64_t cpu_map[] =
 {
 	1,
-	5,
-	9,
-	13,
-	17,
-	21,
-	25,
-	29,
-	0,
-	4,
-	8,
-	12,
-	16,
-	20,
-	24,
-	28,
 	2,
-	6,
-	10,
-	14,
-	18,
-	22,
-	26,
-	30,
 	3,
+	4,
+	5,
+	6,
 	7,
+	8,
+	9,
+	10,
 	11,
+	12,
+	13,
+	14,
 	15,
+	16,
+	17,
+	18,
 	19,
+	20,
+	21,
+	22,
 	23,
+	24,
+	25,
+	26,
 	27,
+	28,
+	29,
+	30,
 	31
 };
 
