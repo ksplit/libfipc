@@ -337,7 +337,7 @@ fipc_send_long_msg_start ( header_t* chnl, message_t** msg, uint16_t len )
 
 	for ( len_iter = 0; len_iter < len; ++len_iter )
 	{
-		if ( ! check_tx_slot_available ( get_tx_msg( chnl, len_iter  ) ) )
+		if ( ! check_tx_slot_available ( get_tx_msg( chnl, len_iter ) ) )
 		{
 			FIPC_DEBUG(FIPC_DEBUG_VERB, "Failed to get %hu slots, out of slots right now.\n", len);
 			return -EWOULDBLOCK;
@@ -381,7 +381,7 @@ fipc_recv_msg_start ( header_t *chnl, message_t **msg )
 
 	if ( ! check_rx_slot_msg_waiting( chnl_slot ) )
 	{
-		FIPC_DEBUG(FIPC_DEBUG_VERB, "No messages to receive right now\n");
+		FIPC_DEBUG(FIPC_DEBUG_VERB, "No messages to received right now\n");
 		return -EWOULDBLOCK;
 	}
 
@@ -412,7 +412,7 @@ fipc_recv_msg_if( header_t *chnl, int (*pred)(message_t *, void *),
 
 	if ( ! check_rx_slot_msg_waiting( chnl_slot ) )
 	{
-		FIPC_DEBUG(FIPC_DEBUG_VERB, "No messages to receive right now\n");
+		FIPC_DEBUG(FIPC_DEBUG_VERB, "No messages to be received right now\n");
 		return -EWOULDBLOCK;
 	}
 
@@ -435,6 +435,8 @@ int
 LIBFIPC_FUNC_ATTR
 fipc_recv_msg_end ( header_t* chnl, message_t* msg )
 {
+	FIPC_DEBUG(FIPC_DEBUG_VERB, "Marking message at idx %lu as received\n", rx_msg_to_idx( chnl, msg ));
+
 	uint16_t len;
 	uint16_t max = msg->msg_length;
 	for ( len = 0; len < max; ++len, ++msg )
@@ -442,8 +444,6 @@ fipc_recv_msg_end ( header_t* chnl, message_t* msg )
 		msg->msg_length = 1;
 		msg->msg_status = FIPC_MSG_STATUS_AVAILABLE;
 	}
-
-	FIPC_DEBUG(FIPC_DEBUG_VERB, "Marking message at idx %lu as received\n", rx_msg_to_idx( chnl, msg ));
 	return 0;
 }
 EXPORT_SYMBOL(fipc_recv_msg_end);

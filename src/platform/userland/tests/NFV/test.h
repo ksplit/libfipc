@@ -67,6 +67,7 @@ void* (* const pipe_func[])(void*, const uint64_t) =
 
 const uint64_t cpu_map[] =
 {
+	0,
 	1,
 	2,
 	3,

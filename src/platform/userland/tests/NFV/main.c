@@ -75,7 +75,7 @@ int main ( void )
 
 			// Send packet to next stage
 			fipc_test_blocking_long_send_start( chan, &tx, LINES_PER_PACKET+1 );
-			memcpy( &tx->regs[8], packet_ptr, sizeof( packet_t ) );
+			memcpy( &tx->regs[2], packet_ptr, sizeof( packet_t ) );
 			fipc_send_msg_end ( chan, tx );
 
 			#ifdef FIPC_TEST_TIME_PER_TRANSACTION
@@ -94,7 +94,7 @@ int main ( void )
 
 			// Get packet from previous stage
 			fipc_test_blocking_recv_start( chan, &rx );
-			memcpy( packet_ptr, &rx->regs[8], sizeof( packet_t ) );
+			memcpy( packet_ptr, &rx->regs[2], sizeof( packet_t ) );
 			fipc_recv_msg_end( chan, rx );
 
 			// Apply function to packet
@@ -116,7 +116,7 @@ int main ( void )
 
 			// Get packet from previous stage
 			fipc_test_blocking_recv_start( chan, &rx );
-			memcpy( packet_ptr, &rx->regs[8], sizeof( packet_t ) );
+			memcpy( packet_ptr, &rx->regs[2], sizeof( packet_t ) );
 			fipc_recv_msg_end( chan, rx );
 
 			// Apply function to packet
@@ -124,7 +124,7 @@ int main ( void )
 
 			// Send packet to next stage
 			fipc_test_blocking_long_send_start( chan, &tx, LINES_PER_PACKET+1 );
-			memcpy( &tx->regs[8], packet_ptr, sizeof( packet_t ) );
+			memcpy( &tx->regs[2], packet_ptr, sizeof( packet_t ) );
 			fipc_send_msg_end ( chan, tx );
 
 			#ifdef FIPC_TEST_TIME_PER_TRANSACTION
@@ -157,7 +157,7 @@ int main ( void )
 
 			// Send packet to next stage
 			fipc_test_blocking_long_send_start( chan, &tx, LINES_PER_PACKET+1 );
-			memcpy( &tx->regs[8], packet_ptr, sizeof( packet_t ) );
+			memcpy( &tx->regs[2], packet_ptr, sizeof( packet_t ) );
 			fipc_send_msg_end ( chan, tx );
 
 			// Wait for finished message from the last process
@@ -175,7 +175,7 @@ int main ( void )
 		{
 			// Get packet from previous stage
 			fipc_test_blocking_recv_start( chan, &rx );
-			memcpy( packet_ptr, &rx->regs[8], sizeof( packet_t ) );
+			memcpy( packet_ptr, &rx->regs[2], sizeof( packet_t ) );
 			fipc_recv_msg_end( chan, rx );
 
 			// Apply function to packet
@@ -192,7 +192,7 @@ int main ( void )
 		{
 			// Get packet from previous stage
 			fipc_test_blocking_recv_start( chan, &rx );
-			memcpy( packet_ptr, &rx->regs[8], sizeof( packet_t ) );
+			memcpy( packet_ptr, &rx->regs[2], sizeof( packet_t ) );
 			fipc_recv_msg_end( chan, rx );
 
 			// Apply function to packet
@@ -200,7 +200,7 @@ int main ( void )
 
 			// Send packet to next stage
 			fipc_test_blocking_long_send_start( chan, &tx, LINES_PER_PACKET+1 );
-			memcpy( &tx->regs[8], packet_ptr, sizeof( packet_t ) );
+			memcpy( &tx->regs[2], packet_ptr, sizeof( packet_t ) );
 			fipc_send_msg_end ( chan, tx );
 		}
 	}
