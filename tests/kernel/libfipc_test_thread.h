@@ -22,9 +22,10 @@ int fipc_test_thread_pin_process_to_CPU ( pid_t pid, size_t cpu_pin )
 	if ( cpu_pin >= NUM_CORES )
 		return -EINVAL;
 
-	cpu_set_t cpu_mask;
-	CPU_ZERO( &cpu_mask );
-	CPU_SET( cpu_pin, &cpu_mask );
+	struct cpumask cpu_mask;
+
+	cpumask_clear   ( &cpu_mask );
+	cpumask_set_cpu ( cpu_pin, &cpu_mask );
 
 	return sched_setaffinity( pid, sizeof(cpu_set_t), &cpu_mask );
 }
@@ -33,18 +34,17 @@ int fipc_test_thread_pin_process_to_CPU ( pid_t pid, size_t cpu_pin )
  * This inline helper function pins the specified thread to the specified core.
  */
 static inline
-int fipc_test_thread_pin_thread_to_CPU ( pthread_t thread, size_t cpu_pin )
+int fipc_test_thread_pin_thread_to_CPU ( struct task_struct* thread, size_t cpu_pin )
 {
 	if ( cpu_pin >= NUM_CORES )
 		return -EINVAL;
 
-	cpu_set_t cpu_mask;
-	CPU_ZERO( &cpu_mask );
-	CPU_SET( cpu_pin, &cpu_mask );
+	struct cpumask cpu_mask;
 
-	return pthread_setaffinity_np( thread,
-								   sizeof(cpu_set_t),
-								   &cpu_mask );
+	cpumask_clear   ( &cpu_mask );
+	cpumask_set_cpu ( cpu_pin, &cpu_mask );
+	
+	return set_cpus_allowed_ptr ( thread, &cpu_mask );
 }
 
 /**
@@ -102,26 +102,27 @@ static inline
 pthread_t* fipc_test_thread_spawn_on_CPU ( void* (*threadfn)(void* data),
 											void* data, size_t cpu_pin )
 {
-	pthread_t* thread = malloc( sizeof( pthread_t ) );
+	struct task_struct* thread = kthread_create_on_cpu( threadfn, data, "libfipc.%d", cpu_pin );
 
-	if ( pthread_create( thread, NULL, threadfn, data ) )
+	if ( IS_ERR(thread) )
 	{
 		#ifdef FIPC_TEST_DEBUG
-			fprintf( stderr, "%s\n", "Error while creating thread" );
+			pr_err( "Error creating kernel thread\n" );
 		#endif
 
-		free( thread );
 		return NULL;
 	}
 
-	if ( fipc_test_thread_pin_thread_to_CPU( *thread, cpu_pin ) )
+	// Bump reference count, so even if thread dies before we have
+	// a chance to wait on it, we won't crash
+	get_task_struct(thread);
+
+	if ( fipc_test_thread_pin_thread_to_CPU( thread, cpu_pin ) )
 	{
 		#ifdef FIPC_TEST_DEBUG
-			fprintf( stderr, "%s%d\n", "Error while pinning thread to CPU: ",
-																	cpu_pin );
+			pr_err( "Error pinning kernel thread to CPU:%d\n", cpu_pin );
 		#endif
 
-		free( thread );
 		return NULL;
 	}
 

@@ -21,19 +21,14 @@
 #define likely(x)       __builtin_expect(!!(x), 1)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
 
-#define NUM_CORES sysconf(_SC_NPROCESSORS_ONLN)
-#define PAGE_SIZE sysconf(_SC_PAGESIZE)
-
-#define PAGES_NEEDED(x) \
-				((1UL << (x)) < PAGE_SIZE ? 1 : (1UL << (x)) / PAGE_SIZE)
-
-#include <stdlib.h>
-#include <sched.h>
-#include <unistd.h>
-#include <errno.h>
-#include <pthread.h>
-#include <limits.h>
+#include <linux/slab.h>
+#include <linux/mm.h>
+#include <linux/sched.h>
+#include <linux/kthread.h>
+#include <linux/kernel.h>
 #include <libfipc.h>
+
+#define NUM_CORES num_online_cpus()
 
 typedef struct fipc_message cache_line_t;
 typedef CACHE_ALIGNED unsigned long long cache_aligned_ull_int_t;
@@ -55,9 +50,10 @@ int fipc_test_create_channel ( size_t buffer_order, header_t** h1, header_t** h2
 	void*     buffer2    = NULL;
 	header_t* tempH1     = NULL;
 	header_t* tempH2     = NULL;
+	size_t    page_order = buf_order < PAGE_SHIFT ? 0 : buf_order - PAGE_SHIFT;
 
 	// (1) Allocate Buffer Pages
-	buffer1 = aligned_alloc( PAGE_SIZE, PAGES_NEEDED(buffer_order)*PAGE_SIZE );
+	buffer1 = (void*) __get_free_pages( GFP_KERNEL, page_order );
 
 	if ( buffer1 == NULL )
 	{
@@ -65,7 +61,7 @@ int fipc_test_create_channel ( size_t buffer_order, header_t** h1, header_t** h2
 		goto fail1;
 	}
 
-	buffer2 = aligned_alloc( PAGE_SIZE, PAGES_NEEDED(buffer_order)*PAGE_SIZE );
+	buffer2 = (void*) __get_free_pages( GFP_KERNEL, page_order );
 
 	if (  buffer2 == NULL )
 	{
@@ -82,7 +78,7 @@ int fipc_test_create_channel ( size_t buffer_order, header_t** h1, header_t** h2
 	}
 
 	// (3) Allocate Headers
-	tempH1 = (header_t*) malloc( sizeof( header_t ) );
+	tempH1 = (header_t*) kmalloc( sizeof( header_t ), GFP_KERNEL );
 
 	if ( tempH1 == NULL )
 	{
@@ -90,7 +86,7 @@ int fipc_test_create_channel ( size_t buffer_order, header_t** h1, header_t** h2
 		goto fail4;
 	}
 
-	tempH2 = (header_t*) malloc( sizeof( header_t ) );
+	tempH2 = (header_t*) kmalloc( sizeof( header_t ), GFP_KERNEL );
 
 	if ( tempH2 == NULL )
 	{
@@ -107,7 +103,7 @@ int fipc_test_create_channel ( size_t buffer_order, header_t** h1, header_t** h2
 	}
 
 	error_code = fipc_ring_channel_init( tempH2, buffer_order, buffer2, buffer1 );
-	
+
 	if ( error_code )
 	{
 		goto fail7;
@@ -138,13 +134,15 @@ success:
 static inline
 void fipc_test_free_channel ( size_t buffer_order, header_t* h1, header_t* h2 )
 {
+	size_t page_order = buf_order < PAGE_SHIFT ? 0 : buf_order - PAGE_SHIFT;
+
 	// Free Buffers
-	free ( h1->tx.buffer );
-	free ( h2->tx.buffer );
+	free_pages( (unsigned long)h1->tx.buffer, page_order );
+	free_pages( (unsigned long)h1->rx.buffer, page_order );
 
 	// Free Headers
-	free( h1 );
-	free( h2 );
+	kfree( h1 );
+	kfree( h2 );
 }
 
 /**
