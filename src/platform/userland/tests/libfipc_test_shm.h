@@ -12,10 +12,19 @@
 #define LIBFIPC_TEST_SHM_LIBRARY_LOCK
 
 #include <sys/mman.h>
+#include <pthread.h>
 #include <fcntl.h>
 
 #define FIPC_TEST_TRANSMIT 1
 #define FIPC_TEST_RECEIVE  0
+
+typedef struct shared_mutex
+{
+  int count;
+  pthread_mutex_t mutex;
+
+} shared_mutex_t;
+
 
 /**
  * This function gets/creates a region of shared memory and places a ptr to it in shm.
@@ -84,47 +93,43 @@ int fipc_test_shm_unlink ( const char* key )
 	return shm_unlink( key );
 }
 
-// /**
-//  * This function creates/gets and attaches a region of shared memory and places
-//  * it in attachPoint.
-//  */
-// static inline
-// int fipc_test_shm_get_attach ( key_t key, size_t size, void** attachPoint )
-// {
-// 	int shmid = shmget( key, size, IPC_CREAT | 0666 );
+static inline
+int fipc_test_shm_get_shared_mutex ( shared_mutex_t** shared_mutex, const char* key )
+{
+	int error_code = fipc_test_shm_get( key, sizeof(shared_mutex_t), (void**)shared_mutex );
 
-// 		printf("shmid = %d\n", shmid);
-// 	if ( shmid < 0 )
-// 		return shmid;
+	if ( error_code < 0 )
+	{
+		return error_code;
+	}
 
-// 		printf("2\n");
-// 	if ( shmctl( shmid, IPC_RMID, NULL ) )
-// 		return -1;
+	(*shared_mutex)->count = 0;
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
+    pthread_mutex_init(&(*shared_mutex)->mutex, &attr);
+    
+    return 0;
+}
 
-// 		printf("3\n");
-// 	void* shm = shmat( shmid, NULL, 0 );
+static inline
+int fipc_test_shm_barrier ( shared_mutex_t* shared_mutex, uint64_t num_process, uint64_t rank )
+{
+	pthread_mutex_lock(&(shared_mutex->mutex));
+	shared_mutex->count++;
+	pthread_mutex_unlock(&(shared_mutex->mutex));
 
-// 		printf("%d\n", errno);
-// 	if ( shm == (void*)-1 )
-// 		return -1;
+	while ( shared_mutex->count < num_process )
+		fipc_test_pause();
 
-// 		printf("5\n");
-// 	*attachPoint = shm;
+	if ( rank == 0 )
+		shared_mutex->count = 0;
 
-// 	return 0;
-// }
-
-// /**
-//  * This function detaches the region of shared memory pointed to by shm.
-//  */
-// static inline
-// int fipc_test_shm_detach ( void* shm )
-// {
-// 	return shmdt( shm );
-// }
+	return 0;
+}
 
 /**
- * This function 
+ * This function creates half of a channel, either the rx or tx end.
  */
 static inline
 int fipc_test_shm_create_half_channel ( size_t buffer_order, header_t** header, const char* key, int tx )

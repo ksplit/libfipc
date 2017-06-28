@@ -12,7 +12,6 @@
 #define LIBFIPC_TEST_STAT_LIBRARY_LOCK
 
 #define ABSOLUTE(x) ((x) > 0 ? (x) : -(x))
-#define OUTLIER_THRESHOLD 3000
 
 #include <math.h>
 
@@ -24,7 +23,8 @@ typedef struct fipc_test_stat_t
 	float abdev;		// The mean absolute deviation
 	uint64_t min;		// The minimum value
 	uint64_t max;		// The maximum value
-	uint64_t outliers;	// The number of data points > OUTLIER_THRESHOLD
+	uint64_t thresh;	// The outlier threshold
+	uint64_t outliers;	// The number of data points > thresh
 	float normMean;		// The normalized mean, which account for outliers
 	float normStdev;	// The normalized standard deviation
 	float normAbdev;	// The normalized absolute deviation
@@ -49,6 +49,30 @@ float fipc_test_stat_get_mean ( uint64_t* sample_set, uint64_t sample_size )
 }
 
 /**
+ * This function returns an outlier threshold.
+ */
+static inline
+uint64_t fipc_test_stat_get_thresh ( uint64_t* sample_set, uint64_t sample_size )
+{
+	register float sum;
+	register uint64_t i;
+
+	sample_size >>= 4; // Only go through 1/16 of the sample for quick average
+
+	for ( sum = 0, i = 0; i < sample_size; ++i )
+	{
+		sum += sample_set[i];
+	}
+
+	// The upper bound on the normalized data will be 5 times the averages of
+	// the first 1/16th of the data. We expect our data to be highly polarized,
+	// which justifies such a crude way to set an outlier threshold. The specific
+	// outliers that we are trying to avoid are caused by interrupts and will
+	// result in drastically larger data points. 
+	return 5 * sum / (float) sample_size;
+}
+
+/**
  * This function returns the basic statistics about the sample set
  */
 static inline
@@ -58,8 +82,9 @@ int fipc_test_stat_get_stats ( uint64_t* sample_set, uint64_t sample_size, test_
 	if ( stat == NULL )
 		return -1;
 
-	stat->mean = fipc_test_stat_get_mean ( sample_set, sample_size );
-	stat->N    = sample_size;
+	stat->mean   = fipc_test_stat_get_mean   ( sample_set, sample_size );
+	stat->thresh = fipc_test_stat_get_thresh ( sample_set, sample_size );
+	stat->N      = sample_size;
 
 	stat->min = sample_set[0];
 	stat->max = sample_set[0];
@@ -85,7 +110,7 @@ int fipc_test_stat_get_stats ( uint64_t* sample_set, uint64_t sample_size, test_
 		if ( sample_set[i] > stat->max )
 			stat->max = sample_set[i];
 
-		if ( sample_set[i] > OUTLIER_THRESHOLD )
+		if ( sample_set[i] > stat->thresh )
 		{
 			stat->outliers++;
 		}
@@ -259,9 +284,11 @@ int fipc_test_stat_print_info ( uint64_t* sample_set, uint64_t sample_size )
 	printf ( "Average value: %f\n", stats.mean );
 	printf ( "Minimum value: %lu\n", stats.min );
 	printf ( "Maximum value: %lu\n", stats.max );
+	printf ( "Sample size: %lu\n", stats.N );
 	printf ( "Standard Deviation: %f\n", stats.stdev );
 	printf ( "Absolute Deviation: %f\n", stats.abdev );
 	printf ( "Outlier Count: %lu\n", stats.outliers );
+	printf ( "Outlier Threshold: %lu\n", stats.thresh );
 	printf ( "Normalized Mean: %f\n", stats.normMean );
 	printf ( "Normalized Standard Deviation: %f\n", stats.normStdev );
 	printf ( "Normalized Absolute Deviation: %f\n", stats.normAbdev );

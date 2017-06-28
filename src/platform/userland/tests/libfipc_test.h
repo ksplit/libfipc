@@ -25,7 +25,7 @@
 #define PAGE_SIZE sysconf(_SC_PAGESIZE)
 
 #define PAGES_NEEDED(x) \
-				(1UL << ((1UL << (x)) < PAGE_SIZE ? 0 : (x) - PAGE_SIZE))
+				((1UL << (x)) < PAGE_SIZE ? 1 : (1UL << (x)) / PAGE_SIZE)
 
 #include <stdlib.h>
 #include <sched.h>
@@ -181,6 +181,30 @@ int fipc_test_blocking_send_start ( header_t* channel, message_t** out )
 	{
 		// Poll until we get a free slot or error
 		ret = fipc_send_msg_start( channel, out );
+
+		if ( !ret || ret != -EWOULDBLOCK )
+		{
+			return ret;
+		}
+
+		fipc_test_pause();
+	}
+
+	return 0;
+}
+
+/**
+ * This function will block until a long message is available and stored in out.
+ */
+static inline
+int fipc_test_blocking_long_send_start ( header_t* channel, message_t** out, uint16_t len )
+{
+	int ret;
+
+	while ( 1 )
+	{
+		// Poll until we get a free slot or error
+		ret = fipc_send_long_msg_start( channel, out, len );
 
 		if ( !ret || ret != -EWOULDBLOCK )
 		{
