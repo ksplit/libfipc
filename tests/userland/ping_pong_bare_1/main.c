@@ -1,32 +1,9 @@
 /**
  * @File     : main.c
  * @Author   : Abdullah Younis
- * @Copyright: University of Utah
- *
- * This test ping pongs a cache line from one core to another core, and back
- * around.
- *
- * NOTE: This test assumes an x86 architecture.
- *
- * CITE: http://spcl.inf.ethz.ch/Publications/.pdf/ramos-hoefler-cc-modeling.pdf
  */
 
- #include "../libfipc_test.h"
-
-#define REQUESTER_CPU 0
-#define RESPONDER_CPU 2
-#define LOGIN_CPU     1
-#define TRANSACTIONS  1000000
-
-// Global Variables = Test Shared Memory
-pthread_mutex_t requester_mutex;
-pthread_mutex_t responder_mutex;
-
-volatile cache_aligned_ull_int_t req_line;
-volatile cache_aligned_ull_int_t resp_line;
-
-cache_aligned_ull_int_t resp_sequence = 1; 
-cache_aligned_ull_int_t req_sequence = 1;
+#include "test.h"
 
 static inline void request ( void )
 {
@@ -51,12 +28,13 @@ static inline void respond ( void )
 	req_line = resp_sequence + 1;
 	resp_sequence += 2;
 }
+
 void* requester ( void* data )
 {
-	register uint64_t CACHE_ALIGNED transaction_id;
-	register uint64_t CACHE_ALIGNED start;
-	register uint64_t CACHE_ALIGNED end;
-	register uint64_t* times = malloc( TRANSACTIONS * sizeof( uint64_t ) );
+	register uint64_t  CACHE_ALIGNED transaction_id;
+	register uint64_t  CACHE_ALIGNED start;
+	register uint64_t  CACHE_ALIGNED end;
+	register uint64_t* CACHE_ALIGNED times = malloc( TRANSACTIONS * sizeof( uint64_t ) );
 	
 	// Wait to begin test
 	pthread_mutex_lock( &requester_mutex );
@@ -64,14 +42,15 @@ void* requester ( void* data )
 	for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
 	{
 		start = RDTSC_START();
-		request();
-		end = RDTSCP();
 
+		request();
+
+		end = RDTSCP();
 		times[transaction_id] = end - start;
 	}
 
+	// End test
 	fipc_test_stat_print_info( times, TRANSACTIONS );
-
 	free( times );
 	pthread_mutex_unlock( &requester_mutex );
 	pthread_exit( 0 );
@@ -80,15 +59,17 @@ void* requester ( void* data )
 
 void* responder ( void* data )
 {
+	register uint64_t CACHE_ALIGNED transaction_id;
+
 	// Wait to begin test
 	pthread_mutex_lock( &responder_mutex );
 
-	register uint64_t CACHE_ALIGNED transaction_id;
 	for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
 	{
 		respond();
 	}
 
+	// End test
 	pthread_mutex_unlock( &responder_mutex );
 	pthread_exit( 0 );
 	return NULL;
@@ -97,8 +78,6 @@ void* responder ( void* data )
 
 int main ( void )
 {
-	fipc_test_thread_pin_this_process_to_CPU( LOGIN_CPU );
-
 	// Begin critical section
 	pthread_mutex_init( &requester_mutex, NULL );
 	pthread_mutex_init( &responder_mutex, NULL );

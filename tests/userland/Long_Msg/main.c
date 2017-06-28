@@ -1,13 +1,6 @@
 /**
  * @File     : main.c
  * @Author   : Abdullah Younis
- *
- * This test measures the latency of a long message going through a pipeline
- * of N processors.
- *
- * NOTE: This test assumes an x86 architecture.
- *
- * NOTE: This test assumes a computer with 2-32 processing units.
  */
 
 #include "test.h"

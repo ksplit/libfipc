@@ -2,9 +2,8 @@
  * @File     : test.h
  * @Author   : Abdullah Younis
  *
- * This test passes a simulated packet through a series of processes, which
- * represent composed functions. This is done using separate address spaces
- * to isolate the functions.
+ * This test measures the latency of a long message going through a pipeline
+ * of N processors.
  *
  * NOTE: This test assumes an x86 architecture.
  *
@@ -17,7 +16,7 @@
 
 #define CHANNEL_ORDER    ilog2(sizeof(message_t)) + 16
 #define TRANSACTIONS     100000LU
-#define NUM_PROCESSORS   8
+#define NUM_PROCESSORS   4
 #define MSG_LENGTH       2
 
 const uint64_t cpu_map[] =
