@@ -149,10 +149,10 @@ int invalid_buf_order_size ( uint32_t buf_order )
 	if ( (1UL << buf_order) < sizeof(message_t) )
 	{
 		FIPC_DEBUG(FIPC_DEBUG_ERR,
-			"Buffers are too small (buf_order = %d, so their size is 2^buf_order = %lu bytes); but one fipc message is %lu, so the buffers need to be at least that big\n",
+			"Buffers are too small (buf_order = %u, so their size is 2^buf_order = %llu bytes); but one fipc message is %llu, so the buffers need to be at least that big\n",
 			buf_order,
-			(1UL << buf_order),
-			sizeof(message_t) );
+			(1UL << (unsigned long long)buf_order),
+			(unsigned long long)sizeof(message_t) );
 
 		return 1;	// Yes, this is an invalid size.
 	}
@@ -298,7 +298,7 @@ fipc_send_msg_start ( header_t *chnl, message_t **msg )
 	*msg = get_current_tx_slot( chnl );
 	(*msg)->msg_length = 1;
 	inc_tx_slot( chnl );
-	FIPC_DEBUG(FIPC_DEBUG_VERB, "Allocated a slot at index %lu in tx\n", tx_msg_to_idx( chnl, *msg ));
+	FIPC_DEBUG(FIPC_DEBUG_VERB, "Allocated a slot at index %llu in tx\n", (unsigned long long) tx_msg_to_idx( chnl, *msg ));
 	return 0;
 }
 EXPORT_SYMBOL(fipc_send_msg_start);
@@ -331,7 +331,7 @@ fipc_send_long_msg_start ( header_t* chnl, message_t** msg, uint16_t len )
 		*msg = get_current_tx_slot( chnl );
 		(*msg)->msg_length = len;
 		add_tx_slot ( chnl, len );
-		FIPC_DEBUG(FIPC_DEBUG_VERB, "Allocated %hu slots beginning at index %lu in tx\n", len, chan_slot);
+		FIPC_DEBUG(FIPC_DEBUG_VERB, "Allocated %u slots beginning at index %llu in tx\n", (unsigned int) len, (unsigned long long) chan_slot);
 		return 0;
 	}
 
@@ -359,7 +359,7 @@ LIBFIPC_FUNC_ATTR
 fipc_send_msg_end ( header_t* chnl, message_t* msg )
 {
 	msg->msg_status = FIPC_MSG_STATUS_SENT;
-	FIPC_DEBUG(FIPC_DEBUG_VERB, "Marking message at idx %lu as sent\n", tx_msg_to_idx( chnl, msg ));
+	FIPC_DEBUG(FIPC_DEBUG_VERB, "Marking message at idx %llu as sent\n", (unsigned long long) tx_msg_to_idx( chnl, msg ));
 	return 0;
 }
 EXPORT_SYMBOL(fipc_send_msg_end);
@@ -388,8 +388,8 @@ fipc_recv_msg_start ( header_t *chnl, message_t **msg )
 	*msg = chnl_slot;
 	add_rx_slot( chnl, chnl_slot->msg_length );
 
-	FIPC_DEBUG(FIPC_DEBUG_VERB, "Received a message with length %hu at index %lu in rx\n",
-				chnl_slot->msg_length, rx_msg_to_idx( chnl, *msg ));
+	FIPC_DEBUG(FIPC_DEBUG_VERB, "Received a message with length %u at index %llu in rx\n",
+				(unsigned int) chnl_slot->msg_length, (unsigned long long) rx_msg_to_idx( chnl, *msg ));
 	return 0;
 }
 EXPORT_SYMBOL(fipc_recv_msg_start);
@@ -425,8 +425,8 @@ fipc_recv_msg_if( header_t *chnl, int (*pred)(message_t *, void *),
 	*msg = chnl_slot;
 	add_rx_slot( chnl, chnl_slot->msg_length );
 
-	FIPC_DEBUG(FIPC_DEBUG_VERB, "Received a message with length %hu at index %lu in rx\n",
-				chnl_slot->msg_length, rx_msg_to_idx( chnl, *msg ));
+	FIPC_DEBUG(FIPC_DEBUG_VERB, "Received a message with length %u at index %llu in rx\n",
+				(unsigned int) chnl_slot->msg_length, (unsigned long long) rx_msg_to_idx( chnl, *msg ));
 	return 0;
 }
 EXPORT_SYMBOL(fipc_recv_msg_if);
@@ -435,7 +435,7 @@ int
 LIBFIPC_FUNC_ATTR
 fipc_recv_msg_end ( header_t* chnl, message_t* msg )
 {
-	FIPC_DEBUG(FIPC_DEBUG_VERB, "Marking message at idx %lu as received\n", rx_msg_to_idx( chnl, msg ));
+	FIPC_DEBUG(FIPC_DEBUG_VERB, "Marking message at idx %llu as received\n", (unsigned long long) rx_msg_to_idx( chnl, msg ));
 
 	uint16_t len;
 	uint16_t max = msg->msg_length;

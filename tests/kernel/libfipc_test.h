@@ -26,17 +26,19 @@
 #include <linux/sched.h>
 #include <linux/kthread.h>
 #include <linux/kernel.h>
+#include <linux/sched/task.h>
 #include <libfipc.h>
 
 #define NUM_CORES num_online_cpus()
 
+typedef struct task_struct kthread_t;
 typedef struct fipc_message cache_line_t;
 typedef CACHE_ALIGNED unsigned long long cache_aligned_ull_int_t;
 
 #include "libfipc_test_time.h"
 #include "libfipc_test_thread.h"
-#include "libfipc_test_stat.h"
-#include "libfipc_test_shm.h"
+//#include "libfipc_test_stat.h"
+//#include "libfipc_test_shm.h"
 
 /**
  * This function initializes the two headers referenced by h1 and h2 to point
@@ -50,7 +52,7 @@ int fipc_test_create_channel ( size_t buffer_order, header_t** h1, header_t** h2
 	void*     buffer2    = NULL;
 	header_t* tempH1     = NULL;
 	header_t* tempH2     = NULL;
-	size_t    page_order = buf_order < PAGE_SHIFT ? 0 : buf_order - PAGE_SHIFT;
+	size_t    page_order = ( buffer_order < PAGE_SHIFT ? 0 : buffer_order - PAGE_SHIFT );
 
 	// (1) Allocate Buffer Pages
 	buffer1 = (void*) __get_free_pages( GFP_KERNEL, page_order );
@@ -115,14 +117,14 @@ int fipc_test_create_channel ( size_t buffer_order, header_t** h1, header_t** h2
 
 fail7:
 fail6:
-	free ( tempH2 );
+	kfree ( tempH2 );
 fail5:
-	free ( tempH1 );
+	kfree ( tempH1 );
 fail4:
 fail3:
-	free ( buffer2 );
+	free_pages( (unsigned long) buffer2, page_order );
 fail2:
-	free ( buffer1 );
+	free_pages( (unsigned long) buffer1, page_order );
 fail1:
 success:
 	return error_code;
@@ -134,7 +136,7 @@ success:
 static inline
 void fipc_test_free_channel ( size_t buffer_order, header_t* h1, header_t* h2 )
 {
-	size_t page_order = buf_order < PAGE_SHIFT ? 0 : buf_order - PAGE_SHIFT;
+	size_t page_order = ( buffer_order < PAGE_SHIFT ? 0 : buffer_order - PAGE_SHIFT );
 
 	// Free Buffers
 	free_pages( (unsigned long)h1->tx.buffer, page_order );
@@ -215,23 +217,6 @@ int fipc_test_blocking_long_send_start ( header_t* channel, message_t** out, uin
 	}
 
 	return 0;
-}
-
-/**
- * An integer log base 2 helper function.
- */
-static inline
-unsigned int ilog2 (unsigned int val)
-{
-	if (val == 0) return UINT_MAX;
-	if (val == 1) return 0;
-	unsigned int ret = 0;
-	while (val > 1)
-	{
-		val >>= 1;
-		ret++;
-	}
-	return ret;
 }
 
 #endif
