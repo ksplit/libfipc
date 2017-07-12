@@ -151,7 +151,7 @@ int invalid_buf_order_size ( uint32_t buf_order )
 		FIPC_DEBUG(FIPC_DEBUG_ERR,
 			"Buffers are too small (buf_order = %u, so their size is 2^buf_order = %llu bytes); but one fipc message is %llu, so the buffers need to be at least that big\n",
 			buf_order,
-			(1UL << (unsigned long long)buf_order),
+			(1ULL << (unsigned long long)buf_order),
 			(unsigned long long)sizeof(message_t) );
 
 		return 1;	// Yes, this is an invalid size.

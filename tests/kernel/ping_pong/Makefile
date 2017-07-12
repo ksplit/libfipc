@@ -5,7 +5,7 @@ KDIR:=/lib/modules/$(shell uname -r)/build
 
 obj-m += $(TARGET).o
 $(TARGET)-y := ../../../src/ipc.o main.o
-ccflags-y := $(INCLUDE_DIRS) -std=gnu99
+ccflags-y := $(INCLUDE_DIRS) -std=gnu99 -Wno-declaration-after-statement
 
 compile: $(DEP)
 	make -C $(KDIR) M=$(PWD)

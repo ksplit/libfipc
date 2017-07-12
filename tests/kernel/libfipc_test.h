@@ -37,7 +37,7 @@ typedef CACHE_ALIGNED unsigned long long cache_aligned_ull_int_t;
 
 #include "libfipc_test_time.h"
 #include "libfipc_test_thread.h"
-//#include "libfipc_test_stat.h"
+#include "libfipc_test_stat.h"
 //#include "libfipc_test_shm.h"
 
 /**

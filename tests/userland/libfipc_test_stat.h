@@ -12,32 +12,41 @@
 #define LIBFIPC_TEST_STAT_LIBRARY_LOCK
 
 #define ABSOLUTE(x) ((x) > 0 ? (x) : -(x))
+#define INF  9223372036854775807
+#define NINF -9223372036854775807
+
+#define DTOC(x)     ((char)('0' + (x)))
 
 #include <math.h>
 
-typedef struct fipc_test_stat_t
+typedef struct stats_t
 {
 	uint64_t N;			// The size of the sample set
-	float mean;			// The mean of the data
-	float stdev;		// The standard deviation
-	float abdev;		// The mean absolute deviation
-	uint64_t min;		// The minimum value
-	uint64_t max;		// The maximum value
-	uint64_t thresh;	// The outlier threshold
-	uint64_t outliers;	// The number of data points > thresh
-	float normMean;		// The normalized mean, which account for outliers
-	float normStdev;	// The normalized standard deviation
-	float normAbdev;	// The normalized absolute deviation
-	uint64_t normMax;	// The normalized maximum value
-} test_stat_t;
+
+	double mean;		// The mean of the data
+	double stdev;		// The standard deviation
+	double abdev;		// The mean absolute deviation
+	int64_t min;		// The minimum value
+	int64_t max;		// The maximum value
+
+	int64_t tolerance;	// The tolerance level used in classifying outliers
+	uint64_t outliers;	// The number of data points classified as outliers
+
+	double norm_mean;	// The mean of the data without the outliers
+	double norm_stdev;	// The standard deviation without the outliers
+	double norm_abdev;	// The mean absolute deviation without the outliers
+	int64_t norm_min;	// The minimum value without the outliers
+	int64_t norm_max;	// The maximum value without the outliers
+
+} stats_t;
 
 /**
  * This function returns the mean of the sample set.
  */
 static inline
-float fipc_test_stat_get_mean ( uint64_t* sample_set, uint64_t sample_size )
+double fipc_test_stat_get_mean ( int64_t* sample_set, uint64_t sample_size )
 {
-	register float sum;
+	register double sum;
 	register uint64_t i;
 
 	for ( sum = 0, i = 0; i < sample_size; ++i )
@@ -45,62 +54,77 @@ float fipc_test_stat_get_mean ( uint64_t* sample_set, uint64_t sample_size )
 		sum += sample_set[i];
 	}
 
-	return sum / (float) sample_size;
+	return sum / (double) sample_size;
 }
 
 /**
- * This function returns an outlier threshold.
+ * This function returns a tolerance level, the suggested max deviation
+ * from the mean before being classified as an outlier.
  */
 static inline
-uint64_t fipc_test_stat_get_thresh ( uint64_t* sample_set, uint64_t sample_size )
+int64_t fipc_test_stat_get_tolerance ( int64_t* sample_set, uint64_t sample_size )
 {
 	register float sum;
+	register float mean;
 	register uint64_t i;
 
-	sample_size >>= 4; // Only go through 1/16 of the sample for quick average
+	// For a quick sketch idea of the data, only go through 1/16 of it.
+	if ( sample_size > 16 )
+		sample_size >>= 4;
 
 	for ( sum = 0, i = 0; i < sample_size; ++i )
 	{
 		sum += sample_set[i];
 	}
 
-	// The upper bound on the normalized data will be 5 times the averages of
-	// the first 1/16th of the data. We expect our data to be highly polarized,
-	// which justifies such a crude way to set an outlier threshold. The specific
-	// outliers that we are trying to avoid are caused by interrupts and will
-	// result in drastically larger data points. 
-	return 5 * sum / (float) sample_size;
+	mean = sum / (float) sample_size;
+
+	for ( sum = 0, i = 0; i < sample_size; ++i )
+	{
+		sum += ABSOLUTE( sample_set[i] - mean );
+	}
+
+	float sketch_abdev = sum / (float) sample_size;
+
+	if ( sketch_abdev > INF / 32 )
+		return INF;
+
+	return 5 * sketch_abdev;
 }
 
 /**
- * This function returns the basic statistics about the sample set
+ * This function populates the stat data structure with statistics.
  */
-static inline
-int fipc_test_stat_get_stats ( uint64_t* sample_set, uint64_t sample_size, test_stat_t* stat )
+int fipc_test_stat_calculate_stats ( int64_t* sample_set, uint64_t sample_size, stats_t* stat )
 {
 	// Error Checking
-	if ( stat == NULL )
+	if ( stat == NULL || sample_size == 0 )
 		return -1;
 
-	stat->mean   = fipc_test_stat_get_mean   ( sample_set, sample_size );
-	stat->thresh = fipc_test_stat_get_thresh ( sample_set, sample_size );
-	stat->N      = sample_size;
+	stat->N    = sample_size;
+	stat->mean = fipc_test_stat_get_mean ( sample_set, sample_size );
+	stat->tolerance = fipc_test_stat_get_tolerance ( sample_set, sample_size );
 
-	stat->min = sample_set[0];
-	stat->max = sample_set[0];
-	stat->normMax  = sample_set[0];
+	int64_t upper_thresh = stat->tolerance == INF ? INF : stat->mean + stat->tolerance;
+	int64_t lower_thresh = stat->tolerance == INF ? NINF : stat->mean - stat->tolerance;
+
+	// Temporary Values
+	stat->min = INF;
+	stat->max = NINF;
+	stat->norm_min = INF;
+	stat->norm_max = NINF;
 	stat->outliers = 0;
 
-	register float stdevSum = 0;
-	register float abdevSum = 0;
-	register float normSum = 0;
-	register float normStdevSum = 0;
-	register float normAbdevSum = 0;
+	register double stdevSum = 0;
+	register double abdevSum = 0;
+	register double normSum = 0;
+	register double normStdevSum = 0;
+	register double normAbdevSum = 0;
 	register uint64_t i;
 
 	for ( i = 0; i < sample_size; ++i )
 	{
-		uint64_t dev = ABSOLUTE( sample_set[i]-stat->mean );
+		double dev = ABSOLUTE( sample_set[i] - stat->mean );
 		abdevSum += dev;
 		stdevSum += dev*dev;
 
@@ -110,26 +134,38 @@ int fipc_test_stat_get_stats ( uint64_t* sample_set, uint64_t sample_size, test_
 		if ( sample_set[i] > stat->max )
 			stat->max = sample_set[i];
 
-		if ( sample_set[i] > stat->thresh )
+		if ( sample_set[i] > upper_thresh || sample_set[i] < lower_thresh )
 		{
 			stat->outliers++;
 		}
 		else
 		{
 			normSum += sample_set[i];
-			normAbdevSum += dev;
-			normStdevSum += dev*dev;
 
-			if ( sample_set[i] > stat->normMax )
-				stat->normMax = sample_set[i];
+			if ( sample_set[i] > stat->norm_max )
+				stat->norm_max = sample_set[i];
+
+			if ( sample_set[i] < stat->norm_min )
+				stat->norm_min = sample_set[i];
 		}
 	}
 
-	stat->stdev = sqrt( stdevSum / (float) sample_size );
-	stat->abdev = abdevSum / (float) sample_size;
-	stat->normMean = normSum / (float) ( sample_size - stat->outliers );
-	stat->normStdev = sqrt( normStdevSum / (float) ( sample_size - stat->outliers ) );
-	stat->normAbdev = normAbdevSum / (float) ( sample_size - stat->outliers );
+	stat->stdev     = sqrt( stdevSum / (double) sample_size );
+	stat->abdev     = abdevSum / (double) sample_size;
+	stat->norm_mean = normSum / (double) ( sample_size - stat->outliers );
+
+	for ( i = 0; i < sample_size; ++i )
+	{
+		if ( sample_set[i] <= upper_thresh && sample_set[i] >= lower_thresh )
+		{
+			double dev = ABSOLUTE( sample_set[i] - stat->norm_mean );
+			normAbdevSum += dev;
+			normStdevSum += dev*dev;
+		}
+	}
+
+	stat->norm_stdev = sqrt( normStdevSum / (double) ( sample_size - stat->outliers ) );
+	stat->norm_abdev = normAbdevSum / (double) ( sample_size - stat->outliers );
 
 	return 0;
 }
@@ -138,56 +174,152 @@ int fipc_test_stat_get_stats ( uint64_t* sample_set, uint64_t sample_size, test_
  * This function returns the value with the specified zScore.
  */
 static inline
-uint64_t fipc_test_stat_zrange_value ( test_stat_t* stat, float zScore )
+uint64_t fipc_test_stat_zrange_value ( stats_t* stat, double zScore )
 {
-	return stat->normMean + zScore*stat->normStdev;
+	return stat->norm_mean + zScore*stat->norm_stdev;
 }
 
 /**
  * This function returns the zScore with the specified value.
  */
 static inline
-float fipc_test_stat_zscore_value ( test_stat_t* stat, uint64_t value )
+double fipc_test_stat_zscore_value ( stats_t* stat, int64_t value )
 {
-  return (float)(value - stat->normMean) / stat->normStdev;
+	if ( stat->norm_stdev == 0 )
+		return 0;
+
+	return (double)(value - stat->norm_mean) / stat->norm_stdev;
 }
 
 /**
- * This function counts the number of data points in the zScore range.
+ * This function counts the number of data points in the zScore range (inclusive).
  */
 static inline
-uint64_t fipc_test_stat_count_in_zrange ( uint64_t* sample_set, uint64_t sample_size, test_stat_t* stat, float zScoreMin, float zScoreMax )
+uint64_t fipc_test_stat_count_in_range ( int64_t* sample_set, uint64_t sample_size, int64_t min, int64_t max )
 {
-	uint64_t value_below = fipc_test_stat_zrange_value( stat, zScoreMin );
-	uint64_t value_above = fipc_test_stat_zrange_value( stat, zScoreMax );
-
-	uint64_t i;
-	uint64_t count;
+	register uint64_t i;
+	register uint64_t count;
 
 	for ( count = 0, i = 0; i < sample_size; ++i )
-		if ( sample_set[i] >= value_below && sample_set[i] <  value_above )
+		if ( sample_set[i] >= min && sample_set[i] <= max )
 			++count;
 
 	return count;
 }
 
 /**
+ * This function truncates (or pads) the given int64_t into a string with given width
+ */
+static inline
+int fipc_test_stat_truncate ( int64_t value, char* buf, uint64_t width )
+{
+	// Error Checking
+	if ( width == 0 )
+		return -1;
+
+	// Negative Symbol
+	if ( value < 0 )
+	{
+		buf[0] = '-';
+		return fipc_test_stat_truncate ( value <= NINF ? INF : -value, ++buf, --width );
+	}
+
+	uint64_t buf_index   = 0;
+	uint64_t digit_index = 0;
+
+	char digits[21];
+	memset( digits, 0, 21 );
+
+	// Turn value into char array
+	while ( value > 0 && digit_index < 20 )
+	{
+		int64_t digit = value % 10;
+		value = value / 10;
+		digits[digit_index++] = DTOC(digit);
+	}
+
+	// Reverse it into buf
+	while ( width > 0 && digit_index >= 1 )
+	{
+		buf[buf_index++] = digits[--digit_index];
+		--width;
+	}
+
+	// Append suffix, if needed
+	if ( digit_index >= 1 )
+	{
+		int chars_deleted = 3 - (digit_index % 3);
+
+		buf_index   -= chars_deleted;
+		width       += chars_deleted;
+		digit_index += chars_deleted;
+
+		if ( buf_index < 0 )
+			return -1;
+
+		char suffix = ' ';
+
+		if ( digit_index >= 18 )
+			suffix = 'E';
+		else if ( digit_index >= 15 )
+			suffix = 'P';
+		else if ( digit_index >= 12 )
+			suffix = 'T';
+		else if ( digit_index >= 9 )
+			suffix = 'G';
+		else if ( digit_index >= 6 )
+			suffix = 'M';
+		else if ( digit_index >= 3 )
+			suffix = 'K';
+
+		buf[buf_index++] = suffix;
+		width--;
+	}
+
+	// Pad with spaces
+	while ( width > 0 )
+	{
+		buf[buf_index++] = ' ';
+		--width;
+	}
+
+	return 0;
+}
+
+/**
  * This function prints one bar in a histogram corresponding to the range given by zScoreMin and zScoreMax.
  */
 static inline
-int fipc_test_stat_print_zrange_bar ( uint64_t* sample_set, uint64_t sample_size, test_stat_t* stat, float zScoreMin, float zScoreMax )
+int fipc_test_stat_print_zrange_bar ( int64_t* sample_set, uint64_t sample_size, stats_t* stat, double zScoreMin, double zScoreMax )
 {
-	char bar[51];
-	bar[50] = '\0';
+	char bar[33];
+	char count_str[13];
+	char value_below_str[14];
+	char value_above_str[14];
 
-	uint64_t count   = fipc_test_stat_count_in_zrange( sample_set, sample_size, stat, zScoreMin, zScoreMax );
-	uint64_t X_value = sample_size / 50;
+	bar[32]             = '\0';
+	count_str[12]       = '\0';
+	value_below_str[13] = '\0';
+	value_above_str[13] = '\0';
+
+	int64_t value_below = fipc_test_stat_zrange_value( stat, zScoreMin );
+	int64_t value_above = fipc_test_stat_zrange_value( stat, zScoreMax );
+
+	// Calculate the number of 'X's
+	uint64_t count   = fipc_test_stat_count_in_range( sample_set, sample_size, value_below, value_above );
+	uint64_t X_value = sample_size >> 5 == 0 ? 1 : sample_size >> 5;
 	uint64_t X_count = count / X_value;
 
+	// Construct the bar string
 	memset( bar, 'X', X_count );
-	memset( bar + X_count, ' ', 50 - X_count );
+	memset( bar + X_count, ' ', 32 - X_count );
 
-	printf ( "%s : %lu", bar, count );
+	fipc_test_stat_truncate( count, count_str, 12 );
+	fipc_test_stat_truncate( value_below, value_below_str, 13 );
+	fipc_test_stat_truncate( value_above, value_above_str, 13 );
+
+
+	printf ( "%s -> %s : %s : %s\n", value_below_str, value_above_str, bar, count_str );
 	return 0;
 }
 
@@ -195,112 +327,104 @@ int fipc_test_stat_print_zrange_bar ( uint64_t* sample_set, uint64_t sample_size
  * This function prints a histogram of the data.
  */
 static inline
-int fipc_test_stat_print_zhistogram ( uint64_t* sample_set, uint64_t sample_size, test_stat_t* stat )
+int fipc_test_stat_print_zhistogram ( int64_t* sample_set, uint64_t sample_size, stats_t* stat )
 {
+	double zNINF = fipc_test_stat_zscore_value( stat, NINF );
+	double zINF  = fipc_test_stat_zscore_value( stat, INF  );
 
-	float i = (float)(int)(fipc_test_stat_zscore_value( stat, stat->min ) + 1);
+	double i = fipc_test_stat_zscore_value( stat, stat->min );
+	i = i < -3 ? -3 : i; // i = max(-3, min)
+	i = i < zNINF ? zNINF : i; // i = max(i, z(NINF))
 
-	uint64_t value_below = stat->min;
-	uint64_t value_above = fipc_test_stat_zrange_value( stat, i );
-	
-	printf ( "%lu -> %lu\t: ", value_below, value_above );
-	fipc_test_stat_print_zrange_bar( sample_set, sample_size, stat, fipc_test_stat_zscore_value( stat, stat->min ), i );
-	printf( "\n" );
-	
-	float maxZScore = fipc_test_stat_zscore_value( stat, stat->max );
-	for ( ; i < maxZScore && i < 3; i += 0.5 )
-	{
-		value_below = fipc_test_stat_zrange_value( stat, i );
-		value_above = ( i+0.5 <= maxZScore ? fipc_test_stat_zrange_value( stat, i+0.5 ) : stat->max );
-		
-		printf ( "%lu -> %lu\t: ", value_below, value_above );
-		fipc_test_stat_print_zrange_bar( sample_set, sample_size, stat, i, ( i+0.5 <= maxZScore ? i+0.5 : maxZScore ) );
-		printf( "\n" );
-	}
+	double maxZ = fipc_test_stat_zscore_value( stat, stat->max );
+	maxZ = maxZ > 3 ? 3 : maxZ; // maxZ = min(3, max)
+	maxZ = maxZ > zINF ? zINF : maxZ; // maxZ = min(maxZ, z(INF))
+
+	if ( i >= maxZ )
+		fipc_test_stat_print_zrange_bar( sample_set, sample_size, stat, -0.5, 0.5 );
+
+	for ( ; i < maxZ; i += 0.5 )
+		fipc_test_stat_print_zrange_bar( sample_set, sample_size, stat, i, ( i+0.5 <= maxZ ? i+0.5 : maxZ ) );
 
 	return 0;
 }
 
 /**
- * This function prints statistics of the sample set splits to stdin.
+ * This function prints statistics of the sample set to stdout.
  */
-int fipc_test_stat_print_info_split ( uint64_t* sample_set, uint64_t sample_size )
+int fipc_test_stat_print_stats ( int64_t* sample_set, uint64_t sample_size, stats_t* stat )
 {
-	// Error Check
-	if ( sample_set == NULL || sample_size == 0 )
-		return -1;
+	printf ( "-------------------------------------------------------------------------------\n" );
+	printf ( "Sample Size            : %lu\n", stat->N );
+	printf ( "Average value          : %.0f\n", stat->mean );
+	printf ( "Minimum value          : %ld\n", stat->min );
+	printf ( "Maximum value          : %ld\n", stat->max );
+	printf ( "Standard Deviation     : %.0f\n", stat->stdev );
+	printf ( "Mean Absolute Deviation: %.0f\n", stat->abdev );
+	printf ( "\n" );
 
-	uint64_t i25 = sample_size/4;
-	uint64_t i50 = sample_size/2;
-	uint64_t i75 = 3*(sample_size/4);
-	uint64_t i00 = sample_size;
-
-	test_stat_t stats[4];
-	fipc_test_stat_get_stats( sample_set +   0, i25 -   0, &stats[0] );
-	fipc_test_stat_get_stats( sample_set + i25, i50 - i25, &stats[1] );
-	fipc_test_stat_get_stats( sample_set + i50, i75 - i50, &stats[2] );
-	fipc_test_stat_get_stats( sample_set + i75, i00 - i75, &stats[3] );
-
-	uint64_t i;
-	for ( i = 0; i < 4; ++i )
+	printf ( "Outlier Count   : %lu\n", stat->outliers );
+	if ( stat->outliers > 0 )
 	{
-		// Print Statistics
-		printf ( "-------------------------------------------------------------------------------\n" );
-		printf ( "Average value: %f\n", stats[i].mean );
-		printf ( "Minimum value: %lu\n", stats[i].min );
-		printf ( "Maximum value: %lu\n", stats[i].max );
-		printf ( "Standard Deviation: %f\n", stats[i].stdev );
-		printf ( "Absolute Deviation: %f\n", stats[i].abdev );
-		printf ( "Outlier Count: %lu\n", stats[i].outliers );
-		printf ( "Normalized Mean: %f\n", stats[i].normMean );
-		printf ( "Normalized Standard Deviation: %f\n", stats[i].normStdev );
-		printf ( "Normalized Absolute Deviation: %f\n", stats[i].normAbdev );
-		printf ( "Normalized Maximum value: %lu\n", stats[i].normMax );
-		printf ( "\n" );
-		fipc_test_stat_print_zhistogram( sample_set, sample_size, &stats[i] );
-		printf ( "\n" );
-		printf ( "Summary:\nnorm mean:\t%f;\tnorm abs dev:\t%f\nmin:\t\t%lu;\t\tmax:\t\t%lu\n", 
-					stats[i].normMean, stats[i].normAbdev, stats[i].min, stats[i].max );
-		printf ( "-------------------------------------------------------------------------------\n" );
+		printf ( "Without Outliers:\n");
+		printf ( "\tAverage value          : %.0f\n", stat->norm_mean );
+		printf ( "\tMinimum value          : %ld\n", stat->norm_min );
+		printf ( "\tMaximum value          : %ld\n", stat->norm_max );
+		printf ( "\tStandard Deviation     : %.0f\n", stat->norm_stdev );
+		printf ( "\tMean Absolute Deviation: %.0f\n", stat->norm_abdev );
 	}
+	printf ( "\n" );
+
+	fipc_test_stat_print_zhistogram( sample_set, sample_size, stat );
+	printf ( "\n" );
+
+	printf ( "Summary:\n");
+
+	char min[15];
+	char max[15];
+	char mean[15];
+
+	memset( min, 0, 15 );
+	memset( max, 0, 15 );
+	memset( mean, 0, 15 );
+
+	fipc_test_stat_truncate( stat->min, min, 14 );
+	fipc_test_stat_truncate( stat->max, max, 14 );
+	fipc_test_stat_truncate( stat->mean, mean, 14 );
+
+	printf ( "min : %s || max : %s || mean : %s\n", min, max, mean );
+
+	if ( stat->outliers > 0 )
+	{
+		memset( min, 0, 15 );
+		memset( max, 0, 15 );
+		memset( mean, 0, 15 );
+
+		fipc_test_stat_truncate( stat->norm_min, min, 14 );
+		fipc_test_stat_truncate( stat->norm_max, max, 14 );
+		fipc_test_stat_truncate( stat->norm_mean, mean, 14 );
+
+		printf ( "Nmin: %s || Nmax: %s || Nmean: %s\n", min, max, mean );
+	}
+	printf ( "-------------------------------------------------------------------------------\n" );
 
 	return 0;
 }
 
 /**
- * This function prints statistics of the sample set to stdin.
+ * This function calculates and prints statistics of the given sample set.
  */
-int fipc_test_stat_print_info ( uint64_t* sample_set, uint64_t sample_size )
+int fipc_test_stat_get_and_print_stats ( int64_t* sample_set, uint64_t sample_size )
 {
-	// Error Check
-	if ( sample_set == NULL || sample_size == 0 )
-		return -1;
+	int error_code = 0;
 
-	test_stat_t stats;
-	fipc_test_stat_get_stats( sample_set, sample_size, &stats );
+	stats_t stats;
+	error_code = fipc_test_stat_calculate_stats ( sample_set, sample_size, &stats );
 
-	// Print Statistics
-	printf ( "-------------------------------------------------------------------------------\n" );
-	printf ( "Average value: %f\n", stats.mean );
-	printf ( "Minimum value: %lu\n", stats.min );
-	printf ( "Maximum value: %lu\n", stats.max );
-	printf ( "Sample size: %lu\n", stats.N );
-	printf ( "Standard Deviation: %f\n", stats.stdev );
-	printf ( "Absolute Deviation: %f\n", stats.abdev );
-	printf ( "Outlier Count: %lu\n", stats.outliers );
-	printf ( "Outlier Threshold: %lu\n", stats.thresh );
-	printf ( "Normalized Mean: %f\n", stats.normMean );
-	printf ( "Normalized Standard Deviation: %f\n", stats.normStdev );
-	printf ( "Normalized Absolute Deviation: %f\n", stats.normAbdev );
-	printf ( "Normalized Maximum value: %lu\n", stats.normMax );
-	printf ( "\n" );
-	fipc_test_stat_print_zhistogram( sample_set, sample_size, &stats );
-	printf ( "\n" );
-	printf ( "Summary:\nnorm mean:\t%f;\tnorm abs dev:\t%f\nmin:\t\t%lu;\t\tmax:\t\t%lu\n", 
-				stats.normMean, stats.normAbdev, stats.min, stats.max );
-	printf ( "-------------------------------------------------------------------------------\n" );
+	if ( error_code != 0 )
+		return error_code;
 
-	return 0;
+	return fipc_test_stat_print_stats ( sample_set, sample_size, &stats );
 }
 
 #endif

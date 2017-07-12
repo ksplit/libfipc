@@ -37,23 +37,22 @@ int requester ( void* data )
 	register uint64_t  CACHE_ALIGNED transaction_id;
 	register uint64_t  CACHE_ALIGNED start;
 	register uint64_t  CACHE_ALIGNED end;
-	//register uint64_t* CACHE_ALIGNED times = kmalloc( TRANSACTIONS * sizeof( uint64_t ), GFP_KERNEL );
+	register int32_t*  CACHE_ALIGNED times = kmalloc( TRANSACTIONS * sizeof( int32_t ), GFP_KERNEL );
 
-	start = RDTSC_START();
 	// Begin test
 	for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
 	{
+		start = RDTSC_START();
 
 		request( chan );
 
-		// times[transaction_id] = end - start;
+		end = RDTSCP();
+		times[transaction_id] = (end - start);
 	}
-	end = RDTSCP();
 
 	// End test
-	pr_err("Average: %llu\n", (unsigned long long) (( end - start ) / TRANSACTIONS) );
-	//fipc_test_stat_print_info( times, TRANSACTIONS );
-	//free( times );
+	fipc_test_stat_get_and_print_stats( times, TRANSACTIONS );
+	kfree( times );
 	complete( &requester_comp );
 	return 0;
 }
