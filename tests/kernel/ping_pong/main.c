@@ -3,9 +3,7 @@
  * @Author   : Abdullah Younis
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/init.h>
 #include "test.h"
 
 void request ( header_t* chan )
@@ -53,7 +51,7 @@ int requester ( void* data )
 	end = RDTSCP();
 
 	// End test
-	pr_err("\t%llu\n", (unsigned long long) ( end - start ) / TRANSACTIONS );
+	pr_err("Average: %llu\n", (unsigned long long) (( end - start ) / TRANSACTIONS) );
 	//fipc_test_stat_print_info( times, TRANSACTIONS );
 	//free( times );
 	complete( &requester_comp );
@@ -128,11 +126,7 @@ int main ( void )
 
 int init_module(void)
 {
-	int ret = 0;
-
-	ret = main();
-
-    return ret;
+    return main();
 }
 
 void cleanup_module(void)

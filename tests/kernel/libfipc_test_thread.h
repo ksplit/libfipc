@@ -17,7 +17,7 @@
  * This inline helper function pins the specified thread to the specified core.
  */
 static inline
-int fipc_test_thread_pin_thread_to_CPU ( kthread_t* thread, size_t cpu_pin )
+int fipc_test_thread_pin_thread_to_CPU ( kthread_t* thread, uint cpu_pin )
 {
 	struct cpumask cpu_mask;
 
@@ -99,7 +99,6 @@ int fipc_test_thread_free_thread ( kthread_t* thread )
 	int ret;
 	ret = kthread_stop( thread );
 	put_task_struct( thread );
-	kfree ( thread );
 	return ret;
 }
 
