@@ -16,7 +16,7 @@
 #define fipc_test_sfence()   asm volatile ( "sfence" :: )
 #define fipc_test_mfence()   asm volatile ( "mfence" :: )
 #define fipc_test_pause()    asm volatile ( "pause\n": : :"memory" );
-#define fipc_test_clflush(X) asm volatile("clflush %0" : "+m" (*(volatile char*)X))
+#define fipc_test_clflush(X) asm volatile ("clflush %0" : "+m" (*(volatile char*)X))
 
 #define likely(x)       __builtin_expect(!!(x), 1)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
@@ -38,7 +38,6 @@ typedef CACHE_ALIGNED unsigned long long cache_aligned_ull_int_t;
 #include "libfipc_test_time.h"
 #include "libfipc_test_thread.h"
 #include "libfipc_test_stat.h"
-//#include "libfipc_test_shm.h"
 
 /**
  * This function initializes the two headers referenced by h1 and h2 to point

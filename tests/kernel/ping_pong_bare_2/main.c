@@ -7,35 +7,33 @@
 #include "test.h"
 
 static inline
-void request ( header_t* chan )
+void request ( void )
 {
-	message_t* request;
-	message_t* response;
+	// Wait until message is available (GetS)
+	// Send request (GetM)
+	req_line = req_sequence;
 
-	fipc_test_blocking_send_start( chan, &request );
-	fipc_send_msg_end ( chan, request );
+	// Wait until message is received (GetS)
+	while ( likely(resp_line != req_sequence) )
+		fipc_test_pause();
 
-	fipc_test_blocking_recv_start( chan, &response );
-	fipc_recv_msg_end( chan, response );
+	req_sequence ++;
 }
 
 static inline
-void respond ( header_t* chan )
+void respond ( void )
 {
-	message_t* request;
-	message_t* response;
+	// Wait until message is received (GetS)
+	while ( likely(req_line != resp_sequence ))
+		fipc_test_pause();
 
-	fipc_test_blocking_recv_start( chan, &request );
-	fipc_recv_msg_end( chan, request );
-
-	fipc_test_blocking_send_start( chan, &response );
-	fipc_send_msg_end( chan, response );
+	// Send response (GetM)
+	resp_line = resp_sequence;
+	resp_sequence ++;
 }
 
 int requester ( void* data )
 {
-	header_t* chan = (header_t*) data;
-	
 	register uint64_t  CACHE_ALIGNED transaction_id;
 	register uint64_t  CACHE_ALIGNED start;
 	register uint64_t  CACHE_ALIGNED end;
@@ -46,7 +44,7 @@ int requester ( void* data )
 	{
 		start = RDTSC_START();
 
-		request( chan );
+		request();
 
 		end = RDTSCP();
 		times[transaction_id] = end - start;
@@ -61,13 +59,11 @@ int requester ( void* data )
 
 int responder ( void* data )
 {
-	header_t* chan = (header_t*) data;
-	
 	register uint64_t CACHE_ALIGNED transaction_id;
 
 	for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
 	{
-		respond( chan );
+		respond();
 	}
 
 	// End test
@@ -78,29 +74,18 @@ int responder ( void* data )
 
 int main ( void )
 {
-	header_t*  requester_header = NULL;
-	header_t*  responder_header = NULL;
 	kthread_t* requester_thread = NULL;
 	kthread_t* responder_thread = NULL;
 
-	fipc_init();
-	fipc_test_create_channel( CHANNEL_ORDER, &requester_header, &responder_header );
-
-	if ( requester_header == NULL || responder_header == NULL )
-	{
-		pr_err( "%s\n", "Error while creating channel" );
-		return -1;
-	}
-
 	// Create Threads
-	requester_thread = fipc_test_thread_spawn_on_CPU ( requester, requester_header, REQUESTER_CPU );
+	requester_thread = fipc_test_thread_spawn_on_CPU ( requester, NULL, REQUESTER_CPU );
 	if ( requester_thread == NULL )
 	{
 		pr_err( "%s\n", "Error while creating thread" );
 		return -1;
 	}
 	
-	responder_thread = fipc_test_thread_spawn_on_CPU ( responder, responder_header, RESPONDER_CPU );
+	responder_thread = fipc_test_thread_spawn_on_CPU ( responder, NULL, RESPONDER_CPU );
 	if ( responder_thread == NULL )
 	{
 		pr_err( "%s\n", "Error while creating thread" );
@@ -120,8 +105,6 @@ int main ( void )
 	// Clean up
 	fipc_test_thread_free_thread( requester_thread );
 	fipc_test_thread_free_thread( responder_thread );
-	fipc_test_free_channel( CHANNEL_ORDER, requester_header, responder_header );
-	fipc_fini();
 	return 0;
 }
 

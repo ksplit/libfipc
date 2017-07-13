@@ -251,7 +251,7 @@ uint32_t fipc_test_stat_count_in_range ( int32_t* sample_set, uint32_t sample_si
 	register uint32_t count;
 
 	for ( count = 0, i = 0; i < sample_size; ++i )
-		if ( sample_set[i] >= min && sample_set[i] <= max )
+		if ( (min == max && sample_set[i] == min) || (sample_set[i] >= min && sample_set[i] < max) )
 			++count;
 
 	return count;

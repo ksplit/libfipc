@@ -33,7 +33,7 @@ void* requester ( void* data )
 	register uint64_t  CACHE_ALIGNED transaction_id;
 	register uint64_t  CACHE_ALIGNED start;
 	register uint64_t  CACHE_ALIGNED end;
-	register uint64_t* CACHE_ALIGNED times = malloc( TRANSACTIONS * sizeof( uint64_t ) );
+	register int64_t*  CACHE_ALIGNED times = malloc( TRANSACTIONS * sizeof( int64_t ) );
 	
 	// Wait to begin test
 	pthread_mutex_lock( &requester_mutex );
@@ -50,7 +50,7 @@ void* requester ( void* data )
 	}
 
 	// End test
-	fipc_test_stat_print_info( times, TRANSACTIONS );
+	fipc_test_stat_get_and_print_stats( times, TRANSACTIONS );
 	free( times );
 	pthread_mutex_unlock( &requester_mutex );
 	pthread_exit( 0 );
