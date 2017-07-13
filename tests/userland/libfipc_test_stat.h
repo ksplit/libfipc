@@ -174,7 +174,7 @@ int fipc_test_stat_calculate_stats ( int64_t* sample_set, uint64_t sample_size, 
  * This function returns the value with the specified zScore.
  */
 static inline
-uint64_t fipc_test_stat_zrange_value ( stats_t* stat, double zScore )
+int64_t fipc_test_stat_zrange_value ( stats_t* stat, double zScore )
 {
 	return stat->norm_mean + zScore*stat->norm_stdev;
 }
