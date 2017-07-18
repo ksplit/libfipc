@@ -36,6 +36,7 @@ void* requester ( void* data )
 	register uint64_t  CACHE_ALIGNED transaction_id;
 	register uint64_t  CACHE_ALIGNED start;
 	register uint64_t  CACHE_ALIGNED end;
+	register uint64_t CACHE_ALIGNED correction = fipc_test_time_get_correction();
 	register int64_t* CACHE_ALIGNED times = malloc( TRANSACTIONS * sizeof( int64_t ) );
 	
 	// Wait to begin test
@@ -49,7 +50,7 @@ void* requester ( void* data )
 		request( chan );;
 
 		end = RDTSCP();
-		times[transaction_id] = end - start;
+		times[transaction_id] = (end - start) - correction;
 	}
 
 	// End test

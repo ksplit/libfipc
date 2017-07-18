@@ -36,12 +36,15 @@ int requester ( void* data )
 {
 	header_t* chan = (header_t*) data;
 	
-	register uint64_t  CACHE_ALIGNED transaction_id;
-	register uint64_t  CACHE_ALIGNED start;
-	register uint64_t  CACHE_ALIGNED end;
-	register int32_t*  CACHE_ALIGNED times = kmalloc( TRANSACTIONS * sizeof( int32_t ), GFP_KERNEL );
+	register uint64_t CACHE_ALIGNED transaction_id;
+	register uint64_t CACHE_ALIGNED start;
+	register uint64_t CACHE_ALIGNED end;
+	register uint64_t CACHE_ALIGNED correction = fipc_test_time_get_correction();
+	register int32_t* CACHE_ALIGNED times = vmalloc( TRANSACTIONS * sizeof( int32_t ) );
 
 	// Begin test
+	fipc_test_thread_take_control_of_CPU();
+
 	for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
 	{
 		start = RDTSC_START();
@@ -49,12 +52,13 @@ int requester ( void* data )
 		request( chan );
 
 		end = RDTSCP();
-		times[transaction_id] = end - start;
+		times[transaction_id] = (end - start) - correction;
 	}
 
 	// End test
+	fipc_test_thread_release_control_of_CPU();
 	fipc_test_stat_get_and_print_stats( times, TRANSACTIONS );
-	kfree( times );
+	vfree( times );
 	complete( &requester_comp );
 	return 0;
 }
@@ -65,12 +69,16 @@ int responder ( void* data )
 	
 	register uint64_t CACHE_ALIGNED transaction_id;
 
+	// Begin test
+	fipc_test_thread_take_control_of_CPU();
+
 	for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
 	{
 		respond( chan );
 	}
 
 	// End test
+	fipc_test_thread_release_control_of_CPU();
 	complete( &responder_comp );
 	return 0;
 }
@@ -114,8 +122,6 @@ int main ( void )
 	// Wait for thread completion
 	wait_for_completion( &requester_comp );
 	wait_for_completion( &responder_comp );
-	// fipc_test_thread_wait_for_thread( requester_thread );
-	// fipc_test_thread_wait_for_thread( responder_thread );
 	
 	// Clean up
 	fipc_test_thread_free_thread( requester_thread );

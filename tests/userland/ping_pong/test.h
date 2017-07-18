@@ -8,6 +8,9 @@
  * NOTE: This test assumes an x86 architecture.
  */
 
+#ifndef LIBFIPC_TEST_PING_PONG
+#define LIBFIPC_TEST_PING_PONG
+
 #include "../libfipc_test.h"
 
 #define TRANSACTIONS	10000000
@@ -18,3 +21,5 @@
 // Thread Locks
 pthread_mutex_t requester_mutex;
 pthread_mutex_t responder_mutex;
+
+#endif

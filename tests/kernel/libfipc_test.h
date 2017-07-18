@@ -27,6 +27,7 @@
 #include <linux/kthread.h>
 #include <linux/kernel.h>
 #include <linux/sched.h>
+#include <linux/vmalloc.h>
 #include <libfipc.h>
 
 #define NUM_CORES num_online_cpus()

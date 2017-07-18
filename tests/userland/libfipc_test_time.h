@@ -45,6 +45,27 @@ uint64_t RDTSCP ( void )
 	return ((uint64_t) cycles_high << 32) | cycles_low;
 }
 
+/**
+ * This function returns the average time spent collecting timestamps.
+ */
+static inline
+uint64_t fipc_test_time_get_correction ( void )
+{
+	register CACHE_ALIGNED uint64_t start;
+	register CACHE_ALIGNED uint64_t end;
+	register CACHE_ALIGNED uint64_t sum;
+	register CACHE_ALIGNED uint64_t i;
+
+	for ( sum = 0, i = 0; i < 100000; ++i )
+	{
+		start = RDTSC_START();
+		end   = RDTSCP();
+		sum  += end - start;
+	}
+
+	return sum / i;
+}
+
 
 /**
  * This function returns a time stamp with no preceding fence instruction.

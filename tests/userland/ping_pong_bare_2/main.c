@@ -7,37 +7,37 @@
 
 static inline void request ( void )
 {
-	// Wait until message is available (GetS)
-	// Send request (GetM)
-	req_line = req_sequence;
+	// Write Request
+	req_line.regs[0] = req_sequence;
 
-	// Wait until message is received (GetS)
-	while ( likely(resp_line != req_sequence) )
+	// Read Response
+	while ( likely(resp_line.regs[0] != req_sequence) )
 		fipc_test_pause();
 
-	req_sequence ++;
+	req_sequence++;
 }
 
 static inline void respond ( void )
 {
-	// Wait until message is received (GetS)
-	while ( likely(req_line != resp_sequence ))
+	// Read Request
+	while ( likely(req_line.regs[0] != resp_sequence ))
 		fipc_test_pause();
 
-	// Send response (GetM)
-	resp_line = resp_sequence;
-	resp_sequence ++;
+	// Write Response
+	resp_line.regs[0] = resp_sequence;
+	resp_sequence++;
 }
+
 void* requester ( void* data )
 {
-	register uint64_t  CACHE_ALIGNED transaction_id;
-	register uint64_t  CACHE_ALIGNED start;
-	register uint64_t  CACHE_ALIGNED end;
-	register int64_t*  CACHE_ALIGNED times = malloc( TRANSACTIONS * sizeof( int64_t ) );
+	register uint64_t CACHE_ALIGNED transaction_id;
+	register uint64_t CACHE_ALIGNED start;
+	register uint64_t CACHE_ALIGNED end;
+	register uint64_t CACHE_ALIGNED correction = fipc_test_time_get_correction();
+	register int64_t* CACHE_ALIGNED times = malloc( TRANSACTIONS * sizeof( int64_t ) );
 	
 	// Wait to begin test
 	pthread_mutex_lock( &requester_mutex );
-
 
 	for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
 	{
@@ -46,7 +46,7 @@ void* requester ( void* data )
 		request();
 
 		end = RDTSCP();
-		times[transaction_id] = end - start;
+		times[transaction_id] = (end - start) - correction;
 	}
 
 	// End test
@@ -78,6 +78,10 @@ void* responder ( void* data )
 
 int main ( void )
 {
+	// Init Variables
+	req_line.regs[0]  = 0;
+	resp_line.regs[0] = 0;
+	
 	// Begin critical section
 	pthread_mutex_init( &requester_mutex, NULL );
 	pthread_mutex_init( &responder_mutex, NULL );
