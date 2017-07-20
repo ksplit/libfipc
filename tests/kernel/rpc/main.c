@@ -19,12 +19,11 @@ void request ( header_t* chan )
 	// Marshalling
 	request->flags = MARSHALL_ORDER;
 	for ( i = 0; i < MARSHALL_ORDER; ++i )
-		request->regs[MARSHALL_ORDER] = i;
+		request->regs[i] = i;
 
 	fipc_send_msg_end ( chan, request );
 
 	fipc_test_blocking_recv_start( chan, &response );
-	pr_err("\n%llu\n", response->regs[0]);
 	fipc_recv_msg_end( chan, response );
 }
 
