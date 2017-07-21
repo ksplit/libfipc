@@ -12,11 +12,18 @@ void request ( header_t* chan )
 	message_t* request;
 	message_t* response;
 
-	fipc_test_blocking_send_start( chan, &request );
-	fipc_send_msg_end ( chan, request );
+	int i;
+	for ( i = 0; i < BATCHED_ORDER; ++i )
+	{
+		fipc_test_blocking_send_start( chan, &request );
+		fipc_send_msg_end ( chan, request );
+	}
 
-	fipc_test_blocking_recv_start( chan, &response );
-	fipc_recv_msg_end( chan, response );
+	for ( i = 0; i < BATCHED_ORDER; ++i )
+	{
+		fipc_test_blocking_recv_start( chan, &response );
+		fipc_recv_msg_end( chan, response );
+	}
 }
 
 static inline
@@ -25,11 +32,18 @@ void respond ( header_t* chan )
 	message_t* request;
 	message_t* response;
 
-	fipc_test_blocking_recv_start( chan, &request );
-	fipc_recv_msg_end( chan, request );
+	int i;
+	for ( i = 0; i < BATCHED_ORDER; ++i )
+	{
+		fipc_test_blocking_recv_start( chan, &request );
+		fipc_recv_msg_end( chan, request );
+	}
 
-	fipc_test_blocking_send_start( chan, &response );
-	fipc_send_msg_end( chan, response );
+	for ( i = 0; i < BATCHED_ORDER; ++i )
+	{
+		fipc_test_blocking_send_start( chan, &response );
+		fipc_send_msg_end( chan, response );
+	}
 }
 
 int requester ( void* data )

@@ -13,10 +13,11 @@
 
 #include "../libfipc_test.h"
 
-#define TRANSACTIONS	100000000
+#define TRANSACTIONS	100000
 #define REQUESTER_CPU	0
 #define RESPONDER_CPU	2
 #define CHANNEL_ORDER	ilog2(sizeof(message_t)) + 7
+#define BATCHED_ORDER   4
 
 // Thread Locks
 static DECLARE_COMPLETION(requester_comp);

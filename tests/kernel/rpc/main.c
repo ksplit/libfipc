@@ -11,20 +11,26 @@ void request ( header_t* chan )
 {
 	message_t* request;
 	message_t* response;
-	int32_t    i;
 
+	int i;
+	int j;
+	for ( i = 0; i < BATCHED_ORDER; ++i )
+	{
+		fipc_test_blocking_send_start( chan, &request );
 
-	fipc_test_blocking_send_start( chan, &request );
+		// Marshalling
+		request->flags = MARSHALL_ORDER;
+		for ( j = 0; j < MARSHALL_ORDER; ++j )
+			request->regs[j] = j;
 
-	// Marshalling
-	request->flags = MARSHALL_ORDER;
-	for ( i = 0; i < MARSHALL_ORDER; ++i )
-		request->regs[i] = i;
+		fipc_send_msg_end ( chan, request );
+	}
 
-	fipc_send_msg_end ( chan, request );
-
-	fipc_test_blocking_recv_start( chan, &response );
-	fipc_recv_msg_end( chan, response );
+	for ( i = 0; i < BATCHED_ORDER; ++i )
+	{
+		fipc_test_blocking_recv_start( chan, &response );
+		fipc_recv_msg_end( chan, response );
+	}
 }
 
 static inline
@@ -34,49 +40,56 @@ void respond ( header_t* chan )
 	message_t* response;
 	uint64_t   answer;
 
-	fipc_test_blocking_recv_start( chan, &request );
-
-	// Dispatch loop
-	switch ( request->flags )
+	int i;
+	for ( i = 0; i < BATCHED_ORDER; ++i )
 	{
-		case 0:
-			answer = null_invocation();
-			break;
+		fipc_test_blocking_recv_start( chan, &request );
 
-		case 1:
-			answer = increment( request->regs[0] );
-			break;
+		// Dispatch loop
+		switch ( request->flags )
+		{
+			case 0:
+				answer = null_invocation();
+				break;
 
-		case 2:
-			answer = add_2_nums( request->regs[0], request->regs[1] );
-			break;
+			case 1:
+				answer = increment( request->regs[0] );
+				break;
 
-		case 3:
-			answer = add_3_nums( request->regs[0], request->regs[1], request->regs[2] );
-			break;
+			case 2:
+				answer = add_2_nums( request->regs[0], request->regs[1] );
+				break;
 
-		case 4:
-			answer = add_4_nums( request->regs[0], request->regs[1], request->regs[2], request->regs[3] );
-			break;
-			
-		case 5:
-			answer = add_5_nums( request->regs[0], request->regs[1], request->regs[2], request->regs[3], request->regs[4] );
-			break;
-			
-		case 6:
-			answer = add_6_nums( request->regs[0], request->regs[1], request->regs[2], request->regs[3], request->regs[4], request->regs[5] );
-			break;
-			
-		case 7:
-			answer = add_7_nums( request->regs[0], request->regs[1], request->regs[2], request->regs[3], request->regs[4], request->regs[5], request->regs[6] );
-			break;
+			case 3:
+				answer = add_3_nums( request->regs[0], request->regs[1], request->regs[2] );
+				break;
+
+			case 4:
+				answer = add_4_nums( request->regs[0], request->regs[1], request->regs[2], request->regs[3] );
+				break;
+				
+			case 5:
+				answer = add_5_nums( request->regs[0], request->regs[1], request->regs[2], request->regs[3], request->regs[4] );
+				break;
+				
+			case 6:
+				answer = add_6_nums( request->regs[0], request->regs[1], request->regs[2], request->regs[3], request->regs[4], request->regs[5] );
+				break;
+				
+			case 7:
+				answer = add_7_nums( request->regs[0], request->regs[1], request->regs[2], request->regs[3], request->regs[4], request->regs[5], request->regs[6] );
+				break;
+		}
+
+		fipc_recv_msg_end( chan, request );
 	}
 
-	fipc_recv_msg_end( chan, request );
-
-	fipc_test_blocking_send_start( chan, &response );
-	response->regs[0] = answer;
-	fipc_send_msg_end( chan, response );
+	for ( i = 0; i < BATCHED_ORDER; ++i )
+	{
+		fipc_test_blocking_send_start( chan, &response );
+		response->regs[0] = answer;
+		fipc_send_msg_end( chan, response );
+	}
 }
 
 int requester ( void* data )

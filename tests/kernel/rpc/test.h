@@ -18,6 +18,7 @@
 #define RESPONDER_CPU	2
 #define CHANNEL_ORDER	ilog2(sizeof(message_t)) + 7
 #define MARSHALL_ORDER  4
+#define BATCHED_ORDER   4
 
 // Thread Locks
 static DECLARE_COMPLETION(requester_comp);
