@@ -61,10 +61,10 @@ int requester ( void* data )
 	e3 = kmalloc( sizeof( evt_sel_t ), GFP_KERNEL );
 	e4 = kmalloc( sizeof( evt_sel_t ), GFP_KERNEL );
 
-	create_event(0x26, 0x01, 1, e1);
-	create_event(0x26, 0x02, 1, e2);
-	create_event(0x26, 0x04, 1, e3);
-	create_event(0x26, 0x08, 1, e4);
+	create_event(0x27, 0x01, OS_MODE, e1);
+	create_event(0x27, 0x02, OS_MODE, e2);
+	create_event(0x27, 0x04, OS_MODE, e3);
+	create_event(0x27, 0x08, OS_MODE, e4);
 
 	// Begin test
 	fipc_test_thread_take_control_of_CPU();
@@ -84,10 +84,10 @@ int requester ( void* data )
 		times[transaction_id] = (end - start) - correction;
 	}
 
-	reset_evtsel(0);
-	reset_evtsel(1);
-	reset_evtsel(2);
 	reset_evtsel(3);
+	reset_evtsel(2);
+	reset_evtsel(1);
+	reset_evtsel(0);
 
 	read_pmc(&e1->reg, 0);
 	read_pmc(&e2->reg, 1);
@@ -99,7 +99,7 @@ int requester ( void* data )
 	reset_pmc(2);
 	reset_pmc(3);
 
-	pr_err("%llu   %llu    %llu    %llu", e1->reg, e2->reg, e3->reg, e4->reg);
+	pr_err("%llu    %llu    %llu    %llu", e1->reg, e2->reg, e3->reg, e4->reg);
 
 	// End test
 	fipc_test_thread_release_control_of_CPU();
