@@ -15,8 +15,8 @@
 #define RESPONDER_CPU	2
 
 // Thread Locks
-static DECLARE_COMPLETION(requester_comp);
-static DECLARE_COMPLETION(responder_comp);
+struct completion requester_comp;
+struct completion responder_comp;
 
 volatile cache_line_t CACHE_ALIGNED line;
 

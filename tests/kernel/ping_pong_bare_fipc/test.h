@@ -20,7 +20,7 @@
 #define BATCHED_ORDER   1
 
 // Thread Locks
-static DECLARE_COMPLETION(requester_comp);
-static DECLARE_COMPLETION(responder_comp);
+struct completion requester_comp;
+struct completion responder_comp;
 
 #endif

@@ -81,6 +81,9 @@ int responder ( void* data )
 
 int main ( void )
 {
+	init_completion( &requester_comp );
+	init_completion( &responder_comp );
+	
 	// Init Variables
 	req_line.regs[0]  = 0;
 	resp_line.regs[0] = 0;

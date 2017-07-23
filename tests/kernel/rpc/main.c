@@ -146,6 +146,9 @@ int responder ( void* data )
 
 int main ( void )
 {
+	init_completion( &requester_comp );
+	init_completion( &responder_comp );
+
 	header_t*  requester_header = NULL;
 	header_t*  responder_header = NULL;
 	kthread_t* requester_thread = NULL;

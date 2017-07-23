@@ -21,8 +21,8 @@
 #define BATCHED_ORDER   4
 
 // Thread Locks
-static DECLARE_COMPLETION(requester_comp);
-static DECLARE_COMPLETION(responder_comp);
+struct completion requester_comp;
+struct completion responder_comp;
 
 static uint64_t noinline null_invocation( void )
 {
