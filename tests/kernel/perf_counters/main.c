@@ -61,10 +61,10 @@ int requester ( void* data )
 	e3 = kmalloc( sizeof( evt_sel_t ), GFP_KERNEL );
 	e4 = kmalloc( sizeof( evt_sel_t ), GFP_KERNEL );
 
-	create_event(0x27, 0x01, OS_MODE, e1);
-	create_event(0x27, 0x02, OS_MODE, e2);
-	create_event(0x27, 0x04, OS_MODE, e3);
-	create_event(0x27, 0x08, OS_MODE, e4);
+	create_event(0x24, 0x01, OS_MODE, e1);
+	create_event(0x24, 0x02, OS_MODE, e2);
+	create_event(0x24, 0x04, OS_MODE, e3);
+	create_event(0x24, 0x08, OS_MODE, e4);
 
 	// Begin test
 	fipc_test_thread_take_control_of_CPU();
