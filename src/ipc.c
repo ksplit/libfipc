@@ -184,10 +184,7 @@ fipc_prep_buffer ( uint32_t buf_order, void* buffer )
 
 	// Initialize slots as available
 	for ( i = 0; i < nr_slots(buf_order); i++ )
-	{
 		msg_buffer[i].msg_status = FIPC_MSG_STATUS_AVAILABLE;
-		msg_buffer[i].msg_length = 1;
-	}
 
 	return 0;
 }
@@ -209,10 +206,8 @@ fipc_prep_buffers ( uint32_t buf_order, void *buffer_1, void *buffer_2 )
 	for ( i = 0; i < nr_slots(buf_order); i++ )
 	{
 		msg_buffer_1[i].msg_status = FIPC_MSG_STATUS_AVAILABLE;
-		msg_buffer_1[i].msg_length = 1;
 
 		msg_buffer_2[i].msg_status = FIPC_MSG_STATUS_AVAILABLE;
-		msg_buffer_2[i].msg_length = 1;
 	}
 
 	return 0;
@@ -283,11 +278,11 @@ fipc_rx_channel_init ( header_t* chnl, uint32_t buf_order, void* buffer_rx )
 
 	return 0;
 }
-EXPORT_SYMBOL(fipc_tx_channel_init);
+EXPORT_SYMBOL(fipc_rx_channel_init);
 
 int
 LIBFIPC_FUNC_ATTR
-fipc_send_msg_start ( header_t *chnl, message_t **msg )
+fipc_send_msg_start ( header_t* chnl, message_t** msg )
 {
 	if ( ! check_tx_slot_available ( get_current_tx_slot( chnl ) ) )
 	{
@@ -296,60 +291,8 @@ fipc_send_msg_start ( header_t *chnl, message_t **msg )
 	}
 
 	*msg = get_current_tx_slot( chnl );
-	(*msg)->msg_length = 1;
 	inc_tx_slot( chnl );
 	FIPC_DEBUG(FIPC_DEBUG_VERB, "Allocated a slot at index %llu in tx\n", (unsigned long long) tx_msg_to_idx( chnl, *msg ));
-	return 0;
-}
-EXPORT_SYMBOL(fipc_send_msg_start);
-
-int
-LIBFIPC_FUNC_ATTR
-fipc_send_long_msg_start ( header_t* chnl, message_t** msg, uint16_t len )
-{
-	if ( chnl == NULL )
-		return -EINVAL;
-
-	uint64_t chan_size = chnl->tx.mask + 1;
-	uint64_t chan_slot = get_tx_idx( chnl );
-	uint64_t chan_remn = chan_size - chan_slot;
-
-	if ( len > chan_size )
-		return -EINVAL;
-
-	uint64_t len_iter;
-	for ( len_iter = 0; len_iter < len && len_iter < chan_remn; ++len_iter )
-	{
-		if ( ! check_tx_slot_available ( get_tx_msg( chnl, chan_slot + len_iter  ) ) )
-		{
-			break;
-		}
-	}
-
-	if ( len_iter >= len )
-	{
-		*msg = get_current_tx_slot( chnl );
-		(*msg)->msg_length = len;
-		add_tx_slot ( chnl, len );
-		FIPC_DEBUG(FIPC_DEBUG_VERB, "Allocated %u slots beginning at index %llu in tx\n", (unsigned int) len, (unsigned long long) chan_slot);
-		return 0;
-	}
-
-	for ( len_iter = 0; len_iter < len; ++len_iter )
-	{
-		if ( ! check_tx_slot_available ( get_tx_msg( chnl, len_iter ) ) )
-		{
-			FIPC_DEBUG(FIPC_DEBUG_VERB, "Failed to get %hu slots, out of slots right now.\n", len);
-			return -EWOULDBLOCK;
-		}
-	}
-
-	get_current_tx_slot( chnl )->msg_status = FIPC_MSG_STATUS_DUMMY;
-	get_current_tx_slot( chnl )->msg_length = chan_remn;
-	*msg = get_tx_msg( chnl, 0 );
-	(*msg)->msg_length = len;
-	add_tx_slot ( chnl, chan_remn + len );
-	FIPC_DEBUG(FIPC_DEBUG_VERB, "Allocated %hu slots beginning at index 0 in tx\n", len);
 	return 0;
 }
 EXPORT_SYMBOL(fipc_send_msg_start);
@@ -366,18 +309,9 @@ EXPORT_SYMBOL(fipc_send_msg_end);
 
 int
 LIBFIPC_FUNC_ATTR
-fipc_recv_msg_start ( header_t *chnl, message_t **msg )
+fipc_recv_msg_start ( header_t* chnl, message_t** msg )
 {
 	message_t* chnl_slot = get_current_rx_slot( chnl );
-
-	if ( check_rx_slot_msg_dummy( chnl_slot ) )
-	{
-		add_rx_slot( chnl, chnl_slot->msg_length );
-		chnl_slot->msg_status = FIPC_MSG_STATUS_AVAILABLE;
-		chnl_slot->msg_length = 1;
-		chnl_slot = get_current_rx_slot( chnl );
-		FIPC_DEBUG(FIPC_DEBUG_VERB, "Skipped a dummy message.\n");
-	}
 
 	if ( ! check_rx_slot_msg_waiting( chnl_slot ) )
 	{
@@ -386,29 +320,19 @@ fipc_recv_msg_start ( header_t *chnl, message_t **msg )
 	}
 
 	*msg = chnl_slot;
-	add_rx_slot( chnl, chnl_slot->msg_length );
+	inc_rx_slot( chnl );
 
-	FIPC_DEBUG(FIPC_DEBUG_VERB, "Received a message with length %u at index %llu in rx\n",
-				(unsigned int) chnl_slot->msg_length, (unsigned long long) rx_msg_to_idx( chnl, *msg ));
+	FIPC_DEBUG(FIPC_DEBUG_VERB, "Received a message at index %llu in rx\n",
+				(unsigned long long) rx_msg_to_idx( chnl, *msg ));
 	return 0;
 }
 EXPORT_SYMBOL(fipc_recv_msg_start);
 
 int
 LIBFIPC_FUNC_ATTR
-fipc_recv_msg_if( header_t *chnl, int (*pred)(message_t *, void *),
-					void *data, message_t **msg )
+fipc_recv_msg_if( header_t* chnl, int (*pred)( message_t*, void* ), void* data, message_t** msg )
 {
 	message_t* chnl_slot = get_current_rx_slot( chnl );
-
-	if ( check_rx_slot_msg_dummy( chnl_slot ) )
-	{
-		add_rx_slot( chnl, chnl_slot->msg_length );
-		chnl_slot->msg_status = FIPC_MSG_STATUS_AVAILABLE;
-		chnl_slot->msg_length = 1;
-		chnl_slot = get_current_rx_slot( chnl );
-		FIPC_DEBUG(FIPC_DEBUG_VERB, "Skipped a dummy message.\n");
-	}
 
 	if ( ! check_rx_slot_msg_waiting( chnl_slot ) )
 	{
@@ -423,10 +347,10 @@ fipc_recv_msg_if( header_t *chnl, int (*pred)(message_t *, void *),
 	}
 
 	*msg = chnl_slot;
-	add_rx_slot( chnl, chnl_slot->msg_length );
+	inc_rx_slot( chnl );
 
-	FIPC_DEBUG(FIPC_DEBUG_VERB, "Received a message with length %u at index %llu in rx\n",
-				(unsigned int) chnl_slot->msg_length, (unsigned long long) rx_msg_to_idx( chnl, *msg ));
+	FIPC_DEBUG(FIPC_DEBUG_VERB, "Received a message at index %llu in rx\n",
+				(unsigned long long) rx_msg_to_idx( chnl, *msg ));
 	return 0;
 }
 EXPORT_SYMBOL(fipc_recv_msg_if);
@@ -436,14 +360,7 @@ LIBFIPC_FUNC_ATTR
 fipc_recv_msg_end ( header_t* chnl, message_t* msg )
 {
 	FIPC_DEBUG(FIPC_DEBUG_VERB, "Marking message at idx %llu as received\n", (unsigned long long) rx_msg_to_idx( chnl, msg ));
-
-	uint16_t len;
-	uint16_t max = msg->msg_length;
-	for ( len = 0; len < max; ++len, ++msg )
-	{
-		msg->msg_length = 1;
-		msg->msg_status = FIPC_MSG_STATUS_AVAILABLE;
-	}
+	msg->msg_status = FIPC_MSG_STATUS_AVAILABLE;
 	return 0;
 }
 EXPORT_SYMBOL(fipc_recv_msg_end);
