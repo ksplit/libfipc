@@ -41,8 +41,7 @@
  */
 typedef struct CACHE_ALIGNED fipc_message
 {
-	volatile uint16_t msg_status;	// The status of the message
-	uint16_t msg_length;			// The length of a message
+	volatile uint32_t msg_status;	// The status of the message
 	uint32_t flags;					// Not touched by libfipc
 	uint64_t regs[FIPC_NR_REGS];	// Not touched by libfipc
 
