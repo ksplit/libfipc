@@ -56,10 +56,10 @@ int requester ( void* data )
 	register uint64_t CACHE_ALIGNED correction = fipc_test_time_get_correction();
 	register int32_t* CACHE_ALIGNED times = vmalloc( TRANSACTIONS * sizeof( int32_t ) );
 
-	FILL_EVENT_OS(&e1, 0x27, 0x01);
-	FILL_EVENT_OS(&e2, 0x27, 0x02);
-	FILL_EVENT_OS(&e3, 0x27, 0x04);
-	FILL_EVENT_OS(&e4, 0x27, 0x08);
+	FILL_EVENT_OS(&e1, 0x26, 0x01);
+	FILL_EVENT_OS(&e2, 0x26, 0x02);
+	FILL_EVENT_OS(&e3, 0x26, 0x04);
+	FILL_EVENT_OS(&e4, 0x26, 0x08);
 
 	// Begin test
 	fipc_test_thread_take_control_of_CPU();
@@ -89,12 +89,13 @@ int requester ( void* data )
 	READ_PMC(&VAL(e3), EVENT_SEL2);
 	READ_PMC(&VAL(e4), EVENT_SEL3);
 
+	pr_err("%llu    %llu    %llu    %llu", VAL(e1), VAL(e2), VAL(e3), VAL(e4));
+
 	RESET_COUNTER(EVENT_SEL0);
 	RESET_COUNTER(EVENT_SEL1);
 	RESET_COUNTER(EVENT_SEL2);
 	RESET_COUNTER(EVENT_SEL3);
 
-	pr_err("%llu    %llu    %llu    %llu", e1.reg, e2.reg, e3.reg, e4.reg);
 
 	// End test
 	fipc_test_thread_release_control_of_CPU();
