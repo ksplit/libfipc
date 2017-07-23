@@ -56,23 +56,18 @@ int requester ( void* data )
 	register uint64_t CACHE_ALIGNED correction = fipc_test_time_get_correction();
 	register int32_t* CACHE_ALIGNED times = vmalloc( TRANSACTIONS * sizeof( int32_t ) );
 
-	e1 = kmalloc( sizeof( evt_sel_t ), GFP_KERNEL );
-	e2 = kmalloc( sizeof( evt_sel_t ), GFP_KERNEL );
-	e3 = kmalloc( sizeof( evt_sel_t ), GFP_KERNEL );
-	e4 = kmalloc( sizeof( evt_sel_t ), GFP_KERNEL );
-
-	create_event(0x24, 0x01, OS_MODE, e1);
-	create_event(0x24, 0x02, OS_MODE, e2);
-	create_event(0x24, 0x04, OS_MODE, e3);
-	create_event(0x24, 0x08, OS_MODE, e4);
+	FILL_EVENT_OS(&e1, 0x27, 0x01);
+	FILL_EVENT_OS(&e2, 0x27, 0x02);
+	FILL_EVENT_OS(&e3, 0x27, 0x04);
+	FILL_EVENT_OS(&e4, 0x27, 0x08);
 
 	// Begin test
 	fipc_test_thread_take_control_of_CPU();
 
-	write_evtsel(e1, 0);
-	write_evtsel(e2, 1);
-	write_evtsel(e3, 2);
-	write_evtsel(e4, 3);
+	PROG_EVENT(&e1, EVENT_SEL0);
+	PROG_EVENT(&e2, EVENT_SEL1);
+	PROG_EVENT(&e3, EVENT_SEL2);
+	PROG_EVENT(&e4, EVENT_SEL3);
 
 	for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
 	{
@@ -84,31 +79,27 @@ int requester ( void* data )
 		times[transaction_id] = (end - start) - correction;
 	}
 
-	reset_evtsel(3);
-	reset_evtsel(2);
-	reset_evtsel(1);
-	reset_evtsel(0);
+	STOP_EVENT(EVENT_SEL3);
+	STOP_EVENT(EVENT_SEL2);
+	STOP_EVENT(EVENT_SEL1);
+	STOP_EVENT(EVENT_SEL0);
 
-	read_pmc(&e1->reg, 0);
-	read_pmc(&e2->reg, 1);
-	read_pmc(&e3->reg, 2);
-	read_pmc(&e4->reg, 3);
+	READ_PMC(&VAL(e1), EVENT_SEL0);
+	READ_PMC(&VAL(e2), EVENT_SEL1);
+	READ_PMC(&VAL(e3), EVENT_SEL2);
+	READ_PMC(&VAL(e4), EVENT_SEL3);
 
-	reset_pmc(0);
-	reset_pmc(1);
-	reset_pmc(2);
-	reset_pmc(3);
+	RESET_COUNTER(EVENT_SEL0);
+	RESET_COUNTER(EVENT_SEL1);
+	RESET_COUNTER(EVENT_SEL2);
+	RESET_COUNTER(EVENT_SEL3);
 
-	pr_err("%llu    %llu    %llu    %llu", e1->reg, e2->reg, e3->reg, e4->reg);
+	pr_err("%llu    %llu    %llu    %llu", e1.reg, e2.reg, e3.reg, e4.reg);
 
 	// End test
 	fipc_test_thread_release_control_of_CPU();
 	fipc_test_stat_get_and_print_stats( times, TRANSACTIONS );
 	vfree( times );
-	kfree( e1 );
-	kfree( e2 );
-	kfree( e3 );
-	kfree( e4 );
 	complete( &requester_comp );
 	return 0;
 }

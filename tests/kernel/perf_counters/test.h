@@ -25,6 +25,7 @@ struct completion requester_comp;
 struct completion responder_comp;
 
 // Events
-evt_sel_t *e1, *e2, *e3, *e4;
+DECL_EVENT(e1); DECL_EVENT(e2);
+DECL_EVENT(e3); DECL_EVENT(e4);
 
 #endif
