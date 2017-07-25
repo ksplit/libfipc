@@ -2,8 +2,13 @@
  * @File     : test.h
  * @Author   : Abdullah Younis
  *
- * This test sends an empty message in a round trip
- * using the fipc library.
+ * This test sends establishes a requester thread and a responder thread on
+ * seperate processers, and records certain cpu/cache events.
+ *
+ * The events can be programmed in main.c in the FILL_EVENT_OS macros
+ * Event ids and mask ids can be found in your cpu's architecture manual
+ * Emulab's d710 (table 19-17) and d820 (table 19-13, 19-15) machines can use this link:
+ * https://www.intel.com/content/www/us/en/architecture-and-technology/64-ia-32-architectures-software-developer-vol-3b-part-2-manual.html
  *
  * NOTE: This test assumes an x86 architecture.
  */

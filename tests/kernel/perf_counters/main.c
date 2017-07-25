@@ -52,6 +52,7 @@ int requester ( void* data )
 	
 	register uint64_t CACHE_ALIGNED transaction_id;
 
+	// Program the events to count
 	FILL_EVENT_OS(&e1, 0x26, 0x01);
 	FILL_EVENT_OS(&e2, 0x26, 0x02);
 	FILL_EVENT_OS(&e3, 0x26, 0x04);
@@ -64,6 +65,7 @@ int requester ( void* data )
 	// Begin test
 	fipc_test_thread_take_control_of_CPU();
 
+	// Start counting
 	PROG_EVENT(&e1, EVENT_SEL0);
 	PROG_EVENT(&e2, EVENT_SEL1);
 	PROG_EVENT(&e3, EVENT_SEL2);
@@ -76,6 +78,7 @@ int requester ( void* data )
 	for ( transaction_id = 0; transaction_id < TRANSACTIONS; transaction_id++ )
 		request( chan );
 
+	// Stop counting
 	STOP_EVENT(EVENT_SEL7);
 	STOP_EVENT(EVENT_SEL6);
 	STOP_EVENT(EVENT_SEL5);
@@ -85,6 +88,7 @@ int requester ( void* data )
 	STOP_EVENT(EVENT_SEL1);
 	STOP_EVENT(EVENT_SEL0);
 
+	// Read count
 	READ_PMC(&VAL(e1), EVENT_SEL0);
 	READ_PMC(&VAL(e2), EVENT_SEL1);
 	READ_PMC(&VAL(e3), EVENT_SEL2);
@@ -94,6 +98,7 @@ int requester ( void* data )
 	READ_PMC(&VAL(e7), EVENT_SEL6);
 	READ_PMC(&VAL(e8), EVENT_SEL7);
 
+	// Print count
 	pr_err("Event #1: %llu\n", VAL(e1));
 	pr_err("Event #2: %llu\n", VAL(e2));
 	pr_err("Event #3: %llu\n", VAL(e3));
@@ -103,6 +108,7 @@ int requester ( void* data )
 	pr_err("Event #7: %llu\n", VAL(e7));
 	pr_err("Event #8: %llu\n", VAL(e8));
 
+	// Reset count
 	RESET_COUNTER(EVENT_SEL0);
 	RESET_COUNTER(EVENT_SEL1);
 	RESET_COUNTER(EVENT_SEL2);
