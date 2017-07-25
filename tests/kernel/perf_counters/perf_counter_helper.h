@@ -32,7 +32,10 @@ typedef enum {
     EVENT_SEL1,
     EVENT_SEL2,
     EVENT_SEL3,
-    EVENT_SEL_MAX,
+    EVENT_SEL4,
+    EVENT_SEL5,
+    EVENT_SEL6,
+    EVENT_SEL7
 } evtsel_idx;
 
 typedef enum {
