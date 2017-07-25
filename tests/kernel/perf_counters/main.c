@@ -98,10 +98,10 @@ int requester ( void* data )
 	pr_err("Event #2: %llu\n", VAL(e2));
 	pr_err("Event #3: %llu\n", VAL(e3));
 	pr_err("Event #4: %llu\n", VAL(e4));
-	pr_err("Event #5: %llu\n", VAL(e4));
-	pr_err("Event #6: %llu\n", VAL(e4));
-	pr_err("Event #7: %llu\n", VAL(e4));
-	pr_err("Event #8: %llu\n", VAL(e4));
+	pr_err("Event #5: %llu\n", VAL(e5));
+	pr_err("Event #6: %llu\n", VAL(e6));
+	pr_err("Event #7: %llu\n", VAL(e7));
+	pr_err("Event #8: %llu\n", VAL(e8));
 
 	RESET_COUNTER(EVENT_SEL0);
 	RESET_COUNTER(EVENT_SEL1);
