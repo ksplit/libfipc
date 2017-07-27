@@ -13,12 +13,12 @@ void request ( header_t* chan )
 	message_t* response;
 
 	int i;
+	int j;
 	for ( i = 0; i < queue_depth; ++i )
 	{
 		fipc_test_blocking_send_start( chan, &request );
 
 		// Marshalling
-		request->flags = marshall_count;
 		for ( j = 0; j < marshall_count; ++j )
 			request->regs[j] = j;
 
@@ -39,6 +39,7 @@ void respond ( header_t* chan )
 	message_t* response;
 
 	int i;
+	int j;
 	for ( i = 0; i < queue_depth; ++i )
 	{
 		fipc_test_blocking_recv_start( chan, &request );
@@ -50,10 +51,9 @@ void respond ( header_t* chan )
 		fipc_test_blocking_send_start( chan, &response );
 
 		// Marshalling
-		request->flags = marshall_count;
 		for ( j = 0; j < marshall_count; ++j )
 			request->regs[j] = j;
-		
+
 		fipc_send_msg_end( chan, response );
 	}
 }
