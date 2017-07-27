@@ -19,24 +19,32 @@
 #include "../libfipc_test.h"
 #include "perf_counter_helper.h"
 
-#define TRANSACTIONS	10000000
-#define REQUESTER_CPU	0	
-#define RESPONDER_CPU	4
 #define CHANNEL_ORDER	ilog2(sizeof(message_t)) + 7
-#define BATCHED_ORDER   1
+
+// Test Variables
+static uint32_t transactions  = 10000000;
+static uint8_t  requester_cpu = 0;
+static uint8_t  responder_cpu = 1;
+static uint32_t queue_depth   = 1;
+
+module_param( transactions,  uint, 0 );
+module_param( requester_cpu, byte, 0 );
+module_param( responder_cpu, byte, 0 );
+module_param( queue_depth,   uint, 0 );
 
 // Thread Locks
 struct completion requester_comp;
 struct completion responder_comp;
 
 // Events
-DECL_EVENT(e1);
-DECL_EVENT(e2);
-DECL_EVENT(e3);
-DECL_EVENT(e4);
-DECL_EVENT(e5);
-DECL_EVENT(e6);
-DECL_EVENT(e7);
-DECL_EVENT(e8);
+static evt_sel_t ev[8]     = { 0 };
+static uint64_t  ev_val[8] = { 0 };
+
+static uint32_t ev_num    = 0;
+static uint8_t  ev_idx[8] = { 0 };
+static uint8_t  ev_msk[8] = { 0 };
+
+module_param_array( ev_idx, byte, &ev_num, 0 );
+module_param_array( ev_msk, byte, NULL,    0 );
 
 #endif
