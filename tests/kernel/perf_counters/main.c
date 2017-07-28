@@ -13,7 +13,11 @@ void request ( header_t* chan )
 	message_t* response;
 
 	int i;
-	int j;
+
+	// Start counting
+	for ( i = 0; i < ev_num; ++i )
+		PROG_EVENT(&ev[i], i);
+
 	for ( i = 0; i < queue_depth; ++i )
 	{
 		fipc_test_blocking_send_start( chan, &request );
@@ -25,6 +29,10 @@ void request ( header_t* chan )
 
 		fipc_send_msg_end ( chan, request );
 	}
+
+	// Stop counting
+	for ( i = 0; i < ev_num; ++i )
+		STOP_EVENT(i);
 
 	for ( i = 0; i < queue_depth; ++i )
 	{
@@ -40,7 +48,7 @@ void respond ( header_t* chan )
 	message_t* response;
 
 	int i;
-	int j;
+
 	for ( i = 0; i < queue_depth; ++i )
 	{
 		fipc_test_blocking_recv_start( chan, &request );
@@ -76,20 +84,12 @@ int requester ( void* data )
 	// Begin test
 	fipc_test_thread_take_control_of_CPU();
 
-	// Start counting
-	for ( i = 0; i < ev_num; ++i )
-		PROG_EVENT(&ev[i], i);
-
 	start = RDTSC_START();
 
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 		request( chan );
 
 	end = RDTSCP();
-
-	// Stop counting
-	for ( i = 0; i < ev_num; ++i )
-		STOP_EVENT(i);
 
 	// Read count
 	for ( i = 0; i < ev_num; ++i )
