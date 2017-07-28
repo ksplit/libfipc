@@ -20,19 +20,18 @@
 #include "perf_counter_helper.h"
 
 #define CHANNEL_ORDER	ilog2(sizeof(message_t)) + 7
+// #define WRTIE_MESSAGE
 
 // Test Variables
 static uint32_t transactions   = 10000000;
 static uint8_t  requester_cpu  = 0;
 static uint8_t  responder_cpu  = 1;
 static uint32_t queue_depth    = 1;
-static uint32_t marshall_count = 1;
 
 module_param( transactions,     uint, 0 );
 module_param( requester_cpu,    byte, 0 );
 module_param( responder_cpu,    byte, 0 );
 module_param( queue_depth,      uint, 0 );
-module_param( marshall_count,   uint, 0 );
 
 // Thread Locks
 struct completion requester_comp;
