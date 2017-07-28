@@ -36,7 +36,7 @@ void request ( header_t* chan )
 		fipc_test_blocking_recv_start( chan, &response );
 		fipc_recv_msg_end( chan, response );
 	}
-	
+
 	// Start counting
 	for ( i = 0; i < ev_num; ++i )
 		PROG_EVENT(&ev[i], i);
@@ -87,8 +87,16 @@ int requester ( void* data )
 
 	start = RDTSC_START();
 
+	// Start counting
+	for ( i = 0; i < ev_num; ++i )
+		PROG_EVENT(&ev[i], i);
+
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 		request( chan );
+
+	// Stop counting
+	for ( i = 0; i < ev_num; ++i )
+		STOP_EVENT(i);
 
 	end = RDTSCP();
 
