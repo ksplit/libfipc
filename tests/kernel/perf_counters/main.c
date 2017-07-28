@@ -69,7 +69,7 @@ int requester ( void* data )
 	register uint64_t CACHE_ALIGNED end;
 
 	// Program the events to count
-	int i;
+	uint i;
 	for ( i = 0; i < ev_num; ++i )
 		FILL_EVENT_OS(&ev[i], ev_idx[i], ev_msk[i]);
 
@@ -88,7 +88,7 @@ int requester ( void* data )
 	end = RDTSCP();
 
 	// Stop counting
-	for ( i = ev_num-1; i >= 0; --i )
+	for ( i = 0; i < ev_num; ++i )
 		STOP_EVENT(i);
 
 	// Read count
@@ -97,9 +97,12 @@ int requester ( void* data )
 
 	// Print count
 	pr_err("-------------------------------------------------\n");
+
 	for ( i = 0; i < ev_num; ++i )
-		pr_err("Event id:%d  mask:%d   count: %llu\n", ev_idx[i], ev_msk[i], ev_val[i]);
+		pr_err("Event id:%2x   mask:%2x   count: %llu\n", ev_idx[i], ev_msk[i], ev_val[i]);
+	
 	pr_err("Average Cycles per Message: %llu\n", (end-start)/transactions);
+	
 	pr_err("-------------------------------------------------\n");
 
 	// Reset count
