@@ -14,9 +14,9 @@ void request ( header_t* chan )
 
 	int i;
 
-	// Start counting
+	// Stop counting
 	for ( i = 0; i < ev_num; ++i )
-		PROG_EVENT(&ev[i], i);
+		STOP_EVENT(i);
 
 	for ( i = 0; i < queue_depth; ++i )
 	{
@@ -30,15 +30,16 @@ void request ( header_t* chan )
 		fipc_send_msg_end ( chan, request );
 	}
 
-	// Stop counting
-	for ( i = 0; i < ev_num; ++i )
-		STOP_EVENT(i);
 
 	for ( i = 0; i < queue_depth; ++i )
 	{
 		fipc_test_blocking_recv_start( chan, &response );
 		fipc_recv_msg_end( chan, response );
 	}
+	
+	// Start counting
+	for ( i = 0; i < ev_num; ++i )
+		PROG_EVENT(&ev[i], i);
 }
 
 static inline
