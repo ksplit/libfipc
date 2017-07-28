@@ -19,8 +19,9 @@ void request ( header_t* chan )
 		fipc_test_blocking_send_start( chan, &request );
 
 		// Marshalling
-		for ( j = 0; j < marshall_count; ++j )
-			request->regs[j] = j;
+		#ifdef WRTIE_MESSAGE
+			request->regs[0] = 1;
+		#endif
 
 		fipc_send_msg_end ( chan, request );
 	}
@@ -51,8 +52,9 @@ void respond ( header_t* chan )
 		fipc_test_blocking_send_start( chan, &response );
 
 		// Marshalling
-		for ( j = 0; j < marshall_count; ++j )
-			request->regs[j] = j;
+		#ifdef WRTIE_MESSAGE
+			request->regs[0] = 1;
+		#endif
 
 		fipc_send_msg_end( chan, response );
 	}
@@ -63,6 +65,8 @@ int requester ( void* data )
 	header_t* chan = (header_t*) data;
 	
 	register uint64_t CACHE_ALIGNED transaction_id;
+	register uint64_t CACHE_ALIGNED start;
+	register uint64_t CACHE_ALIGNED end;
 
 	// Program the events to count
 	int i;
@@ -76,8 +80,12 @@ int requester ( void* data )
 	for ( i = 0; i < ev_num; ++i )
 		PROG_EVENT(&ev[i], i);
 
+	start = RDTSC_START();
+
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 		request( chan );
+
+	end = RDTSCP();
 
 	// Stop counting
 	for ( i = ev_num-1; i >= 0; --i )
@@ -88,10 +96,11 @@ int requester ( void* data )
 		READ_PMC(&ev_val[i], i);
 
 	// Print count
-	pr_err("-------------------------------------------------");
+	pr_err("-------------------------------------------------\n");
 	for ( i = 0; i < ev_num; ++i )
-		pr_err("Event id:%d   mask:%d   count: %llu\n", ev_idx[i], ev_msk[i], ev_val[i]);
-	pr_err("-------------------------------------------------");
+		pr_err("Event id:%d  mask:%d   count: %llu\n", ev_idx[i], ev_msk[i], ev_val[i]);
+	pr_err("Average Cycles per Message: %llu\n", (end-start)/transactions);
+	pr_err("-------------------------------------------------\n");
 
 	// Reset count
 	for ( i = 0; i < ev_num; ++i )
