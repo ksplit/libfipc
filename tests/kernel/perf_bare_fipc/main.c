@@ -13,16 +13,57 @@ void request ( header_t* chan )
 	message_t* response;
 
 	int i;
+	for ( i = 0; i < queue_depth; ++i )
+	{
+		fipc_test_blocking_send_start( chan, &request );
+		fipc_send_msg_end ( chan, request );
+	}
+
+	for ( i = 0; i < queue_depth; ++i )
+	{
+		fipc_test_blocking_recv_start( chan, &response );
+		fipc_recv_msg_end( chan, response );
+	}
+}
+
+static inline
+void request_send ( header_t* chan )
+{
+	message_t* request;
+	message_t* response;
+	int i;
+
+	// Start counting
+	for ( i = 0; i < ev_num; ++i )
+		PROG_EVENT(&ev[i], i);
 
 	for ( i = 0; i < queue_depth; ++i )
 	{
 		fipc_test_blocking_send_start( chan, &request );
+		fipc_send_msg_end ( chan, request );
+	}
 
-		// Marshalling
-		#ifdef WRTIE_MESSAGE
-			request->regs[0] = 1;
-		#endif
+	// Stop counting
+	for ( i = 0; i < ev_num; ++i )
+		STOP_EVENT(i);
 
+	for ( i = 0; i < queue_depth; ++i )
+	{
+		fipc_test_blocking_recv_start( chan, &response );
+		fipc_recv_msg_end( chan, response );
+	}
+}
+
+static inline
+void request_recv ( header_t* chan )
+{
+	message_t* request;
+	message_t* response;
+	int i;
+
+	for ( i = 0; i < queue_depth; ++i )
+	{
+		fipc_test_blocking_send_start( chan, &request );
 		fipc_send_msg_end ( chan, request );
 	}
 
@@ -35,11 +76,10 @@ void request ( header_t* chan )
 		fipc_test_blocking_recv_start( chan, &response );
 		fipc_recv_msg_end( chan, response );
 	}
-	
+
 	// Stop counting
 	for ( i = 0; i < ev_num; ++i )
 		STOP_EVENT(i);
-
 }
 
 static inline
@@ -49,7 +89,6 @@ void respond ( header_t* chan )
 	message_t* response;
 
 	int i;
-
 	for ( i = 0; i < queue_depth; ++i )
 	{
 		fipc_test_blocking_recv_start( chan, &request );
@@ -59,12 +98,6 @@ void respond ( header_t* chan )
 	for ( i = 0; i < queue_depth; ++i )
 	{
 		fipc_test_blocking_send_start( chan, &response );
-
-		// Marshalling
-		#ifdef WRTIE_MESSAGE
-			request->regs[0] = 1;
-		#endif
-
 		fipc_send_msg_end( chan, response );
 	}
 }
@@ -85,12 +118,16 @@ int requester ( void* data )
 	// Begin test
 	fipc_test_thread_take_control_of_CPU();
 
-	start = RDTSC_START();
+	// Start counting
+	for ( i = 0; i < ev_num; ++i )
+		PROG_EVENT(&ev[i], i);
 
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 		request( chan );
 
-	end = RDTSCP();
+	// Stop counting
+	for ( i = 0; i < ev_num; ++i )
+		STOP_EVENT(i);
 
 	// Read count
 	for ( i = 0; i < ev_num; ++i )
@@ -102,7 +139,26 @@ int requester ( void* data )
 	for ( i = 0; i < ev_num; ++i )
 		pr_err("Event id:%2x   mask:%2x   count: %llu\n", ev_idx[i], ev_msk[i], ev_val[i]);
 	
-	pr_err("Average Cycles per Message: %llu\n", (end-start)/transactions);
+	pr_err("-------------------------------------------------\n");
+
+	// Reset count
+	for ( i = 0; i < ev_num; ++i )
+		RESET_COUNTER(i);
+
+	// ================================
+	// Send Test
+	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
+		request_send( chan );
+
+	// Read count
+	for ( i = 0; i < ev_num; ++i )
+		READ_PMC(&ev_val[i], i);
+
+	// Print count
+	pr_err("-------------------------------------------------\n");
+
+	for ( i = 0; i < ev_num; ++i )
+		pr_err("(send) Event id:%2x   mask:%2x   count: %llu\n", ev_idx[i], ev_msk[i], ev_val[i]);
 	
 	pr_err("-------------------------------------------------\n");
 
@@ -110,6 +166,26 @@ int requester ( void* data )
 	for ( i = 0; i < ev_num; ++i )
 		RESET_COUNTER(i);
 
+	// ================================
+	// Recv Test
+	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
+		request_recv( chan );
+
+	// Read count
+	for ( i = 0; i < ev_num; ++i )
+		READ_PMC(&ev_val[i], i);
+
+	// Print count
+	pr_err("-------------------------------------------------\n");
+
+	for ( i = 0; i < ev_num; ++i )
+		pr_err("(recv) Event id:%2x   mask:%2x   count: %llu\n", ev_idx[i], ev_msk[i], ev_val[i]);
+	
+	pr_err("-------------------------------------------------\n");
+
+	// Reset count
+	for ( i = 0; i < ev_num; ++i )
+		RESET_COUNTER(i);
 
 	// End test
 	fipc_test_thread_release_control_of_CPU();
@@ -127,9 +203,13 @@ int responder ( void* data )
 	fipc_test_thread_take_control_of_CPU();
 
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
-	{
 		respond( chan );
-	}
+
+	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
+		respond( chan );
+
+	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
+		respond( chan );
 
 	// End test
 	fipc_test_thread_release_control_of_CPU();

@@ -2,10 +2,10 @@
  * @File     : test.h
  * @Author   : Abdullah Younis
  *
- * This test sends establishes a requester thread and a responder thread on
- * seperate processers, and records certain cpu/cache events.
+ * This tests measures the required cache transactions to 
+ * send request and response messages in one cache line
  *
- * The events can be programmed in main.c in the FILL_EVENT_OS macros
+ * The events can be programmed using the ev_idx and ev_msk parameters
  * Event ids and mask ids can be found in your cpu's architecture manual
  * Emulab's d710 (table 19-17, 19-19) and d820 (table 19-13, 19-15) machines can use this link:
  * https://www.intel.com/content/www/us/en/architecture-and-technology/64-ia-32-architectures-software-developer-vol-3b-part-2-manual.html
@@ -19,19 +19,14 @@
 #include "../libfipc_test.h"
 #include "perf_counter_helper.h"
 
-#define CHANNEL_ORDER	ilog2(sizeof(message_t)) + 7
-// #define WRTIE_MESSAGE
-
 // Test Variables
 static uint32_t transactions   = 10000000;
 static uint8_t  requester_cpu  = 0;
 static uint8_t  responder_cpu  = 1;
-static uint32_t queue_depth    = 1;
 
 module_param( transactions,     uint, 0 );
 module_param( requester_cpu,    byte, 0 );
 module_param( responder_cpu,    byte, 0 );
-module_param( queue_depth,      uint, 0 );
 
 // Thread Locks
 struct completion requester_comp;
@@ -47,5 +42,11 @@ static uint8_t  ev_msk[8] = { 0 };
 
 module_param_array( ev_idx, byte, &ev_num, 0 );
 module_param_array( ev_msk, byte, NULL,    0 );
+
+// Cache Variables
+volatile cache_line_t CACHE_ALIGNED line;
+
+volatile uint64_t CACHE_ALIGNED resp_sequence = 1; 
+volatile uint64_t CACHE_ALIGNED req_sequence  = 1;
 
 #endif
