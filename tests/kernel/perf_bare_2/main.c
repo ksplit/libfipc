@@ -22,6 +22,8 @@ void request ( void )
 static inline
 void request_send ( void )
 {
+	int i;
+
 	// Start counting
 	for ( i = 0; i < ev_num; ++i )
 		PROG_EVENT(&ev[i], i);
@@ -43,6 +45,8 @@ void request_send ( void )
 static inline
 void request_recv ( void )
 {
+	int i;
+
 	// Write Request
 	req_line.regs[0] = req_sequence;
 
@@ -75,9 +79,7 @@ void respond ( void )
 }
 
 int requester ( void* data )
-{
-	header_t* chan = (header_t*) data;
-	
+{	
 	register uint64_t CACHE_ALIGNED transaction_id;
 	register uint64_t CACHE_ALIGNED start;
 	register uint64_t CACHE_ALIGNED end;
@@ -167,8 +169,6 @@ int requester ( void* data )
 
 int responder ( void* data )
 {
-	header_t* chan = (header_t*) data;
-	
 	register uint64_t CACHE_ALIGNED transaction_id;
 
 	// Begin test
@@ -201,15 +201,6 @@ int main ( void )
 
 	kthread_t* requester_thread = NULL;
 	kthread_t* responder_thread = NULL;
-
-	fipc_init();
-	fipc_test_create_channel( CHANNEL_ORDER, &requester_header, &responder_header );
-
-	if ( requester_header == NULL || responder_header == NULL )
-	{
-		pr_err( "%s\n", "Error while creating channel" );
-		return -1;
-	}
 
 	// Create Threads
 	requester_thread = fipc_test_thread_spawn_on_CPU ( requester, NULL, requester_cpu );
