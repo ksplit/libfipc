@@ -26,7 +26,7 @@ module_param( transactions,     uint, 0 );
 module_param( requester_cpu,    byte, 0 );
 module_param( responder_cpu,    byte, 0 );
 module_param( queue_depth,      uint, 0 );
-module_param( marshall_count,   uint, 0 );
+module_param( marshall_count,   byte, 0 );
 
 // Thread Locks
 struct completion requester_comp;

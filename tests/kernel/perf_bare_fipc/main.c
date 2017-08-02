@@ -107,8 +107,6 @@ int requester ( void* data )
 	header_t* chan = (header_t*) data;
 	
 	register uint64_t CACHE_ALIGNED transaction_id;
-	register uint64_t CACHE_ALIGNED start;
-	register uint64_t CACHE_ALIGNED end;
 
 	// Program the events to count
 	uint i;
