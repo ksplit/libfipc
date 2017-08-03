@@ -94,8 +94,12 @@ int requester ( void* data )
 	for ( i = 0; i < ev_num; ++i )
 		PROG_EVENT(&ev[i], i);
 
+	start = RDTSC_START();
+
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 		request();
+
+	end = RDTSCP();
 
 	// Stop counting
 	for ( i = 0; i < ev_num; ++i )
@@ -107,6 +111,8 @@ int requester ( void* data )
 
 	// Print count
 	pr_err("-------------------------------------------------\n");
+
+	pr_err("Average Cycles: %llu\n", (end - start) / transactions);
 
 	for ( i = 0; i < ev_num; ++i )
 		pr_err("Event id:%2x   mask:%2x   count: %llu\n", ev_idx[i], ev_msk[i], ev_val[i]);
