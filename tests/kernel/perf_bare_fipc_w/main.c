@@ -13,6 +13,7 @@ void request ( header_t* chan )
 	message_t* response;
 
 	int i;
+	int j;
 	for ( i = 0; i < queue_depth; ++i )
 	{
 		fipc_test_blocking_send_start( chan, &request );
@@ -38,6 +39,7 @@ void request_send ( header_t* chan )
 	message_t* request;
 	message_t* response;
 	int i;
+	int j;
 
 	// Start counting
 	for ( i = 0; i < ev_num; ++i )
@@ -72,6 +74,7 @@ void request_recv ( header_t* chan )
 	message_t* request;
 	message_t* response;
 	int i;
+	int j;
 
 	for ( i = 0; i < queue_depth; ++i )
 	{
@@ -107,6 +110,7 @@ void respond ( header_t* chan )
 	message_t* response;
 
 	int i;
+	int j;
 	for ( i = 0; i < queue_depth; ++i )
 	{
 		fipc_test_blocking_recv_start( chan, &request );
