@@ -24,6 +24,8 @@ make -C $PWD/perf_bare_1
 make -C $PWD/perf_bare_1_rest
 make -C $PWD/perf_bare_2
 make -C $PWD/perf_bare_fipc
+make -C $PWD/perf_bare_fipc_w
+make -C $PWD/perf_rpc
 
 echo "perf_bare_1" >> $outfile
 run perf_bare_1 ev_idx=0x24,0x24,0x24,0x24 ev_msk=0x01,0x02,0x04,0x08
