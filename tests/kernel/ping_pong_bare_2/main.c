@@ -97,6 +97,7 @@ int main ( void )
 	
 	// Init Variables
 	req_line.regs[0] = MSG_AVAIL;
+	resp_line.regs[0] = MSG_AVAIL;
 
 	kthread_t* requester_thread = NULL;
 	kthread_t* responder_thread = NULL;
