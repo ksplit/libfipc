@@ -9,27 +9,37 @@
 static inline
 void request ( void )
 {
-	// Write Request
-	req_line.regs[0] = req_sequence;
-
-	// Read Response
-	while ( likely(resp_line.regs[0] != req_sequence) )
+	// Read Request
+	while ( likely(req_line.regs[0] != MSG_AVAIL) )
 		fipc_test_pause();
 
-	req_sequence++;
+	// Write Request
+	req_line.regs[0] = MSG_READY;
+
+	// Read Response
+	while ( likely(resp_line.regs[0] != MSG_READY) )
+		fipc_test_pause();
+
+	// Write Response
+	resp_line.regs[0] = MSG_AVAIL;
 }
 
 static inline
 void respond ( void )
 {
 	// Read Request
-	while ( likely(req_line.regs[0] != resp_sequence ))
+	while ( likely(req_line.regs[0] != MSG_READY ))
+		fipc_test_pause();
+
+	// Write Request
+	req_line.regs[0] = MSG_AVAIL;
+	
+	// Read Response
+	while ( likely(resp_line.regs[0] != MSG_AVAIL ))
 		fipc_test_pause();
 
 	// Write Response
-	resp_line.regs[0] = resp_sequence;
-	
-	resp_sequence++;
+	resp_line.regs[0] = MSG_READY;
 }
 
 int requester ( void* data )

@@ -30,7 +30,7 @@ struct completion responder_comp;
 volatile cache_line_t CACHE_ALIGNED req_line;
 volatile cache_line_t CACHE_ALIGNED resp_line;
 
-volatile uint64_t CACHE_ALIGNED resp_sequence = 1; 
-volatile uint64_t CACHE_ALIGNED req_sequence  = 1;
+#define MSG_AVAIL 0xBAADBEEF
+#define MSG_READY 0xF00DF00D
 
 #endif
