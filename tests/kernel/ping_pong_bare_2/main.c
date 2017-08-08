@@ -33,7 +33,7 @@ void respond ( void )
 
 	// Write Request
 	req_line.regs[0] = MSG_AVAIL;
-	
+
 	// Read Response
 	while ( likely(resp_line.regs[0] != MSG_AVAIL ))
 		fipc_test_pause();
@@ -96,8 +96,7 @@ int main ( void )
 	init_completion( &responder_comp );
 	
 	// Init Variables
-	req_line.regs[0]  = 0;
-	resp_line.regs[0] = 0;
+	req_line.regs[0] = MSG_AVAIL;
 
 	kthread_t* requester_thread = NULL;
 	kthread_t* responder_thread = NULL;
