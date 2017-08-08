@@ -96,7 +96,7 @@ int main ( void )
 	init_completion( &responder_comp );
 	
 	// Init Variables
-	req_line.regs[0] = MSG_AVAIL;
+	req_line.regs[0]  = MSG_AVAIL;
 	resp_line.regs[0] = MSG_AVAIL;
 
 	kthread_t* requester_thread = NULL;

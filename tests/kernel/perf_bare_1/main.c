@@ -10,13 +10,11 @@ static inline
 void request ( void )
 {
 	// Write Request
-	line.regs[0] = req_sequence++;
+	line.regs[0] = MSG_AVAIL;
 
 	// Read Response
-	while ( unlikely( line.regs[0] != req_sequence ) )
+	while ( unlikely( line.regs[0] != MSG_READY ) )
 		fipc_test_pause();
-
-	req_sequence++;
 }
 
 static inline
@@ -29,17 +27,15 @@ void request_send ( void )
 		PROG_EVENT(&ev[i], i);
 
 	// Write Request
-	line.regs[0] = req_sequence++;
+	line.regs[0] = MSG_AVAIL;
 
 	// Stop counting
 	for ( i = 0; i < ev_num; ++i )
 		STOP_EVENT(i);
 
 	// Read Response
-	while ( unlikely( line.regs[0] != req_sequence ) )
+	while ( unlikely( line.regs[0] != MSG_READY ) )
 		fipc_test_pause();
-
-	req_sequence++;
 }
 
 static inline
@@ -48,34 +44,30 @@ void request_recv ( void )
 	int i;
 
 	// Write Request
-	line.regs[0] = req_sequence++;
+	line.regs[0] = MSG_AVAIL;
 
 	// Start counting
 	for ( i = 0; i < ev_num; ++i )
 		PROG_EVENT(&ev[i], i);
 
 	// Read Response
-	while ( unlikely( line.regs[0] != req_sequence ) )
+	while ( unlikely( line.regs[0] != MSG_READY ) )
 		fipc_test_pause();
 
 	// Stop counting
 	for ( i = 0; i < ev_num; ++i )
 		STOP_EVENT(i);
-
-	req_sequence++;
 }
 
 static inline
 void respond ( void )
 {
 	// Read Request
-	while ( unlikely( line.regs[0] != resp_sequence ) )
+	while ( unlikely( line.regs[0] != MSG_AVAIL ) )
 		fipc_test_pause();
 
 	// Write Response
-	line.regs[0] = ++resp_sequence;
-	
-	resp_sequence++;
+	line.regs[0] = MSG_READY;
 }
 
 int requester ( void* data )
@@ -200,9 +192,6 @@ int main ( void )
 {
 	init_completion( &requester_comp );
 	init_completion( &responder_comp );
-
-	// Init Variables
-	line.regs[0] = 0;
 
 	kthread_t* requester_thread = NULL;
 	kthread_t* responder_thread = NULL;

@@ -3,7 +3,7 @@
  * @Author   : Abdullah Younis
  *
  * This tests measures the required cache transactions to 
- * send request and response messages using two cache line
+ * send request and response messages in one cache line
  *
  * The events can be programmed using the ev_idx and ev_msk parameters
  * Event ids and mask ids can be found in your cpu's architecture manual
@@ -44,10 +44,9 @@ module_param_array( ev_idx, byte, &ev_num, 0 );
 module_param_array( ev_msk, byte, NULL,    0 );
 
 // Cache Variables
-volatile cache_line_t CACHE_ALIGNED req_line;
-volatile cache_line_t CACHE_ALIGNED resp_line;
+volatile cache_line_t CACHE_ALIGNED line;
 
-#define MSG_AVAIL 0xBAADBEEF
-#define MSG_READY 0xF00DF00D
+volatile cache_line_t CACHE_ALIGNED resp_sequence; 
+volatile cache_line_t CACHE_ALIGNED req_sequence;
 
 #endif

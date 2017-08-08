@@ -47,7 +47,7 @@ module_param_array( ev_msk, byte, NULL,    0 );
 volatile cache_line_t CACHE_ALIGNED req_line;
 volatile cache_line_t CACHE_ALIGNED resp_line;
 
-#define MSG_AVAIL 0xBAADBEEF
-#define MSG_READY 0xF00DF00D
+volatile cache_line_t CACHE_ALIGNED resp_sequence; 
+volatile cache_line_t CACHE_ALIGNED req_sequence;
 
 #endif
