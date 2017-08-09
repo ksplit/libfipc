@@ -211,8 +211,8 @@ int main ( void )
 
 	// Init Variables
 	line.regs[0] = 0;
-	req_sequence.regs[0] = 0;
-	resp_sequence.regs[0] = 0;
+	req_sequence.regs[0] = 1;
+	resp_sequence.regs[0] = 1;
 
 	kthread_t* requester_thread = NULL;
 	kthread_t* responder_thread = NULL;
