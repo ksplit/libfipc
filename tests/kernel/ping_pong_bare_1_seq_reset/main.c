@@ -47,6 +47,8 @@ int requester ( void* data )
 	// Begin test
 	fipc_test_thread_take_control_of_CPU();
 
+	int i;
+
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 	{
 		start = RDTSC_START();
@@ -58,7 +60,7 @@ int requester ( void* data )
 		// Reset
 		for ( i = 0; i < reset_count; ++i )
 			fipc_test_pause();
-		
+
 		times[transaction_id] = (end - start) - correction;
 	}
 
