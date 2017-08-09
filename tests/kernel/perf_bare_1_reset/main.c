@@ -21,8 +21,6 @@ void request ( void )
 	// Reset
 	for ( i = 0; i < reset_count; ++i )
 		fipc_test_pause();
-
-	req_sequence++;
 }
 
 static inline
