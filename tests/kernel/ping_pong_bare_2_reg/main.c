@@ -9,23 +9,37 @@
 static inline
 void request ( uint64_t index )
 {
+	// Read Request
+	while ( likely(cache_tx[index].regs[0] != MSG_AVAIL) )
+		fipc_test_pause();
+
 	// Write Request
-	cache[index].regs[0] = MSG_AVAIL;
+	cache_tx[index].regs[0] = MSG_READY;
 
 	// Read Response
-	while ( unlikely( cache[index].regs[0] != MSG_READY ) )
+	while ( likely(cache_rx[index].regs[0] != MSG_READY) )
 		fipc_test_pause();
+
+	// Write Response
+	cache_rx[index].regs[0] = MSG_AVAIL;
 }
 
 static inline
 void respond ( uint64_t index )
 {
 	// Read Request
-	while ( unlikely( cache[index].regs[0] != MSG_AVAIL ) )
+	while ( likely(cache_tx[index].regs[0] != MSG_READY ))
+		fipc_test_pause();
+
+	// Write Request
+	cache_tx[index].regs[0] = MSG_AVAIL;
+
+	// Read Response
+	while ( likely(cache_rx[index].regs[0] != MSG_AVAIL ))
 		fipc_test_pause();
 
 	// Write Response
-	cache[index].regs[0] = MSG_READY;
+	cache_rx[index].regs[0] = MSG_READY;
 }
 
 int requester ( void* data )
@@ -85,9 +99,18 @@ int main ( void )
 	kthread_t* responder_thread = NULL;
 
 	/**
-	 * Shared memory region is 4mb, which is meant to fit into L1.
+	 * Shared memory regions are 4mb each, which is meant to fit into L1.
 	 */
-	cache = (cache_line_t*) kmalloc( 4*1024*1024, GFP_KERNEL );
+	cache_tx = kmalloc( 4*1024*1024, GFP_KERNEL );
+	cache_rx = kmalloc( 4*1024*1024, GFP_KERNEL );
+
+	// Init Variables
+	int i;
+	for ( i = 0; i < transactions; ++i )
+	{
+		cache_tx[i].regs[0] = MSG_AVAIL;
+		cache_rx[i].regs[0] = MSG_AVAIL;
+	}
 
 	// Create Threads
 	requester_thread = fipc_test_thread_spawn_on_CPU ( requester, NULL, requester_cpu );

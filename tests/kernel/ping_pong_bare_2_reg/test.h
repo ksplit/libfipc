@@ -3,15 +3,15 @@
  * @Author   : Abdullah Younis
  *
  * This tests times the required cache transactions to 
- * send request and response messages in one cache line
+ * send request and response messages using two cache lines
  *
  * This test uses a shared-continuous region of memory
  *
  * NOTE: This test assumes an x86 architecture.
  */
 
-#ifndef LIBFIPC_TEST_PING_PONG_BARE_1_REG
-#define LIBFIPC_TEST_PING_PONG_BARE_1_REG
+#ifndef LIBFIPC_TEST_PING_PONG_BARE_2_REG
+#define LIBFIPC_TEST_PING_PONG_BARE_2_REG
 
 #include "../libfipc_test.h"
 
@@ -28,7 +28,8 @@ module_param( responder_cpu,    byte, 0 );
 struct completion requester_comp;
 struct completion responder_comp;
 
-volatile cache_line_t* cache;
+volatile cache_line_t* cache_tx;
+volatile cache_line_t* cache_rx;
 
 #define MSG_AVAIL 0xBAADBEEF
 #define MSG_READY 0xF00DF00D
