@@ -10,18 +10,18 @@ static inline
 void request ( uint64_t index )
 {
 	// Read Request
-	while ( likely(req_line.regs[0] != MSG_AVAIL) )
+	while ( likely(cache_tx[index].regs[0] != MSG_AVAIL) )
 		fipc_test_pause();
 
 	// Write Request
-	req_line.regs[0] = MSG_READY;
+	cache_tx[index].regs[0] = MSG_READY;
 
 	// Read Response
-	while ( likely(resp_line.regs[0] != MSG_READY) )
+	while ( likely(cache_rx[index].regs[0] != MSG_READY) )
 		fipc_test_pause();
 
 	// Write Response
-	resp_line.regs[0] = MSG_AVAIL;
+	cache_rx[index].regs[0] = MSG_AVAIL;
 }
 
 static inline
@@ -34,22 +34,22 @@ void request_send ( uint64_t index )
 		PROG_EVENT(&ev[i], i);
 
 	// Read Request
-	while ( likely(req_line.regs[0] != MSG_AVAIL) )
+	while ( likely(cache_tx[index].regs[0] != MSG_AVAIL) )
 		fipc_test_pause();
 
 	// Write Request
-	req_line.regs[0] = MSG_READY;
+	cache_tx[index].regs[0] = MSG_READY;
 
 	// Stop counting
 	for ( i = 0; i < ev_num; ++i )
 		STOP_EVENT(i);
 
 	// Read Response
-	while ( likely(resp_line.regs[0] != MSG_READY) )
+	while ( likely(cache_rx[index].regs[0] != MSG_READY) )
 		fipc_test_pause();
 
 	// Write Response
-	resp_line.regs[0] = MSG_AVAIL;
+	cache_rx[index].regs[0] = MSG_AVAIL;
 }
 
 static inline
@@ -58,22 +58,22 @@ void request_recv ( uint64_t index )
 	int i;
 
 	// Read Request
-	while ( likely(req_line.regs[0] != MSG_AVAIL) )
+	while ( likely(cache_tx[index].regs[0] != MSG_AVAIL) )
 		fipc_test_pause();
 
 	// Write Request
-	req_line.regs[0] = MSG_READY;
+	cache_tx[index].regs[0] = MSG_READY;
 
 	// Start counting
 	for ( i = 0; i < ev_num; ++i )
 		PROG_EVENT(&ev[i], i);
 
 	// Read Response
-	while ( likely(resp_line.regs[0] != MSG_READY) )
+	while ( likely(cache_rx[index].regs[0] != MSG_READY) )
 		fipc_test_pause();
 
 	// Write Response
-	resp_line.regs[0] = MSG_AVAIL;
+	cache_rx[index].regs[0] = MSG_AVAIL;
 
 	// Stop counting
 	for ( i = 0; i < ev_num; ++i )
@@ -84,18 +84,18 @@ static inline
 void respond ( uint64_t index )
 {
 	// Read Request
-	while ( likely(req_line.regs[0] != MSG_READY ))
+	while ( likely(cache_tx[index].regs[0] != MSG_READY ))
 		fipc_test_pause();
 
 	// Write Request
-	req_line.regs[0] = MSG_AVAIL;
+	cache_tx[index].regs[0] = MSG_AVAIL;
 
 	// Read Response
-	while ( likely(resp_line.regs[0] != MSG_AVAIL ))
+	while ( likely(cache_rx[index].regs[0] != MSG_AVAIL ))
 		fipc_test_pause();
 
 	// Write Response
-	resp_line.regs[0] = MSG_READY;
+	cache_rx[index].regs[0] = MSG_READY;
 }
 
 int requester ( void* data )
