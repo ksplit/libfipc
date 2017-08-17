@@ -88,7 +88,7 @@ int main ( void )
 	 * Shared memory region is 16mb, which is meant to fit into L1.
 	 * It is treated as a ring buffer if the test calls for more memory.
 	 */
-	void* shm_reg_p = kmalloc( 16*1*1024, GFP_KERNEL );
+	void* shm_reg_p = kmalloc( 16*1024*1024, GFP_KERNEL );
 
 	// Create Threads
 	requester_thread = fipc_test_thread_spawn_on_CPU ( requester, shm_reg_p, requester_cpu );
