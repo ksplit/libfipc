@@ -89,6 +89,13 @@ int main ( void )
 	 */
 	cache = (cache_line_t*) kmalloc( 4*1024*1024, GFP_KERNEL );
 
+	// Init Variables
+	int i;
+	for ( i = 0; i < transactions; ++i )
+	{
+		cache[i].regs[0] = MSG_AVAIL;
+	}
+
 	// Create Threads
 	requester_thread = fipc_test_thread_spawn_on_CPU ( requester, NULL, requester_cpu );
 	if ( requester_thread == NULL )
