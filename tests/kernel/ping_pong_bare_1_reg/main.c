@@ -43,7 +43,7 @@ int requester ( void* shm_reg_p )
 	{
 		start = RDTSC_START();
 
-		request( (cache_line_t*)shm_reg_p, transaction_id % ((1 << 24)-1) );
+		request( (cache_line_t*)shm_reg_p, transaction_id );
 
 		end = RDTSCP();
 		times[transaction_id] = (end - start) - correction;
@@ -66,7 +66,7 @@ int responder ( void* shm_reg_p )
 
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 	{
-		respond( (cache_line_t*)shm_reg_p, transaction_id % ((1 << 24)-1) );
+		respond( (cache_line_t*)shm_reg_p, transaction_id );
 	}
 
 	// End test
@@ -88,7 +88,7 @@ int main ( void )
 	 * Shared memory region is 16mb, which is meant to fit into L1.
 	 * It is treated as a ring buffer if the test calls for more memory.
 	 */
-	void* shm_reg_p = kmalloc( 16*1024*1024, GFP_KERNEL );
+	void* shm_reg_p = kmalloc( 4*1024*1024, GFP_KERNEL );
 
 	// Create Threads
 	requester_thread = fipc_test_thread_spawn_on_CPU ( requester, shm_reg_p, requester_cpu );
