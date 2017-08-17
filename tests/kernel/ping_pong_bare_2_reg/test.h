@@ -28,6 +28,7 @@ module_param( responder_cpu,    byte, 0 );
 struct completion requester_comp;
 struct completion responder_comp;
 
+// Cache Variables
 volatile cache_line_t* cache_tx;
 volatile cache_line_t* cache_rx;
 
