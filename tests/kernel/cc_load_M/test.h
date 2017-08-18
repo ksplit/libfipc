@@ -15,7 +15,7 @@
 #include "../libfipc_test.h"
 
 // Test Variables
-static uint32_t transactions   = 500;
+static uint32_t transactions   = 250;
 static uint8_t  loader_cpu     = 0;
 static uint8_t  stager_cpu     = 1;
 
