@@ -30,4 +30,6 @@ struct completion stager_comp;
 // Cache Variable
 volatile cache_line_t* cache;
 
+#define MSG_READY 0xF00DF00D
+
 #endif
