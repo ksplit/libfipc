@@ -39,7 +39,7 @@ int loader ( void* data )
 		start = RDTSC_START();
 
 		load( transaction_id );
-
+		fipc_test_mfence();
 		end = RDTSCP();
 		times[transaction_id] = (end - start) - correction;
 	}
