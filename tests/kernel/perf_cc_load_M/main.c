@@ -46,7 +46,8 @@ int loader ( void* data )
 
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 	{
-		load( transaction_id );
+		//load( load_order[transaction_id] == 0 ? transaction_id : load_order[transaction_id] );
+		load( load_order2[transaction_id] );
 		fipc_test_mfence();
 	}
 
