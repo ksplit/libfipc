@@ -39,7 +39,7 @@ int loader ( void* data )
 	{
 		start = RDTSC_START();
 
-		load( transaction_id );
+		load( load_order[transaction_id] == 0 ? transaction_id : load_order[transaction_id] );
 		fipc_test_mfence();
 
 		end = RDTSCP();
