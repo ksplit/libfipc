@@ -326,6 +326,6 @@ static uint32_t load_order2[256] =
 	65,
 	238,
 	184
-}
+};
 
 #endif
