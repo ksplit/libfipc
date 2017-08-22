@@ -94,7 +94,7 @@ int main ( void )
 	/**
 	 * Shared memory region is 16kb, which is meant to fit into L1.
 	 */
-	cache = (cache_line_t*) kmalloc( 16*1024, GFP_KERNEL );
+	cache = (cache_line_t*) kmalloc( 16*1024 + 64, GFP_KERNEL );
 
 	// Create Threads
 	loader_thread = fipc_test_thread_spawn_on_CPU ( loader, NULL, loader_cpu );
