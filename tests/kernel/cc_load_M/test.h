@@ -13,6 +13,7 @@
 #define LIBFIPC_TEST_CC_LOAD_M
 
 #include "../libfipc_test.h"
+#include "perf_counter_helper.h"
 
 // Test Variables
 static uint32_t transactions   = 250;
