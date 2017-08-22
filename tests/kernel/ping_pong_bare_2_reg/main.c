@@ -99,10 +99,10 @@ int main ( void )
 	kthread_t* responder_thread = NULL;
 
 	/**
-	 * Shared memory regions are 4mb each, which is meant to fit into L1.
+	 * Shared memory regions are 4kb each, which is meant to fit into L1.
 	 */
-	cache_tx = kmalloc( 4*1024*1024, GFP_KERNEL );
-	cache_rx = kmalloc( 4*1024*1024, GFP_KERNEL );
+	cache_tx = kmalloc( 4*1024, GFP_KERNEL );
+	cache_rx = kmalloc( 4*1024, GFP_KERNEL );
 
 	// Init Variables
 	int i;

@@ -28,7 +28,7 @@ module_param( responder_cpu,    byte, 0 );
 struct completion requester_comp;
 struct completion responder_comp;
 
-// Cache Variables
+// Cache Variable
 volatile cache_line_t* cache;
 
 #define MSG_AVAIL 0xBAADBEEF

@@ -26,8 +26,11 @@ int loader ( void* data )
 	register uint64_t CACHE_ALIGNED transaction_id;
 	register uint64_t CACHE_ALIGNED start;
 	register uint64_t CACHE_ALIGNED end;
-	register uint64_t CACHE_ALIGNED correction = fipc_test_time_get_correction();
-	register int32_t* CACHE_ALIGNED times = vmalloc( transactions * sizeof( int32_t ) );
+
+	// Program the events to count
+	uint i;
+	for ( i = 0; i < ev_num; ++i )
+		FILL_EVENT_OS(&ev[i], ev_idx[i], ev_msk[i]);
 
 	// Begin test
 	fipc_test_thread_take_control_of_CPU();
@@ -35,21 +38,44 @@ int loader ( void* data )
 	load( transactions );
 	fipc_test_mfence();
 
+	// Start counting
+	for ( i = 0; i < ev_num; ++i )
+		PROG_EVENT(&ev[i], i);
+
+	start = RDTSC_START();
+
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 	{
-		start = RDTSC_START();
-
 		load( transaction_id );
 		fipc_test_mfence();
-
-		end = RDTSCP();
-		times[transaction_id] = (end - start) - correction;
 	}
+
+	end = RDTSCP();
+
+	// Stop counting
+	for ( i = 0; i < ev_num; ++i )
+		STOP_EVENT(i);
+
+	// Read count
+	for ( i = 0; i < ev_num; ++i )
+		READ_PMC(&ev_val[i], i);
+
+	// Reset count
+	for ( i = 0; i < ev_num; ++i )
+		RESET_COUNTER(i);
+
+	// Print count
+	pr_err("-------------------------------------------------\n");
+
+	pr_err("Average Cycles: %llu\n", (end - start) / transactions);
+
+	for ( i = 0; i < ev_num; ++i )
+		pr_err("Event id:%2x   mask:%2x   count: %llu\n", ev_idx[i], ev_msk[i], ev_val[i]);
+	
+	pr_err("-------------------------------------------------\n");
 
 	// End test
 	fipc_test_thread_release_control_of_CPU();
-	fipc_test_stat_get_and_print_stats( times, transactions );
-	vfree( times );
 	complete( &loader_comp );
 	return 0;
 }

@@ -197,9 +197,9 @@ int main ( void )
 	kthread_t* responder_thread = NULL;
 	
 	/**
-	 * Shared memory region is 4mb, which is meant to fit into L1.
+	 * Shared memory region is 4kb, which is meant to fit into L1.
 	 */
-	cache = (cache_line_t*) kmalloc( 4*1024*1024, GFP_KERNEL );
+	cache = (cache_line_t*) kmalloc( 4*1024, GFP_KERNEL );
 
 	// Create Threads
 	requester_thread = fipc_test_thread_spawn_on_CPU ( requester, NULL, requester_cpu );
