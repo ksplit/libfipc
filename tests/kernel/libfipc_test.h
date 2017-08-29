@@ -12,11 +12,12 @@
 #ifndef LIBFIPC_TEST_LIBRARY_LOCK
 #define LIBFIPC_TEST_LIBRARY_LOCK
 
-#define fipc_test_lfence()   asm volatile ( "lfence" :: )
-#define fipc_test_sfence()   asm volatile ( "sfence" :: )
-#define fipc_test_mfence()   asm volatile ( "mfence" :: )
-#define fipc_test_pause()    asm volatile ( "pause\n": : :"memory" );
-#define fipc_test_clflush(X) asm volatile ("clflush %0" : "+m" (*(volatile char*)X))
+#define fipc_test_lfence()    asm volatile ( "lfence" :: )
+#define fipc_test_sfence()    asm volatile ( "sfence" :: )
+#define fipc_test_mfence()    asm volatile ( "mfence" :: )
+#define fipc_test_pause()     asm volatile ( "pause\n": : :"memory" );
+#define fipc_test_clflush(X)  asm volatile ( "clflush %0" : "+m" (*(volatile char*)X) )
+#define fipc_test_prefetch(X) __builtin_prefetch( (void*)&X )
 
 #define likely(x)       __builtin_expect(!!(x), 1)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
