@@ -15,7 +15,7 @@
 #define fipc_test_lfence()    asm volatile ( "lfence" :: )
 #define fipc_test_sfence()    asm volatile ( "sfence" :: )
 #define fipc_test_mfence()    asm volatile ( "mfence" :: )
-#define fipc_test_pause()     asm volatile ( "pause\n": : :"memory" );
+#define fipc_test_pause()     asm volatile ( "pause\n": : :"memory" )
 #define fipc_test_clflush(X)  asm volatile ( "clflush %0" : "+m" (*(volatile char*)X) )
 #define fipc_test_prefetch(X) __builtin_prefetch( (void*)&X )
 

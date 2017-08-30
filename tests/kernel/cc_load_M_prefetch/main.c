@@ -37,7 +37,7 @@ int loader ( void* data )
 
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 	{
-		fipc_test_prefetch( load_order2[transaction_id] );
+		fipc_test_prefetch( cache[load_order2[transaction_id]] );
 
 		start = RDTSC_START();
 
