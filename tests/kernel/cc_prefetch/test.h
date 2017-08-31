@@ -22,12 +22,12 @@
 static uint32_t transactions   = 256;
 static uint8_t  loader_cpu     = 0;
 static uint8_t  stager_cpu     = 1;
-static uint32_t add_ops        = 100;
+static uint32_t mult_ops       = 100;
 
 module_param( transactions,     uint, 0 );
 module_param( loader_cpu,       byte, 0 );
 module_param( stager_cpu,       byte, 0 );
-module_param( add_ops,          uint, 0 );
+module_param( mult_ops,         uint, 0 );
 
 // Thread Locks
 struct completion loader_comp;

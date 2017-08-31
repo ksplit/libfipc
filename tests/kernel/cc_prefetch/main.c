@@ -24,7 +24,7 @@ int loader ( void* data )
 	register uint64_t CACHE_ALIGNED transaction_id;
 	register uint64_t CACHE_ALIGNED start;
 	register uint64_t CACHE_ALIGNED end;
-	register uint64_t CACHE_ALIGNED sum;
+	register uint64_t CACHE_ALIGNED product;
 	register uint64_t CACHE_ALIGNED with;
 	register uint64_t CACHE_ALIGNED without;
 
@@ -42,8 +42,8 @@ int loader ( void* data )
 		fipc_test_prefetch( cache[load_order[transaction_id]] );
 
 		int i;
-		for ( sum = 0, i = 0; i < add_ops; ++i )
-			sum += i;
+		for ( product = 0, i = 0; i < mult_ops; ++i )
+			product *= i;
 	}
 
 	end = RDTSCP();
@@ -55,15 +55,15 @@ int loader ( void* data )
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 	{
 		int i;
-		for ( i = 0; i < add_ops; ++i )
-			sum += i;
+		for ( i = 0; i < mult_ops; ++i )
+			product *= i;
 	}
 
 	end = RDTSCP();
 
 	without = (end - start) / transactions;
 
-	pr_err( "Print sum to not be optimized out: %llu\n", sum );
+	pr_err( "Print product to not be optimized out: %llu\n", product );
 	pr_err( "Avg Cycles for loop with prefetch: %llu\n", with );
 	pr_err( "Avg Cycles for loop without prefetch: %llu\n", without );
 	pr_err( "Difference: %llu\n", with - without );
