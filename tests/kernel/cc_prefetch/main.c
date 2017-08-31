@@ -7,6 +7,13 @@
 #include "test.h"
 
 static inline
+void load ( uint64_t index )
+{
+	while ( unlikely( cache[index].regs[0] != MSG_READY ) )
+		fipc_test_pause();
+}
+
+static inline
 void stage ( uint64_t index )
 {
 	cache[index].regs[0] = MSG_READY;
