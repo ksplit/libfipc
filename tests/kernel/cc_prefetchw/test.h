@@ -2,11 +2,11 @@
  * @File     : test.h
  * @Author   : Abdullah Younis
  *
- * This tests times a prefetch request. This is accomplished by two loops,
- * where one loop has a prefetch request followed by a series of busy
- * arithmetic operations. The next loop is the same without the prefetch.
+ * This tests times a prefetchw request. This is accomplished by two loops,
+ * where one loop has a prefetchw request followed by a series of busy
+ * arithmetic operations. The next loop is the same without the prefetchw.
  * By comparing the difference in times, it is possible to measure the cycles
- * cost of a prefetch request in a mock situation.
+ * cost of a prefetchw request in a mock situation.
  *
  * This test uses a shared-continuous region of memory
  *
