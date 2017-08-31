@@ -361,6 +361,21 @@ int fipc_test_stat_print_stats ( int32_t* sample_set, uint32_t sample_size, stat
 }
 
 /**
+ * This function prints a specified amount of raw data.
+ */
+int fipc_test_stat_print_raw ( int32_t* sample_set, uint32_t sample_size, uint32_t print_count )
+{
+	if ( print_count > sample_size )
+		print_count = sample_size;
+
+	int i;
+	for ( i = 0; i < print_count; ++i )
+		pr_err ( "%ld.\t %ld\n", i, sample_set[i] );
+
+	return 0;
+}
+
+/**
  * This function calculates and prints statistics of the given sample set.
  */
 int fipc_test_stat_get_and_print_stats ( int32_t* sample_set, uint32_t sample_size )
