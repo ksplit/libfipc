@@ -42,7 +42,7 @@ int loader ( void* data )
 		fipc_test_prefetch( cache[load_order[transaction_id]] );
 
 		int i;
-		for ( product = 0, i = 0; i < mult_ops; ++i )
+		for ( product = 1, i = 0; i < mult_ops; ++i )
 			product *= i;
 	}
 
