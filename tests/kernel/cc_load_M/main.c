@@ -9,7 +9,6 @@
 static inline
 void load ( uint64_t index )
 {
-	// Read Response
 	while ( unlikely( cache[index].regs[0] != MSG_READY ) )
 		fipc_test_pause();
 }
@@ -17,7 +16,6 @@ void load ( uint64_t index )
 static inline
 void stage ( uint64_t index )
 {
-	// Write Response
 	cache[index].regs[0] = MSG_READY;
 }
 
@@ -32,6 +30,7 @@ int loader ( void* data )
 	// Begin test
 	fipc_test_thread_take_control_of_CPU();
 
+	// Wait for stager to complete
 	load( transactions );
 	fipc_test_mfence();
 
@@ -39,23 +38,18 @@ int loader ( void* data )
 	{
 		start = RDTSC_START();
 
-		//load( load_order[transaction_id] == 0 ? transaction_id : load_order[transaction_id] );
-		load( load_order2[transaction_id] );
+		load( load_order[transaction_id] );
 		fipc_test_mfence();
 
 		end = RDTSCP();
 		times[transaction_id] = (end - start) - correction;
 	}
 
-	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
-	{
-		pr_err( "\t%ld\n", times[transaction_id] );
-	}
-
 	pr_err( "Correction: %llu\n", correction );
 
 	// End test
 	fipc_test_thread_release_control_of_CPU();
+	fipc_test_stat_print_raw( times, transactions, transactions )
 	fipc_test_stat_get_and_print_stats( times, transactions );
 	vfree( times );
 	complete( &loader_comp );

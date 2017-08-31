@@ -9,7 +9,6 @@
 static inline
 void load ( uint64_t index )
 {
-	// Read Response
 	while ( unlikely( cache[index].regs[0] != MSG_READY ) )
 		fipc_test_pause();
 }
@@ -17,7 +16,6 @@ void load ( uint64_t index )
 static inline
 void stage ( uint64_t index )
 {
-	// Write Response
 	cache[index].regs[0] = MSG_READY;
 }
 
@@ -35,6 +33,7 @@ int loader ( void* data )
 	// Begin test
 	fipc_test_thread_take_control_of_CPU();
 
+	// Wait for stager to complete
 	load( transactions );
 	fipc_test_mfence();
 
@@ -46,8 +45,7 @@ int loader ( void* data )
 
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 	{
-		//load( load_order[transaction_id] == 0 ? transaction_id : load_order[transaction_id] );
-		load( load_order2[transaction_id] );
+		load( load_order[transaction_id] );
 		fipc_test_mfence();
 	}
 
