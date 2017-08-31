@@ -55,8 +55,8 @@ int loader ( void* data )
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 	{
 		int i;
-		for ( sum = 1, i = 0; i < add_ops; ++i )
-			sum += transaction_id;
+		for ( i = 0; i < add_ops; ++i )
+			sum += i;
 	}
 
 	end = RDTSCP();
