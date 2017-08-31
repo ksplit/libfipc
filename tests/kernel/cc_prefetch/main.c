@@ -24,7 +24,7 @@ int loader ( void* data )
 	register uint64_t CACHE_ALIGNED transaction_id;
 	register uint64_t CACHE_ALIGNED start;
 	register uint64_t CACHE_ALIGNED end;
-	register uint64_t CACHE_ALIGNED product = 1;
+	register uint64_t CACHE_ALIGNED product;
 	register uint64_t CACHE_ALIGNED with;
 	register uint64_t CACHE_ALIGNED without;
 
@@ -39,16 +39,16 @@ int loader ( void* data )
 
 	for ( transaction_id = 1; transaction_id < transactions; transaction_id++ )
 	{
-		fipc_test_prefetchw( cache[load_order[transaction_id]] );
+		fipc_test_prefetch( cache[load_order[transaction_id]] );
 
 		int i;
-		for ( i = 0; i < mult_ops; ++i )
-			product *= transaction_id;
+		for ( product = 1, i = 1; i <= mult_ops; ++i )
+			product *= i;
 	}
 
 	end = RDTSCP();
 
-	with = (end - start) / (transactions-1);
+	with = (end - start) / transactions;
 	pr_err( "Print product to not be optimized out: %llu\n", product );
 
 	start = RDTSC_START();
@@ -56,13 +56,13 @@ int loader ( void* data )
 	for ( transaction_id = 1; transaction_id < transactions; transaction_id++ )
 	{
 		int i;
-		for ( i = 0; i < mult_ops; ++i )
-			product *= transaction_id;
+		for ( product = 1, i = 1; i <= mult_ops; ++i )
+			product *= i;
 	}
 
 	end = RDTSCP();
 
-	without = (end - start) / (transactions-1);
+	without = (end - start) / transactions;
 
 	pr_err( "Print product to not be optimized out: %llu\n", product );
 	pr_err( "\n" );
