@@ -39,24 +39,25 @@ int loader ( void* data )
 
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 	{
-		fipc_test_prefetchw( cache[load_order[transaction_id]] );
+		fipc_test_prefetch( cache[load_order[transaction_id]] );
 
 		int i;
 		for ( product = 1, i = 0; i < mult_ops; ++i )
-			product *= i;
+			product *= transaction_id;
 	}
 
 	end = RDTSCP();
 
 	with = (end - start) / transactions;
+	pr_err( "Print product to not be optimized out: %llu\n", product );
 
 	start = RDTSC_START();
 
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 	{
 		int i;
-		for ( i = 0; i < mult_ops; ++i )
-			product *= i;
+		for ( product = 1, i = 0; i < mult_ops; ++i )
+			product *= transaction_id;
 	}
 
 	end = RDTSCP();
@@ -64,6 +65,7 @@ int loader ( void* data )
 	without = (end - start) / transactions;
 
 	pr_err( "Print product to not be optimized out: %llu\n", product );
+	pr_err( "\n" );
 	pr_err( "Avg Cycles for loop with prefetch: %llu\n", with );
 	pr_err( "Avg Cycles for loop without prefetch: %llu\n", without );
 	pr_err( "Difference: %llu\n", with - without );
