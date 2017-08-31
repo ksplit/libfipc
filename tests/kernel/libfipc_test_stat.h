@@ -370,7 +370,7 @@ int fipc_test_stat_print_raw ( int32_t* sample_set, uint32_t sample_size, uint32
 
 	int i;
 	for ( i = 0; i < print_count; ++i )
-		pr_err ( "%d.\t %ld\n", i, sample_set[i] );
+		pr_err ( "%d.\t %d\n", i, sample_set[i] );
 
 	return 0;
 }

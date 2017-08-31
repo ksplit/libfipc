@@ -49,7 +49,7 @@ int loader ( void* data )
 
 	// End test
 	fipc_test_thread_release_control_of_CPU();
-	fipc_test_stat_print_raw( times, transactions, transactions )
+	fipc_test_stat_print_raw( times, transactions, transactions );
 	fipc_test_stat_get_and_print_stats( times, transactions );
 	vfree( times );
 	complete( &loader_comp );
