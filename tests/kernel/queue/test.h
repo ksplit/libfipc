@@ -38,7 +38,7 @@ module_param( slave_count,      byte, 0 );
 typedef struct linked_node_t
 {
 	uint64_t data;
-	node_t*  next;
+	struct linked_node_t* next;
 
 } node_t;
 

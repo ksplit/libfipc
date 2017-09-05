@@ -146,7 +146,7 @@ int controller ( void* data )
 	for ( slave_index = 0; slave_index < slave_count; slave_index++ )
 	{
 		fipc_test_blocking_send_start( chans[ slave_index ], &request );
-		request_type = HALT;
+		request->flags = HALT;
 		fipc_send_msg_end( chans[ slave_index ], request );
 	}
 
