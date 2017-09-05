@@ -26,11 +26,11 @@ void enqueue ( node_t** head, node_t** tail, uint64_t* response_data, uint64_t* 
 	}
 	else
 	{
-		*tail->next = new_node;
-		*tail       = new_node;
+		(*tail)->next = new_node;
+		*tail         = new_node;
 	}
 
-	*response_data = NULL;
+	*response_data = 0;
 	*error_data    = SUCCESS;
 }
 
@@ -71,7 +71,7 @@ void size( node_t** head, node_t** tail, uint64_t* response_data, uint64_t* erro
 }
 
 static inline
-void clear( node_t** head, uint64_t* response_data, uint64_t* error_data )
+void clear( node_t** head, node_t** tail, uint64_t* response_data, uint64_t* error_data )
 {
 	*response_data = 0;
 
