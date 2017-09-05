@@ -40,7 +40,7 @@ typedef struct linked_node_t
 	uint64_t data;
 	node_t*  next;
 
-} node_t
+} node_t;
 
 // Thread Locks
 struct completion controller_comp;

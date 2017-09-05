@@ -116,8 +116,8 @@ int controller ( void* data )
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 	{
 		fipc_test_blocking_send_start( chans[ hash( transaction_id ) ], &request );
-		request_type = ENQUEUE;
-		request_data = transaction_id;
+		request->flags   = ENQUEUE;
+		request->regs[0] = transaction_id;
 		fipc_send_msg_end( chans[ hash( transaction_id ) ], request );
 	}
 
@@ -141,6 +141,8 @@ int controller ( void* data )
 	end = RDTSCP();
 
 	// Shut down slave threads
+	uint64_t slave_index;
+
 	for ( slave_index = 0; slave_index < slave_count; slave_index++ )
 	{
 		fipc_test_blocking_send_start( chans[ slave_index ], &request );
@@ -236,7 +238,7 @@ int main ( void )
 	init_completion( &controller_comp );
 
 	int  slave_index;
-	int* slave_thread_map = kmalloc ( slave_count*sizeof(int) );
+	int* slave_thread_map = kmalloc ( slave_count*sizeof(int),  GFP_KERNEL );
 
 	header_t**  slave_headers = kmalloc( slave_count*sizeof(header_t*),  GFP_KERNEL );
 	header_t**  cntrl_headers = kmalloc( slave_count*sizeof(header_t*),  GFP_KERNEL );
@@ -302,8 +304,12 @@ int main ( void )
 	fipc_test_thread_free_thread( cntrl_thread );
 
 	for ( slave_index = 0; slave_index < slave_count; slave_index++ )
-		fipc_test_free_channel( CHANNEL_ORDER, &slave_headers[slave_index], &cntrl_headers[slave_index] );
+		fipc_test_free_channel( CHANNEL_ORDER, slave_headers[slave_index], cntrl_headers[slave_index] );
 
+	kfree( slave_thread_map );
+	kfree( slave_headers );
+	kfree( cntrl_headers );
+	kfree( slave_threads );
 	fipc_fini();
 	return 0;
 }
