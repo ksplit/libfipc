@@ -18,7 +18,7 @@ void enqueue ( node_t** head, node_t** tail, uint64_t* response_data, uint64_t* 
 	}
  
 	new_node->data = data;
-	new_node->next = *head;
+	new_node->next = NULL;
 
 	if ( *tail == NULL )
 	{
