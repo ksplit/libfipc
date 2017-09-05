@@ -212,7 +212,7 @@ int slave ( void* data )
 				halt = 1;
 
 			case CLEAR:
-				clear( &head, &response_data, &error_data );
+				clear( &head, &tail, &response_data, &error_data );
 				break;
 
 			default:
