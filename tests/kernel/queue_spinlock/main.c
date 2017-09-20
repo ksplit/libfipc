@@ -6,7 +6,7 @@
 #include <linux/module.h>
 #include "test.h"
 
-int __attribute__ ((noinline))  null_invocation ( void )
+int noinline null_invocation ( void )
 {
 	asm volatile ("");
 	return 0;
@@ -34,7 +34,7 @@ int consumer ( void* data )
 {
 	queue_t* q = (queue_t*) data;
 
-	uint32_t request_type;
+	uint64_t request_type;
 
 	int halt = 0;
 
@@ -43,8 +43,6 @@ int consumer ( void* data )
 
 	while ( !halt )
 	{
-		error_data = 0;
-		
 		// Receive and unmarshall request
 		while ( dequeue( q, &request_type ) );
 

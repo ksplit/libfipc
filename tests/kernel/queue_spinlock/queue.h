@@ -6,9 +6,10 @@
 #ifndef LIBFIPC_TEST_QUEUE
 #define LIBFIPC_TEST_QUEUE
 
+#include <linux/vmalloc.h>
 #include <linux/spinlock.h>
 
-#define PREALLOCATED_NODES 256;
+#define PREALLOCATED_NODES 256
 
 // Error Values
 #define SUCCESS              0

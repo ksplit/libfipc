@@ -3,7 +3,6 @@
  * @Author   : Abdullah Younis
  */
 
-#include "test.h"
 #include "queue.h"
 
 // Constructor
@@ -15,7 +14,10 @@ int init_queue ( queue_t* q )
 	q->node_table = (node_t*) vmalloc( PREALLOCATED_NODES*sizeof(node_t) );
 
 	for ( i = 0; i < PREALLOCATED_NODES; ++i )
-		q->node_table[i] =  { 0, NULL };
+	{
+		q->node_table[i].data = 0;
+		q->node_table[i].next = NULL;
+	}
 
 	q->physical_size = (PREALLOCATED_NODES-1);
 	q->logical_size  = 0;
@@ -31,7 +33,8 @@ int init_queue ( queue_t* q )
 
 int free_queue ( queue_t* q )
 {
-	vfree ( node_table );
+	vfree ( q->node_table );
+	return SUCCESS;
 }
 
 // Enqueue
