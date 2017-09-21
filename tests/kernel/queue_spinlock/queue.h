@@ -41,9 +41,10 @@ typedef struct queue_t
 
 } queue_t;
 
-int init_queue ( queue_t* q );
-int free_queue ( queue_t* q );
-int enqueue    ( queue_t* q, uint64_t data );
-int dequeue    ( queue_t* q, uint64_t* data );
+int init_queue    ( queue_t* q );
+int free_queue    ( queue_t* q );
+int enqueue       ( queue_t* q, request_t* r );
+int dequeue       ( queue_t* q, request_t* r );
+int alloc_request ( queue_t q, request_t* r );
 
 #endif

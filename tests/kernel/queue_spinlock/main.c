@@ -27,7 +27,7 @@ int producer ( void* data )
 
 	// Wait for everyone to be ready
 	fipc_test_FAI ( ready_producers );
-	while ( !testready ) fipc_test_pause();
+	while ( !test_ready ) fipc_test_pause();
 
 	start = RDTSC_START();
 
@@ -62,7 +62,7 @@ int consumer ( void* data )
 
 	// Wait for everyone to be ready
 	fipc_test_FAI ( ready_consumers );
-	while ( !testready ) fipc_test_pause();
+	while ( !test_ready ) fipc_test_pause();
 
 	while ( !halt )
 	{
@@ -89,7 +89,7 @@ int consumer ( void* data )
 }
 
 
-int main ( void* data )
+int controller ( void* data )
 {
 	int i;
 	request_t* request;
@@ -181,15 +181,15 @@ int main ( void* data )
 
 int init_module(void)
 {
-	kthread_t* main_thread = fipc_test_thread_spawn_on_CPU ( main, NULL, producer_cpus[producer_count-1] );
+	kthread_t* controller_thread = fipc_test_thread_spawn_on_CPU ( controller, NULL, producer_cpus[producer_count-1] );
 
-	if ( main_thread == NULL )
+	if ( controller_thread == NULL )
 	{
 		pr_err( "%s\n", "Error while creating thread" );
 		return -1;
 	}
 
-	wake_up_process( main_thread );
+	wake_up_process( controller_thread );
 
 	while ( !test_finished )
 		fipc_test_pause();
