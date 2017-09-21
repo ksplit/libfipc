@@ -25,6 +25,8 @@ typedef struct linked_node_t
 
 } node_t;
 
+typedef node_t request_t;
+
 typedef struct queue_t
 {
 	node_t* head;
@@ -35,6 +37,7 @@ typedef struct queue_t
 	uint64_t physical_size;
 
 	spinlock_t queue_lock;
+	spinlock_t node_table_lock;
 
 } queue_t;
 

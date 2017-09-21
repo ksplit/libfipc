@@ -28,7 +28,11 @@ static uint8_t consumer_cpus[32] = { 2, 3 };
 #define NULL_INVOCATION 1
 
 // Thread Locks
-static uint64_t completed_producers;
-static uint64_t completed_consumers;
+static uint64_t completed_producers = 0;
+static uint64_t completed_consumers = 0;
+static uint64_t ready_consumers     = 0;
+static uint64_t ready_producers     = 0;
+static uint64_t test_ready          = 0;
+static uint64_t test_finished       = 0;
 
 #endif

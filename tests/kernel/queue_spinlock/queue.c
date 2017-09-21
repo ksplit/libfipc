@@ -37,28 +37,37 @@ int free_queue ( queue_t* q )
 	return SUCCESS;
 }
 
-// Enqueue
+// Allocate a free node from node table
 
-int enqueue ( queue_t* q, uint64_t data )
+int alloc_request ( queue_t q, request_t* r )
 {
-	node_t* new_node;
-
 	// Acquire Lock, Enter Critical Section
-	spin_lock( &q->queue_lock );
+	spin_lock( &q->node_table_lock );
 
 	if ( q->logical_size >= q->physical_size )
 	{
-		spin_unlock( &q->queue_lock );
+		spin_unlock( &q->node_table_lock );
 		return NO_MEMORY;
 	}
 
-	new_node = &q->node_table[ q->logical_size ];
-	new_node->data = data;
+	r = (request_t*) &q->node_table[logical_size]
 
-	q->tail->next = new_node;
-	q->tail       = new_node;
+	logical_size++;
 
-	q->logical_size++;
+	// Release Lock, Exit Critical Section
+	spin_unlock( &q->node_table_lock );
+	return SUCCESS;
+}
+
+// Enqueue
+
+int enqueue ( queue_t* q, request_t* r )
+{
+	// Acquire Lock, Enter Critical Section
+	spin_lock( &q->queue_lock );
+
+	q->tail->next = r;
+	q->tail       = r;
 
 	// Release Lock, Exit Critical Section
 	spin_unlock( &q->queue_lock );
@@ -67,28 +76,21 @@ int enqueue ( queue_t* q, uint64_t data )
 
 // Dequeue
 
-int dequeue ( queue_t* q, uint64_t* data )
+int dequeue ( queue_t* q, request_t* r )
 {
-	node_t* temp;
-
 	// Acquire Lock, Enter Critical Section
 	spin_lock( &q->queue_lock );
 
-	if ( q->logical_size == 0 )
+	if ( q->head->next == NULL )
 	{
 		spin_unlock( &q->queue_lock );
 		return EMPTY_COLLECTION;
 	}
 
-	temp          = q->head->next;
+	r             = q->head->next;
 	q->head->next = q->head->next->next;
 
-	*data = temp->data;
-	// delete temp (unnecessary since preallocated)
-
-	q->logical_size--;
-
-	if ( q->logical_size == 0 )
+	if ( q->head->next == NULL )
 		q->tail = q->head;
 
 	// Release Lock, Exit Critical Section
