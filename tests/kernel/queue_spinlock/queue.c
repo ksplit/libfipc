@@ -50,9 +50,9 @@ int alloc_request ( queue_t* q, request_t* r )
 		return NO_MEMORY;
 	}
 
-	r = (request_t*) &q->node_table[logical_size]
+	r = (request_t*) &q->node_table[q->logical_size];
 
-	logical_size++;
+	q->logical_size++;
 
 	// Release Lock, Exit Critical Section
 	spin_unlock( &q->node_table_lock );

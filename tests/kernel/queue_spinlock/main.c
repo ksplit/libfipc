@@ -20,13 +20,13 @@ int producer ( void* data )
 	register uint64_t start;
 	register uint64_t end;
 
-	request_t* request;
+	request_t* request = NULL;
 
 	// Begin test
 	fipc_test_thread_take_control_of_CPU();
 
 	// Wait for everyone to be ready
-	fipc_test_FAI( ready_producers );
+	fipc_test_FAI(ready_producers);
 	while ( !test_ready ) fipc_test_pause();
 
 	start = RDTSC_START();
@@ -45,7 +45,7 @@ int producer ( void* data )
 	// End test
 	pr_err( "Producer completed in %llu, and the average was %llu.", end - start, (end - start) / transactions );
 	fipc_test_thread_release_control_of_CPU();
-	fipc_test_FAI( completed_producers );
+	fipc_test_FAI(completed_producers);
 	return 0;
 }
 
@@ -53,7 +53,7 @@ int consumer ( void* data )
 {
 	queue_t* q = (queue_t*) data;
 
-	request_t* request;
+	request_t* request = NULL;
 
 	int halt = 0;
 
@@ -92,7 +92,7 @@ int consumer ( void* data )
 int controller ( void* data )
 {
 	int i;
-	request_t* request;
+	request_t* request = NULL;
 
 	// Queue Init
 	init_queue ( &queue );
