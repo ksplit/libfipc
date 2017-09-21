@@ -26,7 +26,7 @@ int producer ( void* data )
 	fipc_test_thread_take_control_of_CPU();
 
 	// Wait for everyone to be ready
-	fipc_test_FAI ( ready_producers );
+	fipc_test_FAI( ready_producers );
 	while ( !test_ready ) fipc_test_pause();
 
 	start = RDTSC_START();
@@ -61,7 +61,7 @@ int consumer ( void* data )
 	fipc_test_thread_take_control_of_CPU();
 
 	// Wait for everyone to be ready
-	fipc_test_FAI ( ready_consumers );
+	fipc_test_FAI( ready_consumers );
 	while ( !test_ready ) fipc_test_pause();
 
 	while ( !halt )

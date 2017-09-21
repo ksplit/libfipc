@@ -39,7 +39,7 @@ int free_queue ( queue_t* q )
 
 // Allocate a free node from node table
 
-int alloc_request ( queue_t q, request_t* r )
+int alloc_request ( queue_t* q, request_t* r )
 {
 	// Acquire Lock, Enter Critical Section
 	spin_lock( &q->node_table_lock );
