@@ -6,10 +6,10 @@
 #ifndef LIBFIPC_TEST_QUEUE
 #define LIBFIPC_TEST_QUEUE
 
-#include <linux/vmalloc.h>
+#include <linux/slab.h>
 #include <linux/spinlock.h>
 
-#define PREALLOCATED_NODES 256
+#define PREALLOCATED_NODES 1000
 
 // Error Values
 #define SUCCESS              0
@@ -44,7 +44,7 @@ typedef struct queue_t
 int init_queue    ( queue_t* q );
 int free_queue    ( queue_t* q );
 int enqueue       ( queue_t* q, request_t* r );
-int dequeue       ( queue_t* q, request_t* r );
-int alloc_request ( queue_t* q, request_t* r );
+int dequeue       ( queue_t* q, request_t** r );
+int alloc_request ( queue_t* q, request_t** r );
 
 #endif

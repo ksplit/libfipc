@@ -11,7 +11,7 @@ int init_queue ( queue_t* q )
 {
 	int i;
 
-	q->node_table = (node_t*) vmalloc( PREALLOCATED_NODES*sizeof(node_t) );
+	q->node_table = (node_t*) kmalloc( PREALLOCATED_NODES*sizeof(node_t), GFP_KERNEL );
 
 	for ( i = 0; i < PREALLOCATED_NODES; ++i )
 	{
@@ -25,6 +25,7 @@ int init_queue ( queue_t* q )
 	q->head = q->tail = &q->node_table[PREALLOCATED_NODES-1];
 
 	spin_lock_init( &q->queue_lock );
+	spin_lock_init( &q->node_table_lock );
 
 	return SUCCESS;
 }
@@ -33,13 +34,13 @@ int init_queue ( queue_t* q )
 
 int free_queue ( queue_t* q )
 {
-	vfree ( q->node_table );
+	kfree ( q->node_table );
 	return SUCCESS;
 }
 
 // Allocate a free node from node table
 
-int alloc_request ( queue_t* q, request_t* r )
+int alloc_request ( queue_t* q, request_t** r )
 {
 	// Acquire Lock, Enter Critical Section
 	spin_lock( &q->node_table_lock );
@@ -50,7 +51,7 @@ int alloc_request ( queue_t* q, request_t* r )
 		return NO_MEMORY;
 	}
 
-	r = (request_t*) &q->node_table[q->logical_size];
+	*r = (request_t*) &q->node_table[q->logical_size];
 
 	q->logical_size++;
 
@@ -76,7 +77,7 @@ int enqueue ( queue_t* q, request_t* r )
 
 // Dequeue
 
-int dequeue ( queue_t* q, request_t* r )
+int dequeue ( queue_t* q, request_t** r )
 {
 	// Acquire Lock, Enter Critical Section
 	spin_lock( &q->queue_lock );
@@ -87,7 +88,7 @@ int dequeue ( queue_t* q, request_t* r )
 		return EMPTY_COLLECTION;
 	}
 
-	r             = q->head->next;
+	*r            = q->head->next;
 	q->head->next = q->head->next->next;
 
 	if ( q->head->next == NULL )

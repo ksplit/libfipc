@@ -33,7 +33,7 @@ int producer ( void* data )
 
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 	{
-		alloc_request( q, request );
+		alloc_request( q, &request );
 
 		request->data = NULL_INVOCATION;
 
@@ -43,9 +43,9 @@ int producer ( void* data )
 	end = RDTSCP();
 
 	// End test
-	pr_err( "Producer completed in %llu, and the average was %llu.", end - start, (end - start) / transactions );
-	fipc_test_thread_release_control_of_CPU();
+	pr_err( "Producer completed in %llu, and the average was %llu.\n", end - start, (end - start) / transactions );
 	fipc_test_FAI(completed_producers);
+	fipc_test_thread_release_control_of_CPU();
 	return 0;
 }
 
@@ -67,7 +67,7 @@ int consumer ( void* data )
 	while ( !halt )
 	{
 		// Receive and unmarshall request
-		while ( dequeue( q, request ) );
+		while ( dequeue( q, &request ) );
 
 		// Process Request
 		switch ( request->data )
@@ -83,8 +83,8 @@ int consumer ( void* data )
 	}
 
 	// End test
-	fipc_test_thread_release_control_of_CPU();
 	fipc_test_FAI( completed_consumers );
+	fipc_test_thread_release_control_of_CPU();
 	return 0;
 }
 
@@ -109,7 +109,7 @@ int controller ( void* data )
 		if ( prod_threads[i] == NULL )
 		{
 			pr_err( "%s\n", "Error while creating thread" );
-				return -1;
+			return -1;
 		}
 	}
 
@@ -120,7 +120,7 @@ int controller ( void* data )
 		if ( cons_threads[i] == NULL )
 		{
 			pr_err( "%s\n", "Error while creating thread" );
-				return -1;
+			return -1;
 		}
 	}
 	
@@ -153,7 +153,7 @@ int controller ( void* data )
 	// Tell consumers to halt
 	for ( i = 0; i < consumer_count; ++i )
 	{
-		alloc_request( &queue, request );
+		alloc_request( &queue, &request );
 
 		request->data = HALT;
 
@@ -165,7 +165,7 @@ int controller ( void* data )
 		fipc_test_pause();
 
 	// Clean up
-	for ( i = 0; i < producer_count; ++i )
+	for ( i = 0; i < (producer_count-1); ++i )
 		fipc_test_thread_free_thread( prod_threads[i] );
 
 	for ( i = 0; i < consumer_count; ++i )
@@ -193,6 +193,8 @@ int init_module(void)
 
 	while ( !test_finished )
 		fipc_test_pause();
+
+	fipc_test_thread_free_thread( controller_thread );
 
 	return 0;
 }
