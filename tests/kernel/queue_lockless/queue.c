@@ -22,7 +22,7 @@ int init_queue ( queue_t* q )
 	q->physical_size = PREALLOCATED_NODES;
 	q->logical_size  = 0;
 
-	q->head = q->tail = NULL
+	q->head = q->tail = NULL;
 
 	spin_lock_init( &q->node_table_lock );
 
@@ -76,7 +76,7 @@ int enqueue ( queue_t* q, request_t* r )
 	// 4. Finish Linking
 	if ( pTail != NULL )
 		// 4a. Nonempty queue, update previous tail
-		pTail.next = r;
+		pTail->next = r;
 	else
 		// 4b. Empty queue, reset head
 		q->head = r;
@@ -143,6 +143,6 @@ int dequeue ( queue_t* q, request_t** r )
 	}
 
 	// 6. Return dequeued item
-	*r = pHead
+	*r = pHead;
 	return SUCCESS;
 }

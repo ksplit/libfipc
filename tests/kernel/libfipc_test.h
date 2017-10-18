@@ -20,8 +20,8 @@
 #define fipc_test_prefetch(X)  __builtin_prefetch( (void*)&X, 0 )
 #define fipc_test_prefetchw(X) __builtin_prefetch( (void*)&X, 1 )
 
-#define fipc_test_FAI(X)       __sync_fetch_and_add( &X, 1 );
-#define fipc_test_CAS(a,b,c)   __sync_bool_compare_and_swap(a,b,c);
+#define fipc_test_FAI(X)       __sync_fetch_and_add( &X, 1 )
+#define fipc_test_CAS(a,b,c)   __sync_bool_compare_and_swap(a,b,c)
 
 /*
 CAS(*ptr, old, new)

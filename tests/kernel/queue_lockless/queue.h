@@ -8,6 +8,7 @@
 
 #include <linux/vmalloc.h>
 #include <linux/spinlock.h>
+#include "../libfipc_test.h"
 
 #define PREALLOCATED_NODES 1000
 
