@@ -9,40 +9,30 @@
 #define LIBFIPC_TEST_PING_PONG
 
 #include "../libfipc_test.h"
+#include "queue.h"
 
-#define CHANNEL_ORDER ilog2(sizeof(message_t)) + 7
+// Queue Variable
+static queue_t queue;
 
 // Test Variables
-static uint32_t transactions   = 300;
-static uint8_t  controller_cpu = 0;
-static uint8_t  slave_count    = 3;
+static uint32_t transactions = 128;
 
-module_param( transactions,     uint, 0 );
-module_param( controller_cpu,   byte, 0 );
-module_param( slave_count,      byte, 0 );
+static uint8_t producer_count = 2;
+static uint8_t consumer_count = 2;
+
+static uint8_t producer_cpus[32] = { 0, 1 };
+static uint8_t consumer_cpus[32] = { 2, 3 };
 
 // Request Types
-#define ENQUEUE 0
-#define DEQUEUE 1
-#define SIZE    2
-#define CLEAR   3
-#define HALT    4
-
-// Error Values
-#define SUCCESS              0
-#define NO_MEMORY            1
-#define INVALID_REQUEST_TYPE 2
-#define EMPTY_COLLECTION     3
-
-// Linked List Variables
-typedef struct linked_node_t
-{
-	uint64_t data;
-	struct linked_node_t* next;
-
-} node_t;
+#define HALT            0
+#define NULL_INVOCATION 1
 
 // Thread Locks
-struct completion controller_comp;
+static uint64_t completed_producers = 0;
+static uint64_t completed_consumers = 0;
+static uint64_t ready_consumers     = 0;
+static uint64_t ready_producers     = 0;
+static uint64_t test_ready          = 0;
+static uint64_t test_finished       = 0;
 
 #endif

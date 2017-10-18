@@ -6,317 +6,197 @@
 #include <linux/module.h>
 #include "test.h"
 
-static inline
-void enqueue ( node_t** head, node_t** tail, uint64_t* response_data, uint64_t* error_data, uint64_t data )
+int noinline null_invocation ( void )
 {
-	node_t* new_node = vmalloc( sizeof(node_t) );
-
-	if ( new_node == NULL )
-	{
-		*error_data = NO_MEMORY;
-		return;
-	}
- 
-	new_node->data = data;
-	new_node->next = NULL;
-
-	if ( *tail == NULL )
-	{
-		*head = *tail = new_node;
-	}
-	else
-	{
-		(*tail)->next = new_node;
-		*tail         = new_node;
-	}
-
-	*response_data = 0;
-	*error_data    = SUCCESS;
+	asm volatile ("");
+	return 0;
 }
 
-static inline
-void dequeue( node_t** head, node_t** tail, uint64_t* response_data, uint64_t* error_data )
+int producer ( void* data )
 {
-	if ( *head == NULL )
-	{
-		*error_data = EMPTY_COLLECTION;
-		return;
-	}
+	queue_t* q = (queue_t*) data;
 
-	node_t* temp = *head;
-	*head        = (*head)->next;
+	register uint64_t transaction_id;
+	register uint64_t start;
+	register uint64_t end;
 
-	if ( *head == NULL )
-		*tail = NULL;
-
-	*response_data = temp->data;
-	*error_data    = SUCCESS;
-
-	vfree( temp );
-}
-
-static inline
-void size( node_t** head, node_t** tail, uint64_t* response_data, uint64_t* error_data )
-{
-	*response_data = 0;
-	node_t* iter   = *head;
-
-	while ( iter != NULL )
-	{
-		(*response_data)++;
-		iter = iter->next;
-	}
-
-	*error_data = SUCCESS;
-}
-
-static inline
-void clear( node_t** head, node_t** tail, uint64_t* response_data, uint64_t* error_data )
-{
-	*response_data = 0;
-
-	while ( *head != NULL )
-	{
-		node_t* temp = *head;
-		*head        = (*head)->next;
-
-		vfree( temp );
-		(*response_data)++;
-	}
-
-	*tail       = NULL;
-	*error_data = SUCCESS;
-}
-
-static inline
-uint8_t hash ( uint64_t data )
-{
-	return data % slave_count;
-}
-
-int controller ( void* data )
-{
-	header_t** chans = (header_t**) data;
-
-	message_t* request;
-	message_t* response;
-
-	uint64_t response_data;
-	uint64_t error_data;
-
-	register uint64_t CACHE_ALIGNED transaction_id;
-	register uint64_t CACHE_ALIGNED start;
-	register uint64_t CACHE_ALIGNED end;
+	request_t* request = NULL;
 
 	// Begin test
 	fipc_test_thread_take_control_of_CPU();
+
+	// Wait for everyone to be ready
+	fipc_test_FAI(ready_producers);
+	while ( !test_ready ) fipc_test_pause();
 
 	start = RDTSC_START();
 
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 	{
-		fipc_test_blocking_send_start( chans[ hash( transaction_id ) ], &request );
-		request->flags   = ENQUEUE;
-		request->regs[0] = transaction_id;
-		fipc_send_msg_end( chans[ hash( transaction_id ) ], request );
+		alloc_request( q, &request );
+
+		request->data = NULL_INVOCATION;
+
+		enqueue( q, request );
 	}
-
-//	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
-//	{
-//		fipc_test_prefetchw( chans[ hash( transaction_id ) ]->rx.buffer[ transactions / slave_count ] );
-//	}
-
-	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
-	{
-		fipc_test_blocking_recv_start( chans[ hash( transaction_id ) ], &response );
-		response_data = response->regs[0];
-		error_data    = response->regs[1];
-
-		if ( error_data != SUCCESS )
-			pr_err( "Error #: %llu", error_data );
-
-		fipc_recv_msg_end( chans[ hash( transaction_id ) ], response );
-	}
-
+	
 	end = RDTSCP();
 
-	// Shut down slave threads
-	uint64_t slave_index;
-
-	for ( slave_index = 0; slave_index < slave_count; slave_index++ )
-	{
-		fipc_test_blocking_send_start( chans[ slave_index ], &request );
-		request->flags = HALT;
-		fipc_send_msg_end( chans[ slave_index ], request );
-	}
-
-	for ( slave_index = 0; slave_index < slave_count; slave_index++ )
-	{
-		fipc_test_blocking_recv_start( chans[ slave_index ], &response );
-		fipc_recv_msg_end( chans[ slave_index ], response );
-	}
-
 	// End test
-	pr_err ( "Average Cycles: %llu", ( end - start ) / transactions );
+	pr_err( "Producer completed in %llu, and the average was %llu.\n", end - start, (end - start) / transactions );
+	fipc_test_FAI(completed_producers);
 	fipc_test_thread_release_control_of_CPU();
-	complete( &controller_comp );
 	return 0;
 }
 
-int slave ( void* data )
+int consumer ( void* data )
 {
-	header_t*  chan = (header_t*) data;
-	message_t* request;
-	message_t* response;
+	queue_t* q = (queue_t*) data;
 
-	uint32_t request_type;
-	uint64_t request_data;
-
-	uint64_t response_data;
-	uint64_t error_data;
-
-	node_t* head = NULL;
-	node_t* tail = NULL;
+	request_t* request = NULL;
 
 	int halt = 0;
 
 	// Begin test
 	fipc_test_thread_take_control_of_CPU();
 
+	// Wait for everyone to be ready
+	fipc_test_FAI( ready_consumers );
+	while ( !test_ready ) fipc_test_pause();
+
 	while ( !halt )
 	{
-		error_data = 0;
-		
 		// Receive and unmarshall request
-		fipc_test_blocking_recv_start( chan, &request );
-		request_type = request->flags;
-		request_data = request->regs[0];
-		fipc_recv_msg_end( chan, request );
+		while ( dequeue( q, &request ) );
 
 		// Process Request
-		switch ( request_type )
+		switch ( request->data )
 		{
-			case ENQUEUE:
-				enqueue( &head, &tail, &response_data, &error_data, request_data );
-				break;
-
-			case DEQUEUE:
-				dequeue( &head, &tail, &response_data, &error_data );
-				break;
-
-			case SIZE:
-				size( &head, &tail, &response_data, &error_data );
+			case NULL_INVOCATION:
+				null_invocation();
 				break;
 
 			case HALT:
 				halt = 1;
-
-			case CLEAR:
-				clear( &head, &tail, &response_data, &error_data );
-				break;
-
-			default:
-				error_data = INVALID_REQUEST_TYPE;
 				break;
 		}
-
-		// Send Response
-		fipc_test_blocking_send_start( chan, &response );
-		response->regs[0] = response_data;
-		response->regs[1] = error_data;
-		fipc_send_msg_end( chan, response );
 	}
 
 	// End test
+	fipc_test_FAI( completed_consumers );
 	fipc_test_thread_release_control_of_CPU();
 	return 0;
 }
 
 
-int main ( void )
+int controller ( void* data )
 {
-	init_completion( &controller_comp );
+	int i;
+	request_t* request = NULL;
 
-	int  slave_index;
-	int* slave_thread_map = kmalloc ( slave_count*sizeof(int),  GFP_KERNEL );
+	// Queue Init
+	init_queue ( &queue );
 
-	header_t**  slave_headers = kmalloc( slave_count*sizeof(header_t*),  GFP_KERNEL );
-	header_t**  cntrl_headers = kmalloc( slave_count*sizeof(header_t*),  GFP_KERNEL );
-	kthread_t** slave_threads = kmalloc( slave_count*sizeof(kthread_t*), GFP_KERNEL );
-	kthread_t*  cntrl_thread  = NULL;
+	// Thread Allocation
+	kthread_t** prod_threads = kmalloc( (producer_count-1)*sizeof(kthread_t*), GFP_KERNEL );
+	kthread_t** cons_threads = kmalloc( consumer_count*sizeof(kthread_t*), GFP_KERNEL );
 
-	fipc_init();
-
-	// Setup Channels
-	for ( slave_index = 0; slave_index < slave_count; slave_index++ )
+	// Spawn Threads
+	for ( i = 0; i < (producer_count-1); ++i )
 	{
-		fipc_test_create_channel( CHANNEL_ORDER, &slave_headers[slave_index], &cntrl_headers[slave_index] );
+		prod_threads[i] = fipc_test_thread_spawn_on_CPU ( producer, &queue, producer_cpus[i] );
 
-		if ( slave_headers[slave_index] == NULL || cntrl_headers[slave_index] == NULL )
-		{
-			pr_err( "%s\n", "Error while creating channel" );
-			return -1;
-		}
-	}
-
-	// Populate Slave Thread Map
-	for ( slave_index = 0; slave_index < slave_count; slave_index++ )
-	{
-		if ( slave_index >= controller_cpu )
-			slave_thread_map[slave_index] = slave_index + 1;
-		else
-			slave_thread_map[slave_index] = slave_index;
-	}
-
-	// Create Threads
-	for ( slave_index = 0; slave_index < slave_count; slave_index++ )
-	{
-		slave_threads[slave_index] = fipc_test_thread_spawn_on_CPU ( slave, slave_headers[slave_index], slave_thread_map[slave_index] );
-
-		if ( slave_threads[slave_index] == NULL )
+		if ( prod_threads[i] == NULL )
 		{
 			pr_err( "%s\n", "Error while creating thread" );
 			return -1;
 		}
 	}
 
-	cntrl_thread = fipc_test_thread_spawn_on_CPU ( controller, cntrl_headers, controller_cpu );
-
-	if ( cntrl_thread == NULL )
+	for ( i = 0; i < consumer_count; ++i )
 	{
-		pr_err( "%s\n", "Error while creating thread" );
-		return -1;
+		cons_threads[i] = fipc_test_thread_spawn_on_CPU ( consumer, &queue, consumer_cpus[i] );
+		
+		if ( cons_threads[i] == NULL )
+		{
+			pr_err( "%s\n", "Error while creating thread" );
+			return -1;
+		}
 	}
 	
 	// Start threads
-	for ( slave_index = 0; slave_index < slave_count; slave_index++ )
-		wake_up_process( slave_threads[slave_index] );
+	for ( i = 0; i < (producer_count-1); ++i )
+		wake_up_process( prod_threads[i] );
 
-	wake_up_process( cntrl_thread );
-	
-	// Wait for thread completion
-	wait_for_completion( &controller_comp );
-	
+	for ( i = 0; i < consumer_count; ++i )
+		wake_up_process( cons_threads[i] );
+
+	// Wait for threads to be ready for test
+	while ( ready_consumers < consumer_count )
+		fipc_test_pause();
+
+	while ( ready_producers < (producer_count-1) )
+		fipc_test_pause();
+
+	asm volatile ( "CPUID" );
+
+	// Begin Test
+	test_ready = 1;
+
+	// This thread is also a producer
+	producer( &queue );
+
+	// Wait for producers to complete
+	while ( completed_producers < producer_count )
+		fipc_test_pause();
+
+	// Tell consumers to halt
+	for ( i = 0; i < consumer_count; ++i )
+	{
+		alloc_request( &queue, &request );
+
+		request->data = HALT;
+
+		enqueue( &queue, request );
+	}
+
+	// Wait for consumers to complete
+	while ( completed_consumers < consumer_count )
+		fipc_test_pause();
+
 	// Clean up
-	for ( slave_index = 0; slave_index < slave_count; slave_index++ )
-		fipc_test_thread_free_thread( slave_threads[slave_index] );
+	for ( i = 0; i < (producer_count-1); ++i )
+		fipc_test_thread_free_thread( prod_threads[i] );
 
-	fipc_test_thread_free_thread( cntrl_thread );
+	for ( i = 0; i < consumer_count; ++i )
+		fipc_test_thread_free_thread( cons_threads[i] );
 
-	for ( slave_index = 0; slave_index < slave_count; slave_index++ )
-		fipc_test_free_channel( CHANNEL_ORDER, slave_headers[slave_index], cntrl_headers[slave_index] );
+	free_queue( &queue );
+	kfree( cons_threads );
+	kfree( prod_threads );
 
-	kfree( slave_thread_map );
-	kfree( slave_headers );
-	kfree( cntrl_headers );
-	kfree( slave_threads );
-	fipc_fini();
+	test_finished = 1;
 	return 0;
 }
 
 int init_module(void)
 {
-	return main();
+	kthread_t* controller_thread = fipc_test_thread_spawn_on_CPU ( controller, NULL, producer_cpus[producer_count-1] );
+
+	if ( controller_thread == NULL )
+	{
+		pr_err( "%s\n", "Error while creating thread" );
+		return -1;
+	}
+
+	wake_up_process( controller_thread );
+
+	while ( !test_finished )
+		fipc_test_pause();
+
+	fipc_test_thread_free_thread( controller_thread );
+
+	return 0;
 }
 
 void cleanup_module(void)
