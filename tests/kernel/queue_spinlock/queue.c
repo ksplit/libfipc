@@ -11,7 +11,7 @@ int init_queue ( queue_t* q )
 {
 	int i;
 
-	q->node_table = (node_t*) kmalloc( PREALLOCATED_NODES*sizeof(node_t), GFP_KERNEL );
+	q->node_table = (node_t*) vmalloc( PREALLOCATED_NODES*sizeof(node_t) );
 
 	for ( i = 0; i < PREALLOCATED_NODES; ++i )
 	{
@@ -34,7 +34,7 @@ int init_queue ( queue_t* q )
 
 int free_queue ( queue_t* q )
 {
-	kfree ( q->node_table );
+	vfree ( q->node_table );
 	return SUCCESS;
 }
 
