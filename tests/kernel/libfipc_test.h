@@ -23,6 +23,33 @@
 #define fipc_test_FAI(X)       __sync_fetch_and_add( &X, 1 );
 #define fipc_test_CAS(a,b,c)   __sync_bool_compare_and_swap(a,b,c);
 
+/*
+CAS(*ptr, old, new)
+if *ptr == old
+then *ptr = new, true
+else false
+
+stone_CAS(*ptr, old, new)
+if *ptr == old
+then *ptr = new, true
+else old = *ptr, false
+*/
+
+// The fipc_test_stone_CAS macro does not complete everything
+// atomically, however, as long as b is a private, thread-safe
+// variable, this should not be an issue. 
+
+#define fipc_test_stone_CAS(a,b,c)	\
+			({				 	\
+				int ret = 1;			\
+				if (!fipc_test_CAS(a,b,c))	\
+				{				\
+					b = *a;			\
+					ret = 0;		\
+				}				\
+				ret;				\
+			 })
+
 #define likely(x)       __builtin_expect(!!(x), 1)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
 
