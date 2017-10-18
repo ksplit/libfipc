@@ -6,7 +6,7 @@
 #ifndef LIBFIPC_TEST_QUEUE
 #define LIBFIPC_TEST_QUEUE
 
-#include <linux/slab.h>
+#include <linux/vmalloc.h>
 #include <linux/spinlock.h>
 
 #define PREALLOCATED_NODES 1000
