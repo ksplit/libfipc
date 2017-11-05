@@ -15,7 +15,6 @@
 #define EMPTY_COLLECTION     2
 
 // Types
-
 typedef struct linked_node_t
 {
 	uint64_t data;
