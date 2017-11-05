@@ -48,6 +48,7 @@ int producer ( void* data )
 
 	// End test
 	pr_err( "Producer completed in %llu, and the average was %llu.\n", end - start, (end - start) / transactions );
+	vfree(t);
 	fipc_test_FAI(completed_producers);
 	fipc_test_thread_release_control_of_CPU();
 	return 0;
@@ -163,6 +164,8 @@ int controller ( void* data )
 		enqueue( &queue, &t[i] );
 	}
 
+	vfree(t);
+	
 	// Wait for consumers to complete
 	while ( completed_consumers < consumer_count )
 		fipc_test_pause();

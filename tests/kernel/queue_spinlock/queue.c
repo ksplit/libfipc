@@ -66,7 +66,7 @@ int dequeue ( queue_t* q, request_t** r )
 	if ( q->head == NULL )
 		q->tail = q->head;
 
-	*r->next = NULL;
+	(*r)->next = NULL;
 
 	// Release Lock, Exit Critical Section
 	spin_unlock( &q->queue_lock );
