@@ -9,8 +9,6 @@
 #include <linux/vmalloc.h>
 #include <linux/spinlock.h>
 
-#define PREALLOCATED_NODES 1000
-
 // Error Values
 #define SUCCESS              0
 #define NO_MEMORY            1
@@ -32,19 +30,13 @@ typedef struct queue_t
 	node_t* head;
 	node_t* tail;
 
-	node_t*  node_table;
-	uint64_t logical_size;
-	uint64_t physical_size;
-
 	spinlock_t queue_lock;
-	spinlock_t node_table_lock;
 
 } queue_t;
 
-int init_queue    ( queue_t* q );
-int free_queue    ( queue_t* q );
-int enqueue       ( queue_t* q, request_t* r );
-int dequeue       ( queue_t* q, request_t** r );
-int alloc_request ( queue_t* q, request_t** r );
+int init_queue ( queue_t* q );
+int free_queue ( queue_t* q );
+int enqueue    ( queue_t* q, request_t* r );
+int dequeue    ( queue_t* q, request_t** r );
 
 #endif

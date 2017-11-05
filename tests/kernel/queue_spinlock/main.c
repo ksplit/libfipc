@@ -14,13 +14,19 @@ int noinline null_invocation ( void )
 
 int producer ( void* data )
 {
-	queue_t* q = (queue_t*) data;
+	queue_t*   q = (queue_t*) data;
+	request_t* t = (request_t*) vmalloc( transactions*sizeof(request_t) );
 
 	register uint64_t transaction_id;
 	register uint64_t start;
 	register uint64_t end;
 
-	request_t* request = NULL;
+	// Touching data
+	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
+	{
+		t[transaction_id].data = 0;
+		t[transaction_id].next = NULL;
+	}
 
 	// Begin test
 	fipc_test_thread_take_control_of_CPU();
@@ -33,11 +39,9 @@ int producer ( void* data )
 
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 	{
-		alloc_request( q, &request );
+		t[transaction_id].data = NULL_INVOCATION;
 
-		request->data = NULL_INVOCATION;
-
-		enqueue( q, request );
+		enqueue( q, &t[transaction_id] );
 	}
 	
 	end = RDTSCP();
@@ -92,7 +96,6 @@ int consumer ( void* data )
 int controller ( void* data )
 {
 	int i;
-	request_t* request = NULL;
 
 	// Queue Init
 	init_queue ( &queue );
@@ -150,14 +153,14 @@ int controller ( void* data )
 	while ( completed_producers < producer_count )
 		fipc_test_pause();
 
+	request_t* t = (request_t*) vmalloc( consumer_count*sizeof(request_t) );
+
 	// Tell consumers to halt
 	for ( i = 0; i < consumer_count; ++i )
 	{
-		alloc_request( &queue, &request );
+		t[i].data = HALT;
 
-		request->data = HALT;
-
-		enqueue( &queue, request );
+		enqueue( &queue, &t[i] );
 	}
 
 	// Wait for consumers to complete
