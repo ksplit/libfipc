@@ -113,7 +113,7 @@ int controller ( void* data )
 	// Spawn Threads
 	for ( i = 0; i < (producer_count-1); ++i )
 	{
-		prod_threads[i] = fipc_test_thread_spawn_on_CPU ( producer, &node_table[i], producer_cpus[i] );
+		prod_threads[i] = fipc_test_thread_spawn_on_CPU ( producer, node_table[i], producer_cpus[i] );
 
 		if ( prod_threads[i] == NULL )
 		{
@@ -153,7 +153,7 @@ int controller ( void* data )
 	test_ready = 1;
 
 	// This thread is also a producer
-	producer( &node_table[producer_count-1] );
+	producer( node_table[producer_count-1] );
 
 	// Wait for producers to complete
 	while ( completed_producers < producer_count )

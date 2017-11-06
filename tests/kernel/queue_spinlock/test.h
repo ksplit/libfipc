@@ -15,7 +15,7 @@
 static queue_t queue;
 
 // Test Variables
-static uint32_t transactions = 128;
+static uint32_t transactions = 1000000;
 
 static uint8_t producer_count = 2;
 static uint8_t consumer_count = 2;
