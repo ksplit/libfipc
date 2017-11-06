@@ -101,10 +101,10 @@ int controller ( void* data )
 	init_queue ( &queue );
 
 	// Node Table Allocation
-	request_t** node_table = kmalloc( producer_count*sizeof(node_table*), GFP_KERNEL );
+	request_t** node_table = kmalloc( producer_count*sizeof(request_t*), GFP_KERNEL );
 
 	for ( i = 0; i < producer_count; ++i )
-		node_table[i] = table(request_t*) vmalloc( transactions*sizeof(request_t) );
+		node_table[i] = (request_t*) vmalloc( transactions*sizeof(request_t) );
 
 	// Thread Allocation
 	kthread_t** prod_threads = kmalloc( (producer_count-1)*sizeof(kthread_t*), GFP_KERNEL );
