@@ -14,8 +14,8 @@ int noinline null_invocation ( void )
 
 int producer ( void* data )
 {
-	queue_t* q = (queue_t*) data;
-	request_t* t = (request_t*) vmalloc( transactions*sizeof(request_t) );
+	queue_t*   q = &queue;
+	request_t* t = (request_t*) data;
 
 	register uint64_t transaction_id;
 	register uint64_t start;
@@ -48,7 +48,6 @@ int producer ( void* data )
 
 	// End test
 	pr_err( "Producer completed in %llu, and the average was %llu.\n", end - start, (end - start) / transactions );
-	vfree(t);
 	fipc_test_FAI(completed_producers);
 	fipc_test_thread_release_control_of_CPU();
 	return 0;
@@ -101,6 +100,12 @@ int controller ( void* data )
 	// Queue Init
 	init_queue ( &queue );
 
+	// Node Table Allocation
+	request_t** node_table = kmalloc( producer_count*sizeof(request_t*), GFP_KERNEL );
+
+	for ( i = 0; i < producer_count; ++i )
+		node_table[i] = (request_t*) vmalloc( transactions*sizeof(request_t) );
+
 	// Thread Allocation
 	kthread_t** prod_threads = kmalloc( (producer_count-1)*sizeof(kthread_t*), GFP_KERNEL );
 	kthread_t** cons_threads = kmalloc( consumer_count*sizeof(kthread_t*), GFP_KERNEL );
@@ -108,7 +113,7 @@ int controller ( void* data )
 	// Spawn Threads
 	for ( i = 0; i < (producer_count-1); ++i )
 	{
-		prod_threads[i] = fipc_test_thread_spawn_on_CPU ( producer, &queue, producer_cpus[i] );
+		prod_threads[i] = fipc_test_thread_spawn_on_CPU ( producer, node_table[i], producer_cpus[i] );
 
 		if ( prod_threads[i] == NULL )
 		{
@@ -148,7 +153,7 @@ int controller ( void* data )
 	test_ready = 1;
 
 	// This thread is also a producer
-	producer( &queue );
+	producer( node_table[producer_count-1] );
 
 	// Wait for producers to complete
 	while ( completed_producers < producer_count )
@@ -164,11 +169,11 @@ int controller ( void* data )
 		enqueue( &queue, &t[i] );
 	}
 
-	vfree(t);
-
 	// Wait for consumers to complete
 	while ( completed_consumers < consumer_count )
 		fipc_test_pause();
+
+	vfree(t);
 
 	// Clean up
 	for ( i = 0; i < (producer_count-1); ++i )
@@ -177,9 +182,13 @@ int controller ( void* data )
 	for ( i = 0; i < consumer_count; ++i )
 		fipc_test_thread_free_thread( cons_threads[i] );
 
+	for ( i = 0; i < producer_count; ++i )
+		vfree( node_table[i] );
+
 	free_queue( &queue );
 	kfree( cons_threads );
 	kfree( prod_threads );
+	kfree( node_table );
 
 	test_finished = 1;
 	return 0;

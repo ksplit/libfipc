@@ -6,7 +6,6 @@
 #ifndef LIBFIPC_TEST_QUEUE
 #define LIBFIPC_TEST_QUEUE
 
-#include <linux/vmalloc.h>
 #include <linux/spinlock.h>
 
 // Error Values
