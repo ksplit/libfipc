@@ -71,7 +71,11 @@ int consumer ( void* data )
 	while ( !halt )
 	{
 		// Receive and unmarshall request
-		while ( dequeue( q, &request ) );
+		do
+		{
+			dequeue( q, &request );
+		}
+		while ( request == NULL );
 
 		// Process Request
 		switch ( request->data )

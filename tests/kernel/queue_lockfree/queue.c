@@ -35,7 +35,7 @@ int enqueue ( queue_t* q, request_t* r )
 	request_t* pTail = q->tail;
 
 	// 3. Attempt to change q->tail until success (starvation possible)
-	while( !fipc_test_CAS( &q->tail, pTail, r ) );
+	while( !fipc_test_stone_CAS( &q->tail, pTail, r ) );
 
 	// 4. Finish Linking
 	if ( pTail != NULL )
@@ -79,18 +79,18 @@ int dequeue ( queue_t* q, request_t** r )
 			else if ( pHead == pTail )
 			{
 				// Try to set tail to null
-				finished = fipc_test_CAS( &q->tail, pTail, NULL );
+				finished = fipc_test_stone_CAS( &q->tail, pTail, NULL );
 
 				// If that worked, try to set head to null,
 				// unless enqueuer reset it
 				if ( finished )
-					fipc_test_CAS( &q->head, pHead, NULL );
+					fipc_test_stone_CAS( &q->head, pHead, NULL );
 			}
 
 			// 4c. Multi-item list and no enqueue operation in progress
 			else if ( next != NULL )
 			{
-				finished = fipc_test_CAS( &q->head, pHead, next );
+				finished = fipc_test_stone_CAS( &q->head, pHead, next );
 			}
 
 			// 4d. Else last item already being dequeued or intermediate state
