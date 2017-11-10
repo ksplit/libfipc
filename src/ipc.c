@@ -284,16 +284,38 @@ int
 LIBFIPC_FUNC_ATTR
 fipc_send_msg_start ( header_t* chnl, message_t** msg )
 {
-	if ( ! check_tx_slot_available ( get_current_tx_slot( chnl ) ) )
-	{
-		FIPC_DEBUG(FIPC_DEBUG_VERB, "Failed to get a slot, out of slots right now.\n");
-		return -EWOULDBLOCK;
-	}
+	// if ( ! check_tx_slot_available ( get_current_tx_slot( chnl ) ) )
+	// {
+	// 	FIPC_DEBUG(FIPC_DEBUG_VERB, "Failed to get a slot, out of slots right now.\n");
+	// 	return -EWOULDBLOCK;
+	// }
 
-	*msg = get_current_tx_slot( chnl );
-	inc_tx_slot( chnl );
+	// *msg = get_current_tx_slot( chnl );
+	// inc_tx_slot( chnl );
+	// FIPC_DEBUG(FIPC_DEBUG_VERB, "Allocated a slot at index %llu in tx\n", (unsigned long long) tx_msg_to_idx( chnl, *msg ));
+	// return 0;
+
+	int finished = 0;
+	uint64_t slot;
+	do
+	{
+		slot = chnl->tx.slot;
+		if ( chnl->tx.buffer[slot & chnl->tx.mask].msg_status == FIPC_MSG_STATUS_AVAILABLE )
+		{
+			finished = __sync_bool_compare_and_swap( &chnl->tx.slot, slot, slot+1 );
+		}
+		else
+		{
+			FIPC_DEBUG(FIPC_DEBUG_VERB, "Failed to get a slot, out of slots right now.\n");
+			return -EWOULDBLOCK;
+		}
+	}
+	while ( !finished );
+
+	*msg = &chnl->tx.buffer[slot & chnl->tx.mask];
 	FIPC_DEBUG(FIPC_DEBUG_VERB, "Allocated a slot at index %llu in tx\n", (unsigned long long) tx_msg_to_idx( chnl, *msg ));
 	return 0;
+
 }
 EXPORT_SYMBOL(fipc_send_msg_start);
 
@@ -311,19 +333,40 @@ int
 LIBFIPC_FUNC_ATTR
 fipc_recv_msg_start ( header_t* chnl, message_t** msg )
 {
-	message_t* chnl_slot = get_current_rx_slot( chnl );
+	// message_t* chnl_slot = get_current_rx_slot( chnl );
 
-	if ( ! check_rx_slot_msg_waiting( chnl_slot ) )
+	// if ( ! check_rx_slot_msg_waiting( chnl_slot ) )
+	// {
+	// 	FIPC_DEBUG(FIPC_DEBUG_VERB, "No messages to received right now\n");
+	// 	return -EWOULDBLOCK;
+	// }
+
+	// *msg = chnl_slot;
+	// inc_rx_slot( chnl );
+
+	// FIPC_DEBUG(FIPC_DEBUG_VERB, "Received a message at index %llu in rx\n",
+	// 			(unsigned long long) rx_msg_to_idx( chnl, *msg ));
+	// return 0;
+
+	int finished = 0;
+	uint64_t slot;
+	do
 	{
-		FIPC_DEBUG(FIPC_DEBUG_VERB, "No messages to received right now\n");
-		return -EWOULDBLOCK;
+		slot = chnl->rx.slot;
+		if ( chnl->rx.buffer[slot & chnl->rx.mask].msg_status == FIPC_MSG_STATUS_SENT )
+		{
+			finished = __sync_bool_compare_and_swap( &chnl->rx.slot, slot, slot+1 );
+		}
+		else
+		{
+			FIPC_DEBUG(FIPC_DEBUG_VERB, "No messages to received right now\n");
+			return -EWOULDBLOCK;
+		}
 	}
+	while ( !finished );
 
-	*msg = chnl_slot;
-	inc_rx_slot( chnl );
-
-	FIPC_DEBUG(FIPC_DEBUG_VERB, "Received a message at index %llu in rx\n",
-				(unsigned long long) rx_msg_to_idx( chnl, *msg ));
+	*msg = &chnl->rx.buffer[slot & chnl->rx.mask];
+	FIPC_DEBUG(FIPC_DEBUG_VERB, "Received a message at index %llu in rx\n", (unsigned long long) rx_msg_to_idx( chnl, *msg ));
 	return 0;
 }
 EXPORT_SYMBOL(fipc_recv_msg_start);
