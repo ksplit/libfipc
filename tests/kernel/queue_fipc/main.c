@@ -50,7 +50,8 @@ int consumer ( void* data )
 {
 	queue_t* q = (queue_t*) data;
 
-	request_t* request = NULL;
+	request_t  r;
+	request_t* request = &r;
 
 	int halt = 0;
 
