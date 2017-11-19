@@ -26,6 +26,8 @@ typedef node_t request_t;
 
 typedef struct queue_t
 {
+	node_t header;
+
 	node_t* head;
 	node_t* tail;
 
