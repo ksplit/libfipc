@@ -300,7 +300,7 @@ fipc_send_msg_start ( header_t* chnl, message_t** msg )
 	do
 	{
 		slot = chnl->tx.slot;
-		if ( chnl->tx.buffer[slot & chnl->tx.mask].msg_status == FIPC_MSG_STATUS_AVAILABLE )
+		if ( chnl->tx.buffer[chnl->tx.slot & chnl->tx.mask].msg_status == FIPC_MSG_STATUS_AVAILABLE )
 		{
 			finished = __sync_bool_compare_and_swap( &chnl->tx.slot, slot, slot+1 );
 		}
@@ -353,7 +353,7 @@ fipc_recv_msg_start ( header_t* chnl, message_t** msg )
 	do
 	{
 		slot = chnl->rx.slot;
-		if ( chnl->rx.buffer[slot & chnl->rx.mask].msg_status == FIPC_MSG_STATUS_SENT )
+		if ( chnl->rx.buffer[chnl->rx.slot & chnl->rx.mask].msg_status == FIPC_MSG_STATUS_SENT )
 		{
 			finished = __sync_bool_compare_and_swap( &chnl->rx.slot, slot, slot+1 );
 		}
