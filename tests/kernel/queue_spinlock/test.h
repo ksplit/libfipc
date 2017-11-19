@@ -8,7 +8,6 @@
 #ifndef LIBFIPC_TEST_PING_PONG
 #define LIBFIPC_TEST_PING_PONG
 
-#include <linux/delay.h>
 #include "../libfipc_test.h"
 #include "queue.h"
 
