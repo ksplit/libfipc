@@ -39,8 +39,8 @@ int enqueue ( queue_t* q, request_t* r )
 	while ( 1 )
 	{
 		// 2. Make private copy of tail and tail->next
-		request_t* tail = q->tail;
-		request_t* next = q->tail->next;
+		tail = q->tail;
+		next = q->tail->next;
 
 		if ( tail == q->tail )
 		{
