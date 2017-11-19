@@ -33,7 +33,11 @@ int producer ( void* data )
 
 	// Wait for everyone to be ready
 	fipc_test_FAI(ready_producers);
-	while ( !test_ready ) fipc_test_pause();
+
+	while ( !test_ready )
+		fipc_test_pause();
+	
+	fipc_test_mfence();
 
 	start = RDTSC_START();
 
@@ -66,8 +70,13 @@ int consumer ( void* data )
 
 	// Wait for everyone to be ready
 	fipc_test_FAI( ready_consumers );
-	while ( !test_ready ) fipc_test_pause();
 
+	while ( !test_ready )
+		fipc_test_pause();
+
+	fipc_test_mfence();
+
+	// Consume
 	while ( !halt )
 	{
 		// Receive and unmarshall request
@@ -167,6 +176,8 @@ int controller ( void* data )
 	while ( completed_producers < producer_count )
 		fipc_test_pause();
 
+	fipc_test_mfence();
+
 	// Tell consumers to halt
 	for ( i = 0; i < consumer_count; ++i )
 	{
@@ -180,6 +191,8 @@ int controller ( void* data )
 	while ( completed_consumers < consumer_count )
 		fipc_test_pause();
 
+	fipc_test_mfence();
+
 	// Clean up
 	for ( i = 0; i < (producer_count-1); ++i )
 		fipc_test_thread_free_thread( prod_threads[i] );
@@ -190,11 +203,10 @@ int controller ( void* data )
 	for ( i = 0; i < producer_count; ++i )
 		vfree( node_table[i] );
 
-	vfree( cons_threads );
-
 	if ( prod_threads != NULL )
 		vfree( prod_threads );
 
+	vfree( cons_threads );
 	vfree( node_table );
 	vfree( haltMsg );
 	free_queue( &queue );
@@ -223,6 +235,7 @@ int init_module(void)
 	fipc_test_mfence();
 	fipc_test_thread_free_thread( controller_thread );
 	pr_err("finished\n");
+
 	return 0;
 }
 

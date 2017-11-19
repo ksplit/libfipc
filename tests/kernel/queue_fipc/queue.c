@@ -32,11 +32,11 @@ int free_queue ( queue_t* q )
 
 int enqueue ( queue_t* q, request_t* r )
 {
-	request_t* request;
+	request_t* msg;
 
-	fipc_test_blocking_send_start( q->head, &request );
-	request->regs[0] = r->regs[0];
-	fipc_send_msg_end ( q->head, request );
+	fipc_test_blocking_send_start( q->head, &msg );
+	msg->regs[0] = r->regs[0];
+	fipc_send_msg_end ( q->head, msg );
 
 	return SUCCESS;
 }
@@ -45,11 +45,11 @@ int enqueue ( queue_t* q, request_t* r )
 
 int dequeue ( queue_t* q, request_t** r )
 {
-	request_t* response;
+	request_t* msg;
 
-	fipc_test_blocking_recv_start( q->tail, &response );
-	(*r)->regs[0] = response->regs[0];
-	fipc_recv_msg_end( q->tail, response );
+	fipc_test_blocking_recv_start( q->tail, &msg );
+	(*r)->regs[0] = msg->regs[0];
+	fipc_recv_msg_end( q->tail, msg );
 	
 	return SUCCESS;
 }
