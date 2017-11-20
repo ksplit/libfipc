@@ -9,7 +9,6 @@
 #define LIBFIPC_TEST_PING_PONG
 
 #include "../libfipc_test.h"
-#include "queue.h"
 
 #define CHANNEL_ORDER ilog2(sizeof(message_t)) + 12
 

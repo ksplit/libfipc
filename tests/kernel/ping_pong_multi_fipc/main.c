@@ -83,8 +83,8 @@ int controller ( void* data )
 {
 	int i;
 	message_t* haltMsg;
-	header_t*  requester_header = NULL;
-	header_t*  responder_header = NULL;
+	header_t*  producer_header = NULL;
+	header_t*  consumer_header = NULL;
 
 	// FIPC Init
 	fipc_init();
@@ -179,7 +179,7 @@ int controller ( void* data )
 		vfree( prod_threads );
 
 	vfree( cons_threads );
-	fipc_test_free_channel( CHANNEL_ORDER, requester_header, responder_header );
+	fipc_test_free_channel( CHANNEL_ORDER, producer_header, consumer_header );
 	fipc_fini();
 
 	// End Experiment
