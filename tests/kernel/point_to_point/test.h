@@ -10,7 +10,7 @@
 
 #include "../libfipc_test.h"
 
-#define CHANNEL_ORDER ilog2(sizeof(message_t)) + 12
+#define CHANNEL_ORDER ilog2(sizeof(message_t)) + 7
 
 // Test Variables
 static uint32_t transactions = 1000000;

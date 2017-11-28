@@ -28,13 +28,20 @@ int producer ( void* data )
 
 	start = RDTSC_START();
 
+	int i = -1;
+
 	// Produce
-	// for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
-	// {
-	// 	fipc_test_blocking_send_start( chan, &request );
-	// 	request->regs[0] = NULL_INVOCATION;
-	// 	fipc_send_msg_end( chan, request );
-	// }
+	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
+	{
+		++i;
+		if (i >= consumer_count) i = 0;
+
+		if (fipc_send_msg_start( chans[i], &request ) != 0)
+			continue;
+
+		request->regs[0] = NULL_INVOCATION;
+		fipc_send_msg_end( chans[i], request );
+	}
 	
 	end = RDTSCP();
 
@@ -51,6 +58,7 @@ int consumer ( void* data )
 	message_t* request;
 
 	int halt = 0;
+	int i = -1;
 
 	// Begin test
 	fipc_test_thread_take_control_of_CPU();
@@ -64,12 +72,22 @@ int consumer ( void* data )
 	fipc_test_mfence();
 
 	// Consume
-	// while ( !halt )
-	// {
-	// 	fipc_test_blocking_recv_start( chan, &request );
-	// 	if (request->regs[0] == HALT) halt = 1;
-	// 	fipc_recv_msg_end( chan, request );
-	// }
+	while ( !halt )
+	{
+		++i;
+		if ( i >= producer_count ) i = 0;
+		// Poll Channels in round robin fashion
+	//	while ( ! fipc_recv_msg_start( chans[i % producer_count], &request ) )
+	//		++i;
+
+	 //	if (request->regs[0] == HALT) halt = 1;
+	 //	fipc_recv_msg_end( chans[i % producer_count], request );
+		if (fipc_recv_msg_start( chans[i], &request) != 0)
+			continue;
+
+		if (request->regs[0] == HALT) halt = 1;
+	 	fipc_recv_msg_end( chans[i], request );
+	}
 
 	// End test
 	fipc_test_mfence();
@@ -175,9 +193,9 @@ int controller ( void* data )
 	// Tell consumers to halt
 	for ( i = 0; i < consumer_count; ++i )
 	{
-		fipc_test_blocking_send_start( prod_headers[producer_count - 1], &haltMsg );
+		fipc_test_blocking_send_start( prod_headers[producer_count - 1][i], &haltMsg );
 		haltMsg->regs[0] = HALT;
-		fipc_send_msg_end ( prod_headers[producer_count - 1], haltMsg );
+		fipc_send_msg_end ( prod_headers[producer_count - 1][i], haltMsg );
 	}
 
 	// Wait for consumers to complete
