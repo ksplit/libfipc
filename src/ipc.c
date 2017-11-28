@@ -29,6 +29,7 @@
 #define FIPC_MSG_STATUS_AVAILABLE 0xdeadU
 #define FIPC_MSG_STATUS_DUMMY     0xfadeU
 #define FIPC_MSG_STATUS_SENT      0xfeedU
+#define FIPC_MSG_STATUS_BUSY      0xdeefU
 
 // =============================================================
 // ------------------- HELPER FUNCTIONS ------------------------
@@ -302,6 +303,7 @@ fipc_send_msg_start ( header_t* chnl, message_t** msg )
 		slot = chnl->tx.slot;
 		if ( chnl->tx.buffer[chnl->tx.slot & chnl->tx.mask].msg_status == FIPC_MSG_STATUS_AVAILABLE )
 		{
+			chnl->tx.buffer[chnl->tx.slot & chnl->tx.mask].msg_status = FIPC_MSG_STATUS_BUSY;
 			finished = __sync_bool_compare_and_swap( &chnl->tx.slot, slot, slot+1 );
 		}
 		else
@@ -355,6 +357,7 @@ fipc_recv_msg_start ( header_t* chnl, message_t** msg )
 		slot = chnl->rx.slot;
 		if ( chnl->rx.buffer[chnl->rx.slot & chnl->rx.mask].msg_status == FIPC_MSG_STATUS_SENT )
 		{
+			chnl->rx.buffer[chnl->rx.slot & chnl->rx.mask].msg_status = FIPC_MSG_STATUS_BUSY;
 			finished = __sync_bool_compare_and_swap( &chnl->rx.slot, slot, slot+1 );
 		}
 		else
