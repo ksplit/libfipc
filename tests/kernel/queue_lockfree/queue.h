@@ -6,7 +6,6 @@
 #ifndef LIBFIPC_TEST_QUEUE
 #define LIBFIPC_TEST_QUEUE
 
-#include <linux/spinlock.h>
 #include "../libfipc_test.h"
 
 // Error Values
@@ -36,6 +35,6 @@ typedef struct queue_t
 int init_queue ( queue_t* q );
 int free_queue ( queue_t* q );
 int enqueue    ( queue_t* q, request_t* r );
-int dequeue    ( queue_t* q, request_t** r );
+int dequeue    ( queue_t* q, uint64_t* data );
 
 #endif

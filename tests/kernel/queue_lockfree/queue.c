@@ -76,7 +76,7 @@ int enqueue ( queue_t* q, request_t* r )
 // Dequeue
 // We will dequeue a node from the front of *q and place it in **r
 
-int dequeue ( queue_t* q, request_t** r )
+int dequeue ( queue_t* q, uint64_t* data )
 {
 	request_t* head = NULL;
 	request_t* tail = NULL;
@@ -86,7 +86,7 @@ int dequeue ( queue_t* q, request_t** r )
 	{
 		head = q->head;
 		tail = q->tail;
-		next = q->head->next;
+		next = head->next;
 
 		if ( head == q->head )
 		{
@@ -94,21 +94,21 @@ int dequeue ( queue_t* q, request_t** r )
 			{
 				if ( next == NULL )
 				{
-					*r = NULL;
 					return EMPTY_COLLECTION;
 				}
 				fipc_test_CAS( &q->tail, tail, next );
 			}
-
-			*r = next;
-			if ( fipc_test_CAS( &q->head, head, next ) )
+			else
 			{
-				break;
+				*data = next->data;
+				if ( fipc_test_CAS( &q->head, head, next ) )
+				{
+					break;
+				}
 			}
 		}
 	}
 
-	(*r)->next = NULL;
 	return SUCCESS;
 
 	// int finished = 0;

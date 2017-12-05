@@ -61,7 +61,7 @@ int consumer ( void* data )
 {
 	queue_t* q = (queue_t*) data;
 
-	request_t* request = NULL;
+	uint64_t request;
 
 	int halt = 0;
 
@@ -83,7 +83,7 @@ int consumer ( void* data )
 		if ( dequeue( q, &request ) == SUCCESS )
 		{
 			// Process Request
-			switch ( request->data )
+			switch ( request )
 			{
 				case NULL_INVOCATION:
 					null_invocation();

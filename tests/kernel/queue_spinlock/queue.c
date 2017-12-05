@@ -9,10 +9,10 @@
 
 int init_queue ( queue_t* q )
 {
-	q->head = NULL;
-	q->tail = NULL;
+	q->header.next = NULL;
 
-	spin_lock_init( &q->queue_lock );
+	q->head = &(q->header);
+	q->tail = &(q->header);
 
 	return SUCCESS;
 }
@@ -29,46 +29,43 @@ int free_queue ( queue_t* q )
 
 int enqueue ( queue_t* q, request_t* r )
 {
-	// Acquire Lock, Enter Critical Section
-	spin_lock( &q->queue_lock );
+	r->next = NULL;
 
-	if ( q->tail == NULL )
-	{
-		q->head = q->tail = r;
-	}
-	else
-	{
-		q->tail->next = r;
-		q->tail       = r;
-	}
+	// Acquire Lock, Enter Critical Section
+	queued_spin_lock( &q->T_lock );
+
+	q->tail->next = r;
+	q->tail       = r;
 
 	// Release Lock, Exit Critical Section
-	spin_unlock( &q->queue_lock );
+	queued_spin_unlock( &q->T_lock );
 	return SUCCESS;
 }
 
 // Dequeue
 
-int dequeue ( queue_t* q, request_t** r )
+int dequeue ( queue_t* q, uint64_t* data )
 {
-	// Acquire Lock, Enter Critical Section
-	spin_lock( &q->queue_lock );
+	request_t* temp;
+	request_t* new_head;
 
-	if ( q->head == NULL )
+	// Acquire Lock, Enter Critical Section
+	queued_spin_lock( &q->H_lock );
+
+	temp     = q->head;
+	new_head = q->head->next;
+
+	if ( new_head == NULL )
 	{
-		spin_unlock( &q->queue_lock );
+		queued_spin_unlock( &q->H_lock );
 		return EMPTY_COLLECTION;
 	}
 
-	*r      = q->head;
-	q->head = q->head->next;
-
-	if ( q->head == NULL )
-		q->tail = q->head;
-
-	(*r)->next = NULL;
+	*data   = new_head->data;
+	q->head = new_head;
 
 	// Release Lock, Exit Critical Section
-	spin_unlock( &q->queue_lock );
+	queued_spin_unlock( &q->H_lock );
+
 	return SUCCESS;
 }
