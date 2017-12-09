@@ -5,8 +5,8 @@
  * NOTE: This test assumes an x86 architecture.
  */
 
-#ifndef LIBFIPC_TEST_QUEUE
-#define LIBFIPC_TEST_QUEUE
+#ifndef LIBFIPC_TEST_QUEUE_TEST
+#define LIBFIPC_TEST_QUEUE_TEST
 
 #include "../libfipc_test.h"
 #include "queue.h"

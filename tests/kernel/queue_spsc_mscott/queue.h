@@ -6,6 +6,8 @@
 #ifndef LIBFIPC_TEST_QUEUE
 #define LIBFIPC_TEST_QUEUE
 
+#include "../libfipc_test.h"
+
 // Error Values
 #define SUCCESS              0
 #define NO_MEMORY            1

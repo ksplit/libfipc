@@ -225,7 +225,7 @@ int controller ( void* data )
 	{
 		haltMsg[i].data = HALT;
 
-		enqueue( prod_queues[p][i], &haltMsg[i] );
+		enqueue( prod_queues[producer_count-1][i], &haltMsg[i] );
 	}
 	
 	// Wait for consumers to complete
