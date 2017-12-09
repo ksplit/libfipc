@@ -23,7 +23,6 @@ static uint8_t consumer_cpus[32] = { 4, 12, 20, 28 };
 // Queue Variables
 static queue_t*** prod_queues = NULL;
 static queue_t*** cons_queues = NULL;
-static node_t**   node_tables = NULL;
 
 // Request Types
 #define HALT            2

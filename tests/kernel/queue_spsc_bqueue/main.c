@@ -20,15 +20,7 @@ int producer ( void* data )
 	uint64_t i = 0;
 
 	uint64_t rank = *(uint64_t*)data;
-	node_t*   t = node_tables[rank];
 	queue_t** q = prod_queues[rank];
-
-	// Touching data
-	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
-	{
-		t[transaction_id].data = 0;
-		t[transaction_id].next = NULL;
-	}
 
 	// Begin test
 	fipc_test_thread_take_control_of_CPU();
@@ -45,9 +37,7 @@ int producer ( void* data )
 
 	for ( transaction_id = 0; transaction_id < transactions; )
 	{
-		t[transaction_id].data = NULL_INVOCATION;
-
-		if ( enqueue( q[i], &t[transaction_id] ) == SUCCESS )
+		if ( enqueue( q[i], NULL_INVOCATION ) == SUCCESS )
 		{
 			transaction_id++;
 		}
@@ -143,15 +133,6 @@ int controller ( void* data )
 			cons_queues[j][i] = &queues[i*producer_count + j];
 		}
 	}
-
-	// Node Table Allocation
-	node_tables = (node_t**) vmalloc( producer_count*sizeof(node_t*) );
-
-	for ( i = 0; i < producer_count; ++i )
-		node_tables[i] = (node_t*) vmalloc( transactions*sizeof(node_t) );
-
-	node_t* haltMsg = (node_t*) vmalloc( consumer_count*sizeof(node_t) );
-
 	fipc_test_mfence();
 	
 	// Thread Allocation
@@ -222,11 +203,7 @@ int controller ( void* data )
 
 	// Tell consumers to halt
 	for ( i = 0; i < consumer_count; ++i )
-	{
-		haltMsg[i].data = HALT;
-
-		enqueue( prod_queues[producer_count-1][i], &haltMsg[i] );
-	}
+		enqueue( prod_queues[producer_count-1][i], HALT );
 	
 	// Wait for consumers to complete
 	while ( completed_consumers < consumer_count )
@@ -248,13 +225,6 @@ int controller ( void* data )
 
 	if ( prod_threads != NULL )
 		vfree( prod_threads );
-
-	vfree( haltMsg );
-
-	for ( i = 0; i < producer_count; ++i )
-		vfree( node_tables[i] );
-
-	vfree( node_tables );
 
 	for ( i = 0; i < consumer_count; ++i )
 		vfree( cons_queues[i] );

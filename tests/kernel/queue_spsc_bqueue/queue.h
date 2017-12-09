@@ -26,21 +26,21 @@
 // Types
 typedef uint64_t data_t;
 
-typedef struct queue_t
+typedef struct CACHE_ALIGNED queue_t
 {
 	/* Mostly accessed by producer. */
 	volatile	uint64_t	head;
 	volatile	uint64_t	batch_head;
 
 	/* Mostly accessed by consumer. */
-	volatile	uint64_t	tail CACHED_ALIGNED;
+	volatile	uint64_t	tail CACHE_ALIGNED;
 	volatile	uint64_t	batch_tail;
 	unsigned long	batch_history;
 
 	/* accessed by both producer and comsumer */
-	ELEMENT_TYPE	data[QUEUE_SIZE] CACHED_ALIGNED;
+	data_t	data[QUEUE_SIZE] CACHE_ALIGNED;
 
-} CACHED_ALIGNED queue_t;
+} queue_t;
 
 int init_queue ( queue_t* q );
 int free_queue ( queue_t* q );
