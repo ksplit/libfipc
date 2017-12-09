@@ -14,10 +14,11 @@ int noinline null_invocation ( void )
 
 int producer ( void* data )
 {
+	int i = -1;
 	int rank = *(int*)data;
 
-	node_t* t = node_table[rank];
-	queue_t**  q = prod_queue[rank];
+	node_t*   t = node_table[rank];
+	queue_t** q = prod_queue[rank];
 
 	register uint64_t transaction_id;
 	register uint64_t start;
@@ -66,13 +67,13 @@ int producer ( void* data )
 
 int consumer ( void* data )
 {
+	int i = -1;
 	int rank = *(int*)data;
 
 	queue_t** q = cons_queue[rank];
 
 	data_t d;
 	int halt = 0;
-	int i = -1;
 
 	// Begin test
 	fipc_test_thread_take_control_of_CPU();
@@ -87,8 +88,7 @@ int consumer ( void* data )
 
 	while ( !halt )
 	{
-		++i;
-		if ( i >= producer_count ) i = 0;
+		++i; if ( i >= producer_count ) i = 0;
 
 		// Receive and unmarshall d
 		if ( dequeue( q[i], &d ) == SUCCESS )
@@ -122,45 +122,54 @@ int controller ( void* data )
 	int j;
 
 	// Queue Allocation
-	queues = vmalloc( producer_count*consumer_count*sizeof(queue_t) );
+	queue_t* queues = (queue_t*) vmalloc( producer_count*consumer_count*sizeof(queue_t) );
 	
 	for ( i = 0; i < producer_count*consumer_count; ++i )
 		init_queue ( &queues[i] );
 
-	prod_queue = vmalloc( producer_count*sizeof(queue_t**) );
-	cons_queue = vmalloc( consumer_count*sizeof(queue_t**) );
+	prod_queue = (queue_t***) vmalloc( producer_count*sizeof(queue_t**) );
+	cons_queue = (queue_t***) vmalloc( consumer_count*sizeof(queue_t**) );
 
 	for ( i = 0; i < producer_count; ++i )
-		prod_queue[i] = vmalloc( consumer_count*sizeof(queue_t*) );
+		prod_queue[i] = (queue_t**) vmalloc( consumer_count*sizeof(queue_t*) );
 
 	for ( i = 0; i < consumer_count; ++i )
-		cons_queue[i] = vmalloc( producer_count*sizeof(queue_t*) );
+		cons_queue[i] = (queue_t**) vmalloc( producer_count*sizeof(queue_t*) );
 
 	for ( i = 0; i < producer_count; ++i )
 	{
 		for ( j = 0; j < consumer_count; ++j )
 		{
-			prod_queue[i][j] = &queues[j*consumer_count + i];
-			cons_queue[j][i] = &queues[j*consumer_count + i];
+			prod_queue[i][j] = &queues[i*producer_count + j];
+			cons_queue[j][i] = &queues[i*producer_count + j];
 		}
 	}
 
 	// Node Table Allocation
-	node_table = vmalloc( producer_count*sizeof(node_t*) );
+	node_table = (node_t**) vmalloc( producer_count*sizeof(node_t*) );
 
 	for ( i = 0; i < producer_count; ++i )
 		node_table[i] = (node_t*) vmalloc( transactions*sizeof(node_t) );
 
 	node_t* haltMsg = (node_t*) vmalloc( consumer_count*sizeof(node_t) );
 
+	fipc_test_mfence();
+	
 	// Thread Allocation
-	kthread_t** prod_threads = vmalloc( (producer_count-1)*sizeof(kthread_t*) );
-	kthread_t** cons_threads = vmalloc( consumer_count*sizeof(kthread_t*) );
+	kthread_t** cons_threads = (kthread_t**) vmalloc( consumer_count*sizeof(kthread_t*) );
+	kthread_t** prod_threads = NULL;
+	
+	if ( producer_count >= 2 )
+		prod_threads = (kthread_t**) vmalloc( (producer_count-1)*sizeof(kthread_t*) );
+
+	int* p_rank = (int*) vmalloc( (producer_count-1)*sizeof(int) );
+	int* c_rank = (int*) vmalloc( (consumer_count)*sizeof(int) );
 
 	// Spawn Threads
 	for ( i = 0; i < (producer_count-1); ++i )
 	{
-		prod_threads[i] = fipc_test_thread_spawn_on_CPU ( producer, &i, producer_cpus[i] );
+		p_rank[i] = i;
+		prod_threads[i] = fipc_test_thread_spawn_on_CPU ( producer, &p_rank[i], producer_cpus[i] );
 
 		if ( prod_threads[i] == NULL )
 		{
@@ -171,7 +180,8 @@ int controller ( void* data )
 
 	for ( i = 0; i < consumer_count; ++i )
 	{
-		cons_threads[i] = fipc_test_thread_spawn_on_CPU ( consumer, &i, consumer_cpus[i] );
+		c_rank[i] = i;
+		cons_threads[i] = fipc_test_thread_spawn_on_CPU ( consumer, &c_rank[i], consumer_cpus[i] );
 		
 		if ( cons_threads[i] == NULL )
 		{
@@ -226,6 +236,9 @@ int controller ( void* data )
 	fipc_test_mfence();
 
 	// Clean up
+	vfree( c_rank );
+	vfree( p_rank );
+
 	for ( i = 0; i < consumer_count; ++i )
 		fipc_test_thread_free_thread( cons_threads[i] );
 
@@ -279,7 +292,9 @@ int init_module(void)
 	while ( !test_finished )
 		fipc_test_pause();
 
+	fipc_test_mfence();
 	fipc_test_thread_free_thread( controller_thread );
+	pr_err("finished\n");
 
 	return 0;
 }
