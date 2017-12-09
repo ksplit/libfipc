@@ -32,7 +32,7 @@ int enqueue ( queue_t* q, data_t d )
 
 	if( q->head == q->batch_head )
 	{
-		tmp_head = q->head + PROD_BATCH_SIZE;
+		tmp_head = q->head + BATCH_SIZE;
 
 		if ( tmp_head >= QUEUE_SIZE )
 			tmp_head = 0;
@@ -107,7 +107,7 @@ int backtracking ( queue_t * q )
 
 // Dequeue
 
-int dequeue ( queue_t* q, data_t* data )
+int dequeue ( queue_t* q, data_t* d )
 {
 	if( q->tail == q->batch_tail )
 	{
