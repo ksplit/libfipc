@@ -58,7 +58,7 @@ int enqueue ( queue_t* q, data_t d )
 	return SUCCESS;
 }
 
-static inline
+inline
 int backtracking ( queue_t * q )
 {
 	uint64_t tmp_tail = q->tail + BATCH_SIZE;
@@ -67,7 +67,6 @@ int backtracking ( queue_t * q )
 	{
 		tmp_tail = 0;
 	}
-
 
 	unsigned long batch_size = q->batch_history;
 
