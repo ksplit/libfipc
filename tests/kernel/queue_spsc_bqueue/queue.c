@@ -66,12 +66,6 @@ int backtracking ( queue_t * q )
 	if ( tmp_tail >= QUEUE_SIZE )
 	{
 		tmp_tail = 0;
-		if (q->batch_history < BATCH_SIZE)
-		{
-			q->batch_history = 
-				(BATCH_SIZE < (q->batch_history + BATCH_INCREAMENT))? 
-				BATCH_SIZE : (q->batch_history + BATCH_INCREAMENT);
-		}
 	}
 
 
@@ -91,10 +85,6 @@ int backtracking ( queue_t * q )
 		else
 			return -1;
 	}
-
-	q->batch_history = batch_size;
-
-
 
 	if ( tmp_tail == q->tail )
 	{
