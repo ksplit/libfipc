@@ -156,4 +156,21 @@ uint64_t fipc_test_time_get_timestamp_mf ( void )
 	return stamp;
 }
 
+/**
+ * This function waits for atleast ticks clock cycles.
+ * CITE: https://github.com/olibre/B-Queue/blob/master
+ */
+static inline
+void fipc_test_time_wait_ticks ( uint64_t ticks )
+{
+		uint64_t current_time;
+		uint64_t time = RDTSC_START();
+		time += ticks;
+		do
+		{
+			current_time = fipc_test_time_get_timestamp();
+		}
+		while ( current_time < time );
+}
+
 #endif

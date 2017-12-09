@@ -8,7 +8,7 @@
 
 #include "../libfipc_test.h"
 
-#define CHANNEL_ORDER ilog2(sizeof(message_t)) + 12
+#define CHANNEL_ORDER ilog2(sizeof(message_t)) + 13
 
 // Error Values
 #define SUCCESS              0

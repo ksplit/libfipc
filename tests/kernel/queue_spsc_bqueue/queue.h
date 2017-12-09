@@ -1,0 +1,50 @@
+/**
+ * @File     : queue.h
+ * @Author   : Abdullah Younis
+ *
+ * CITE: https://github.com/olibre/B-Queue/blob/master/
+ */
+
+#ifndef LIBFIPC_TEST_QUEUE
+#define LIBFIPC_TEST_QUEUE
+
+#include "../libfipc_test.h"
+
+#define QUEUE_SIZE (1024 * 8) 
+#define BATCH_SIZE (QUEUE_SIZE/16)
+#define BATCH_INCREAMENT (BATCH_SIZE/2)
+
+#define CONGESTION_PENALTY (1000) /* cycles */
+
+// Error Values
+#define SUCCESS              0
+#define NO_MEMORY            1
+#define EMPTY_COLLECTION     2
+#define BUFFER_FULL         -1
+#define BUFFER_EMPTY        -2
+
+// Types
+typedef uint64_t data_t;
+
+typedef struct queue_t
+{
+	/* Mostly accessed by producer. */
+	volatile	uint64_t	head;
+	volatile	uint64_t	batch_head;
+
+	/* Mostly accessed by consumer. */
+	volatile	uint64_t	tail CACHED_ALIGNED;
+	volatile	uint64_t	batch_tail;
+	unsigned long	batch_history;
+
+	/* accessed by both producer and comsumer */
+	ELEMENT_TYPE	data[QUEUE_SIZE] CACHED_ALIGNED;
+
+} CACHED_ALIGNED queue_t;
+
+int init_queue ( queue_t* q );
+int free_queue ( queue_t* q );
+int enqueue    ( queue_t* q, data_t  d );
+int dequeue    ( queue_t* q, data_t* d );
+
+#endif
