@@ -12,3 +12,6 @@ compile: $(DEP)
 
 clean:
 	make -C $(KDIR) M=$(PWD) clean
+
+run:
+	insmod $(TARGET).ko && rmmod $(TARGET) && dmesg -c
