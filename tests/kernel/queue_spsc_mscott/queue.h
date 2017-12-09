@@ -14,27 +14,27 @@
 #define EMPTY_COLLECTION     2
 
 // Types
+typedef uint64_t data_t;
+
 typedef struct linked_node_t
 {
-	uint64_t data;
+	data_t data;
 	struct linked_node_t* next;
 
 } node_t;
-
-typedef node_t request_t;
 
 typedef struct queue_t
 {
 	node_t* head;
 	node_t* tail;
 
-	spinlock_t queue_lock;
+	node_t header;
 
 } queue_t;
 
 int init_queue ( queue_t* q );
 int free_queue ( queue_t* q );
-int enqueue    ( queue_t* q, request_t* r );
-int dequeue    ( queue_t* q, request_t** r );
+int enqueue    ( queue_t* q, node_t* n );
+int dequeue    ( queue_t* q, data_t* d );
 
 #endif

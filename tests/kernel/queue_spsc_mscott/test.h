@@ -14,11 +14,17 @@
 // Test Variables
 static uint32_t transactions = 1000000;
 
-static uint8_t producer_count = 2;
-static uint8_t consumer_count = 2;
+static uint8_t producer_count = 4;
+static uint8_t consumer_count = 4;
 
-static uint8_t producer_cpus[32] = { 0, 1 };
-static uint8_t consumer_cpus[32] = { 2, 3 };
+static uint8_t producer_cpus[32] = { 0, 8, 16, 24 };
+static uint8_t consumer_cpus[32] = { 4, 12, 20, 28 };
+
+// Queue Variables
+static queue_t*    queues;
+static queue_t***  prod_queue;
+static queue_t***  cons_queue;
+static request_t** node_table;
 
 // Request Types
 #define HALT            0
