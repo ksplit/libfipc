@@ -73,17 +73,19 @@ static inline
 uint64_t fipc_test_time_get_timestamp ( void )
 {
 	uint64_t stamp;
-
+	uint32_t msw, lsw;
+	
 	asm volatile
 	(
 		"rdtsc\n\t"
-		"shl $32, %%rdx\n\t"
-		"or %%rdx, %%rax\n\t" 
-		: "=a" (stamp)
+	    "movl %%edx, %0\n\t"
+	    "movl %%eax, %1\n\t"
+	    : "=r" (msw), "=r"(lsw)
 		:
-		: "rdx"
-		);
-	
+		: "%edx", "%eax"
+	);
+
+	stamp = ((uint64_t) msw << 32) | lsw;
 	return stamp;
 }
 
@@ -94,19 +96,21 @@ static inline
 uint64_t fipc_test_time_get_timestamp_lf ( void )
 {
 	uint64_t stamp;
+	uint32_t msw, lsw;
 	
 	fipc_test_lfence();
 	
 	asm volatile
 	(
 		"rdtsc\n\t"
-		"shl $32, %%rdx\n\t"
-		"or %%rdx, %%rax\n\t" 
-		: "=a" (stamp)
+	    "movl %%edx, %0\n\t"
+	    "movl %%eax, %1\n\t"
+	    : "=r" (msw), "=r"(lsw)
 		:
-		: "rdx"
-		);
-	
+		: "%edx", "%eax"
+	);
+
+	stamp = ((uint64_t) msw << 32) | lsw;
 	return stamp;
 }
 
@@ -117,19 +121,21 @@ static inline
 uint64_t fipc_test_time_get_timestamp_sf ( void )
 {
 	uint64_t stamp;
+	uint32_t msw, lsw;
 
 	fipc_test_sfence();
 	
 	asm volatile
 	(
 		"rdtsc\n\t"
-		"shl $32, %%rdx\n\t"
-		"or %%rdx, %%rax\n\t" 
-		: "=a" (stamp)
+	    "movl %%edx, %0\n\t"
+	    "movl %%eax, %1\n\t"
+	    : "=r" (msw), "=r"(lsw)
 		:
-		: "rdx"
-		);
-	
+		: "%edx", "%eax"
+	);
+
+	stamp = ((uint64_t) msw << 32) | lsw;
 	return stamp;
 }
 
@@ -140,19 +146,21 @@ static inline
 uint64_t fipc_test_time_get_timestamp_mf ( void )
 {
 	uint64_t stamp;
+	uint32_t msw, lsw;
 	
 	fipc_test_mfence();
 	
 	asm volatile
 	(
 		"rdtsc\n\t"
-		"shl $32, %%rdx\n\t"
-		"or %%rdx, %%rax\n\t" 
-		: "=a" (stamp)
+	    "movl %%edx, %0\n\t"
+	    "movl %%eax, %1\n\t"
+	    : "=r" (msw), "=r"(lsw)
 		:
-		: "rdx"
-		);
-	
+		: "%edx", "%eax"
+	);
+
+	stamp = ((uint64_t) msw << 32) | lsw;
 	return stamp;
 }
 
@@ -164,7 +172,7 @@ static inline
 void fipc_test_time_wait_ticks ( uint64_t ticks )
 {
 		uint64_t current_time;
-		uint64_t time = RDTSC_START();
+		uint64_t time = fipc_test_time_get_timestamp();
 		time += ticks;
 		do
 		{
