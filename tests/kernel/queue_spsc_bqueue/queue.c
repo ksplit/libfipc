@@ -11,6 +11,7 @@
 
 int init_queue ( queue_t* q )
 {
+	memset(q, 0, sizeof(struct queue_t));
 	q->batch_history = BATCH_SIZE;
 
 	return SUCCESS;
