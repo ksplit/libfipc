@@ -6,8 +6,6 @@
 #ifndef LIBFIPC_TEST_QUEUE
 #define LIBFIPC_TEST_QUEUE
 
-#include <linux/spinlock.h>
-
 // Error Values
 #define SUCCESS              0
 #define NO_MEMORY            1

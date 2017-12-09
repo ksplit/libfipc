@@ -5,8 +5,8 @@
  * NOTE: This test assumes an x86 architecture.
  */
 
-#ifndef LIBFIPC_TEST_PING_PONG
-#define LIBFIPC_TEST_PING_PONG
+#ifndef LIBFIPC_TEST_QUEUE
+#define LIBFIPC_TEST_QUEUE
 
 #include "../libfipc_test.h"
 #include "queue.h"
@@ -21,9 +21,9 @@ static uint8_t producer_cpus[32] = { 0, 8, 16, 24 };
 static uint8_t consumer_cpus[32] = { 4, 12, 20, 28 };
 
 // Queue Variables
-static queue_t*** prod_queue = NULL;
-static queue_t*** cons_queue = NULL;
-static node_t**   node_table = NULL;
+static queue_t*** prod_queues = NULL;
+static queue_t*** cons_queues = NULL;
+static node_t**   node_tables = NULL;
 
 // Request Types
 #define HALT            0
