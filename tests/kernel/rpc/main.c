@@ -67,15 +67,15 @@ void respond ( header_t* chan )
 			case 4:
 				answer = add_4_nums( request->regs[0], request->regs[1], request->regs[2], request->regs[3] );
 				break;
-				
+
 			case 5:
 				answer = add_5_nums( request->regs[0], request->regs[1], request->regs[2], request->regs[3], request->regs[4] );
 				break;
-				
+
 			case 6:
 				answer = add_6_nums( request->regs[0], request->regs[1], request->regs[2], request->regs[3], request->regs[4], request->regs[5] );
 				break;
-				
+
 			case 7:
 				answer = add_7_nums( request->regs[0], request->regs[1], request->regs[2], request->regs[3], request->regs[4], request->regs[5], request->regs[6] );
 				break;
@@ -95,7 +95,7 @@ void respond ( header_t* chan )
 int requester ( void* data )
 {
 	header_t* chan = (header_t*) data;
-	
+
 	register uint64_t CACHE_ALIGNED transaction_id;
 	register uint64_t CACHE_ALIGNED start;
 	register uint64_t CACHE_ALIGNED end;
@@ -126,7 +126,7 @@ int requester ( void* data )
 int responder ( void* data )
 {
 	header_t* chan = (header_t*) data;
-	
+
 	register uint64_t CACHE_ALIGNED transaction_id;
 
 	// Begin test
@@ -154,7 +154,6 @@ int main ( void )
 	kthread_t* requester_thread = NULL;
 	kthread_t* responder_thread = NULL;
 
-	fipc_init();
 	fipc_test_create_channel( CHANNEL_ORDER, &requester_header, &responder_header );
 
 	if ( requester_header == NULL || responder_header == NULL )
@@ -170,27 +169,26 @@ int main ( void )
 		pr_err( "%s\n", "Error while creating thread" );
 		return -1;
 	}
-	
+
 	responder_thread = fipc_test_thread_spawn_on_CPU ( responder, responder_header, responder_cpu );
 	if ( responder_thread == NULL )
 	{
 		pr_err( "%s\n", "Error while creating thread" );
 		return -1;
 	}
-	
+
 	// Start threads
 	wake_up_process( requester_thread );
 	wake_up_process( responder_thread );
-	
+
 	// Wait for thread completion
 	wait_for_completion( &requester_comp );
 	wait_for_completion( &responder_comp );
-	
+
 	// Clean up
 	fipc_test_thread_free_thread( requester_thread );
 	fipc_test_thread_free_thread( responder_thread );
 	fipc_test_free_channel( CHANNEL_ORDER, requester_header, responder_header );
-	fipc_fini();
 	return 0;
 }
 

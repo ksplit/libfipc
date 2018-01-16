@@ -53,83 +53,64 @@ static inline
 int fipc_test_create_channel ( size_t buffer_order, header_t** h1, header_t** h2 )
 {
 	int       error_code = 0;
-	void*     buffer1    = NULL;
-	void*     buffer2    = NULL;
+	void      buffer     = NULL;
 	header_t* tempH1     = NULL;
 	header_t* tempH2     = NULL;
 	size_t    page_order = ( buffer_order < PAGE_SHIFT ? 0 : buffer_order - PAGE_SHIFT );
 
 	// (1) Allocate Buffer Pages
-	buffer1 = (void*) __get_free_pages( GFP_KERNEL, page_order );
+	buffer = (void*) __get_free_pages ( GFP_KERNEL, page_order );
 
-	if ( buffer1 == NULL )
+	if ( buffer == NULL )
 	{
 		error_code = -ENOMEM;
 		goto fail1;
 	}
 
-	buffer2 = (void*) __get_free_pages( GFP_KERNEL, page_order );
-
-	if (  buffer2 == NULL )
-	{
-		error_code = -ENOMEM;
-		goto fail2;
-	}
-
 	// (2) Initialize Buffers
-	error_code = fipc_prep_buffers( buffer_order, buffer1, buffer2 );
+	error_code = fipc_buffer_init ( buffer_order, buffer );
 
 	if ( error_code )
 	{
-		goto fail3;
+		goto fail2;
 	}
 
 	// (3) Allocate Headers
-	tempH1 = (header_t*) kmalloc( sizeof( header_t ), GFP_KERNEL );
+	tempH1 = (header_t*) kmalloc ( sizeof( header_t ), GFP_KERNEL );
 
 	if ( tempH1 == NULL )
+	{
+		error_code = -ENOMEM;
+		goto fail3;
+	}
+
+	tempH2 = (header_t*) kmalloc ( sizeof( header_t ), GFP_KERNEL );
+
+	if ( tempH2 == NULL )
 	{
 		error_code = -ENOMEM;
 		goto fail4;
 	}
 
-	tempH2 = (header_t*) kmalloc( sizeof( header_t ), GFP_KERNEL );
-
-	if ( tempH2 == NULL )
-	{
-		error_code = -ENOMEM;
-		goto fail5;
-	}
-
 	// (4) Initialize Headers
-	error_code = fipc_ring_channel_init( tempH1, buffer_order, buffer1, buffer2 );
+	error_code = fipc_channel_init ( tempH1, tempH2, buffer_order, buffer );
 
 	if ( error_code )
 	{
-		goto fail6;
-	}
-
-	error_code = fipc_ring_channel_init( tempH2, buffer_order, buffer2, buffer1 );
-
-	if ( error_code )
-	{
-		goto fail7;
+		goto fail5;
 	}
 
 	*h1 = tempH1;
 	*h2 = tempH2;
 	goto success;
 
-fail7:
-fail6:
-	kfree ( tempH2 );
 fail5:
-	kfree ( tempH1 );
+	kfree ( tempH2 );
 fail4:
+	kfree ( tempH1 );
 fail3:
-	free_pages( (unsigned long) buffer2, page_order );
 fail2:
-	free_pages( (unsigned long) buffer1, page_order );
+	free_pages( (unsigned long) buffer, page_order );
 fail1:
 success:
 	return error_code;
@@ -144,8 +125,7 @@ void fipc_test_free_channel ( size_t buffer_order, header_t* h1, header_t* h2 )
 	size_t page_order = ( buffer_order < PAGE_SHIFT ? 0 : buffer_order - PAGE_SHIFT );
 
 	// Free Buffers
-	free_pages( (unsigned long)h1->tx.buffer, page_order );
-	free_pages( (unsigned long)h1->rx.buffer, page_order );
+	free_pages( (unsigned long)h1->buffer, page_order );
 
 	// Free Headers
 	kfree( h1 );
@@ -169,7 +149,7 @@ int fipc_test_blocking_recv_start ( header_t* channel, message_t** out )
 		{
 			return ret;
 		}
-		
+
 		fipc_test_pause();
 	}
 
@@ -188,30 +168,6 @@ int fipc_test_blocking_send_start ( header_t* channel, message_t** out )
 	{
 		// Poll until we get a free slot or error
 		ret = fipc_send_msg_start( channel, out );
-
-		if ( !ret || ret != -EWOULDBLOCK )
-		{
-			return ret;
-		}
-
-		fipc_test_pause();
-	}
-
-	return 0;
-}
-
-/**
- * This function will block until a long message is available and stored in out.
- */
-static inline
-int fipc_test_blocking_long_send_start ( header_t* channel, message_t** out, uint16_t len )
-{
-	int ret;
-
-	while ( 1 )
-	{
-		// Poll until we get a free slot or error
-		ret = fipc_send_long_msg_start( channel, out, len );
 
 		if ( !ret || ret != -EWOULDBLOCK )
 		{
