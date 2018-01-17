@@ -154,7 +154,7 @@ EXPORT_SYMBOL(fipc_ring_channel_init);
 
 int fipc_send_msg_start ( header_t* head, message_t** msg )
 {
-	if ( get_current_tx_slot( head ).msg_status != FIPC_MSG_STATUS_AVAILABLE )
+	if ( get_current_tx_slot( head )->msg_status != FIPC_MSG_STATUS_AVAILABLE )
 	{
 		FIPC_DEBUG(FIPC_DEBUG_VERB, "Failed to get a slot, out of slots right now.\n");
 		return -EWOULDBLOCK;
@@ -177,7 +177,7 @@ EXPORT_SYMBOL(fipc_send_msg_end);
 
 int fipc_recv_msg_start ( header_t* head, message_t** msg )
 {
-	if ( get_current_rx_slot( head ).msg_status != FIPC_MSG_STATUS_SENT )
+	if ( get_current_rx_slot( head )->msg_status != FIPC_MSG_STATUS_SENT )
 	{
 		FIPC_DEBUG(FIPC_DEBUG_VERB, "No messages to received right now\n");
 		return -EWOULDBLOCK;
@@ -193,7 +193,7 @@ EXPORT_SYMBOL(fipc_recv_msg_start);
 
 int fipc_recv_msg_if ( header_t* head, int (*pred)(message_t*, void*), void* data, message_t** msg )
 {
-	if ( get_current_rx_slot( head ).msg_status != FIPC_MSG_STATUS_SENT )
+	if ( get_current_rx_slot( head )->msg_status != FIPC_MSG_STATUS_SENT )
 	{
 		FIPC_DEBUG(FIPC_DEBUG_VERB, "No messages to received right now\n");
 		return -EWOULDBLOCK;
