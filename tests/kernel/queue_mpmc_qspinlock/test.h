@@ -5,11 +5,14 @@
  * NOTE: This test assumes an x86 architecture.
  */
 
-#ifndef LIBFIPC_TEST_QUEUE_TEST
-#define LIBFIPC_TEST_QUEUE_TEST
+#ifndef LIBFIPC_TEST_PING_PONG
+#define LIBFIPC_TEST_PING_PONG
 
 #include "../libfipc_test.h"
 #include "queue.h"
+
+// Queue Variable
+static queue_t queue;
 
 // Test Variables
 static uint32_t transactions = 1000000;
@@ -17,15 +20,11 @@ static uint32_t transactions = 1000000;
 static uint8_t producer_count = 4;
 static uint8_t consumer_count = 4;
 
-static uint8_t producer_cpus[32] = { 0, 8, 16, 24 };
-static uint8_t consumer_cpus[32] = { 4, 12, 20, 28 };
-
-// Queue Variables
-static queue_t*** prod_queues = NULL;
-static queue_t*** cons_queues = NULL;
+static uint8_t producer_cpus[32] = { 0, 4, 8, 12 };
+static uint8_t consumer_cpus[32] = { 16, 20, 24, 28 };
 
 // Request Types
-#define HALT            2
+#define HALT            0
 #define NULL_INVOCATION 1
 
 // Thread Locks
