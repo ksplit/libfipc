@@ -13,24 +13,17 @@ void request ( header_t* chan )
 	message_t* response;
 
 	int i;
-	int j;
-	for ( i = 0; i < queue_depth; ++i )
-	{
-		fipc_test_blocking_send_start( chan, &request );
+	fipc_test_blocking_send_start( chan, &request );
 
-		// Marshalling
-		request->flags = marshall_count;
-		for ( j = 0; j < marshall_count; ++j )
-			request->regs[j] = j;
+	// Marshalling
+	request->flags = marshall_count;
+	for ( i = 0; i < marshall_count; ++i )
+		request->regs[i] = i;
 
-		fipc_send_msg_end ( chan, request );
-	}
+	fipc_send_msg_end ( chan, request );
 
-	for ( i = 0; i < queue_depth; ++i )
-	{
-		fipc_test_blocking_recv_start( chan, &response );
-		fipc_recv_msg_end( chan, response );
-	}
+	fipc_test_blocking_recv_start( chan, &response );
+	fipc_recv_msg_end( chan, response );
 }
 
 static inline
@@ -40,56 +33,49 @@ void respond ( header_t* chan )
 	message_t* response;
 	uint64_t   answer;
 
-	int i;
-	for ( i = 0; i < queue_depth; ++i )
+	fipc_test_blocking_recv_start( chan, &request );
+
+	// Dispatch loop
+	switch ( request->flags )
 	{
-		fipc_test_blocking_recv_start( chan, &request );
+		case 0:
+			answer = null_invocation();
+			break;
 
-		// Dispatch loop
-		switch ( request->flags )
-		{
-			case 0:
-				answer = null_invocation();
-				break;
+		case 1:
+			answer = increment( request->regs[0] );
+			break;
 
-			case 1:
-				answer = increment( request->regs[0] );
-				break;
+		case 2:
+			answer = add_2_nums( request->regs[0], request->regs[1] );
+			break;
 
-			case 2:
-				answer = add_2_nums( request->regs[0], request->regs[1] );
-				break;
+		case 3:
+			answer = add_3_nums( request->regs[0], request->regs[1], request->regs[2] );
+			break;
 
-			case 3:
-				answer = add_3_nums( request->regs[0], request->regs[1], request->regs[2] );
-				break;
+		case 4:
+			answer = add_4_nums( request->regs[0], request->regs[1], request->regs[2], request->regs[3] );
+			break;
 
-			case 4:
-				answer = add_4_nums( request->regs[0], request->regs[1], request->regs[2], request->regs[3] );
-				break;
+		case 5:
+			answer = add_5_nums( request->regs[0], request->regs[1], request->regs[2], request->regs[3], request->regs[4] );
+			break;
 
-			case 5:
-				answer = add_5_nums( request->regs[0], request->regs[1], request->regs[2], request->regs[3], request->regs[4] );
-				break;
+		case 6:
+			answer = add_6_nums( request->regs[0], request->regs[1], request->regs[2], request->regs[3], request->regs[4], request->regs[5] );
+			break;
 
-			case 6:
-				answer = add_6_nums( request->regs[0], request->regs[1], request->regs[2], request->regs[3], request->regs[4], request->regs[5] );
-				break;
-
-			case 7:
-				answer = add_7_nums( request->regs[0], request->regs[1], request->regs[2], request->regs[3], request->regs[4], request->regs[5], request->regs[6] );
-				break;
-		}
-
-		fipc_recv_msg_end( chan, request );
+		case 7:
+			answer = add_7_nums( request->regs[0], request->regs[1], request->regs[2], request->regs[3], request->regs[4], request->regs[5], request->regs[6] );
+			break;
 	}
 
-	for ( i = 0; i < queue_depth; ++i )
-	{
-		fipc_test_blocking_send_start( chan, &response );
-		response->regs[0] = answer;
-		fipc_send_msg_end( chan, response );
-	}
+	fipc_recv_msg_end( chan, request );
+
+	fipc_test_blocking_send_start( chan, &response );
+	response->regs[0] = answer;
+	fipc_send_msg_end( chan, response );
 }
 
 int requester ( void* data )
@@ -155,13 +141,27 @@ int main ( void )
 	kthread_t* responder_thread = NULL;
 
 	fipc_test_create_channel( CHANNEL_ORDER, &requester_header, &responder_header );
-
+	pr_err("%llu\n", requester_header->mask);
 	if ( requester_header == NULL || responder_header == NULL )
 	{
 		pr_err( "%s\n", "Error while creating channel" );
 		return -1;
 	}
+/*	message_t* request;
+	message_t* response;
+	fipc_test_blocking_send_start(requester_header, &request);
+	request->regs[0] = 7;
+	fipc_send_msg_end(requester_header, request);
 
+	fipc_test_blocking_recv_start(responder_header, &request);
+	pr_err("%llu\n", request->regs[0]);
+	fipc_recv_msg_end(responder_header, request);
+
+	fipc_test_blocking_send_start(responder_header, &response);
+	fipc_send_msg_end(responder_header, response);
+
+	fipc_test_blocking_recv_start(requester_header, &response);
+	fipc_recv_msg_end(responder_header, response);*/
 	// Create Threads
 	requester_thread = fipc_test_thread_spawn_on_CPU ( requester, requester_header, requester_cpu );
 	if ( requester_thread == NULL )

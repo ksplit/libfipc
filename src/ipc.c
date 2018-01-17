@@ -72,13 +72,13 @@ int invalid_buf_order_size ( uint32_t buf_order )
 static inline
 message_t* get_current_tx_slot ( header_t* head )
 {
-	return &head->buffer[head->tx_idx].line[head->tx_side];
+	return &head->buffer[head->tx_idx & head->mask].line[head->tx_side];
 }
 
 static inline
 message_t* get_current_rx_slot ( header_t* head )
 {
-	return &head->buffer[head->rx_idx].line[head->tx_side^1];
+	return &head->buffer[head->rx_idx & head->mask].line[head->tx_side^1];
 }
 
 // =============================================================
