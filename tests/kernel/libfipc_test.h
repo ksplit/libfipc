@@ -53,7 +53,7 @@ static inline
 int fipc_test_create_channel ( size_t buffer_order, header_t** h1, header_t** h2 )
 {
 	int       error_code = 0;
-	void      buffer     = NULL;
+	void*     buffer     = NULL;
 	header_t* tempH1     = NULL;
 	header_t* tempH2     = NULL;
 	size_t    page_order = ( buffer_order < PAGE_SHIFT ? 0 : buffer_order - PAGE_SHIFT );
