@@ -70,7 +70,7 @@ int producer ( void* data )
 	fipc_test_mfence();
 
 	// End test
-	pr_err( "Producer %llu finished." );
+	pr_err( "Producer %llu finished.\n", rank );
 	fipc_test_FAI(completed_producers);
 	return 0;
 }
@@ -136,7 +136,7 @@ int consumer ( void* data )
 
 	// End test
 	fipc_test_mfence();
-	pr_err( "Consumer %llu finished\n", rank );
+	pr_err( "Consumer %llu finished.\n", rank );
 	fipc_test_thread_release_control_of_CPU();
 	fipc_test_FAI( completed_consumers );
 	return 0;
