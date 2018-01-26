@@ -53,7 +53,7 @@ int producer ( void* data )
 
 		++i; if (i >= consumer_count) i = 0;
 	}
-	
+
 	end = RDTSCP();
 
 	// End test
@@ -65,6 +65,8 @@ int producer ( void* data )
 
 int consumer ( void* data )
 {
+	uint64_t start;
+	uint64_t end;
 	uint64_t i    = 0;
 	uint64_t halt = 0;
 	data_t   d;
@@ -80,8 +82,10 @@ int consumer ( void* data )
 
 	while ( !test_ready )
 		fipc_test_pause();
-	
+
 	fipc_test_mfence();
+
+	start = RDTSC_START();
 
 	while ( !halt )
 	{
@@ -104,9 +108,11 @@ int consumer ( void* data )
 		++i; if ( i >= producer_count ) i = 0;
 	}
 
+	end = RDTSCP();
+
 	// End test
 	fipc_test_mfence();
-	pr_err( "Consumer %llu finished\n", rank );
+	pr_err( "Consumer %llu finished. Cycles per message %llu\n", rank, (end - start) / transactions );
 	fipc_test_thread_release_control_of_CPU();
 	fipc_test_FAI( completed_consumers );
 	return 0;
@@ -120,7 +126,7 @@ int controller ( void* data )
 
 	// Queue Allocation
 	queue_t* queues = (queue_t*) vmalloc( producer_count*consumer_count*sizeof(queue_t) );
-	
+
 	for ( i = 0; i < producer_count*consumer_count; ++i )
 		init_queue ( &queues[i] );
 
@@ -152,11 +158,11 @@ int controller ( void* data )
 	node_t* haltMsg = (node_t*) vmalloc( consumer_count*sizeof(node_t) );
 
 	fipc_test_mfence();
-	
+
 	// Thread Allocation
 	kthread_t** cons_threads = (kthread_t**) vmalloc( consumer_count*sizeof(kthread_t*) );
 	kthread_t** prod_threads = NULL;
-	
+
 	if ( producer_count >= 2 )
 		prod_threads = (kthread_t**) vmalloc( (producer_count-1)*sizeof(kthread_t*) );
 
@@ -180,14 +186,14 @@ int controller ( void* data )
 	{
 		c_rank[i] = i;
 		cons_threads[i] = fipc_test_thread_spawn_on_CPU ( consumer, &c_rank[i], consumer_cpus[i] );
-		
+
 		if ( cons_threads[i] == NULL )
 		{
 			pr_err( "%s\n", "Error while creating thread" );
 			return -1;
 		}
 	}
-	
+
 	// Start threads
 	for ( i = 0; i < (producer_count-1); ++i )
 		wake_up_process( prod_threads[i] );
@@ -226,7 +232,7 @@ int controller ( void* data )
 
 		enqueue( prod_queues[producer_count-1][i], &haltMsg[i] );
 	}
-	
+
 	// Wait for consumers to complete
 	while ( completed_consumers < consumer_count )
 		fipc_test_pause();
