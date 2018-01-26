@@ -29,7 +29,7 @@ static queue_t*** cons_queues_forw = NULL;
 static queue_t*** prod_queues_back = NULL;
 static queue_t*** cons_queues_back = NULL;
 
-static uint64_t* data = NULL;
+static uint64_t* test_results = NULL;
 
 // Request Types
 #define HALT            0

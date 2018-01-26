@@ -66,7 +66,7 @@ int producer ( void* data )
 
 	end = RDTSCP();
 
-	data[rank] = ((end - start) / transactions) / 2;
+	test_results[rank] = ((end - start) / transactions) / 2;
 	fipc_test_mfence();
 
 	// End test
@@ -199,7 +199,7 @@ int controller ( void* data )
 
 	// Test Data Allocation
 
-	data = (uint64_t*) vmalloc( producer_count*sizeof(uint64_t) );
+	test_results = (uint64_t*) vmalloc( producer_count*sizeof(uint64_t) );
 
 	// Thread Allocation
 	kthread_t** cons_threads = (kthread_t**) vmalloc( consumer_count*sizeof(kthread_t*) );
@@ -270,8 +270,6 @@ int controller ( void* data )
 	// Tell consumers to halt
 	for ( i = 0; i < consumer_count; ++i )
 	{
-		haltMsg[i].regs[0] = HALT;
-
 		enqueue( prod_queues_forw[producer_count-1][i], HALT, 0, 0, 0, 0, 0, 0 );
 	}
 
@@ -281,10 +279,18 @@ int controller ( void* data )
 
 	fipc_test_mfence();
 
+	uint64_t sum = 0;
+	for ( i = 0; i < producer_count; ++i )
+	{
+		sum += test_results[i];
+	}
+
+	pr_err("Latency: %llu cycles per message", sum / producer_count);
+
 	// Clean up
 	vfree( c_rank );
 	vfree( p_rank );
-	vfree( data );
+	vfree( test_results );
 
 	for ( i = 0; i < consumer_count; ++i )
 		fipc_test_thread_free_thread( cons_threads[i] );
