@@ -190,8 +190,8 @@ int controller ( void* data )
 	{
 		for ( j = 0; j < consumer_count; ++j )
 		{
-			prod_queues_back[i][j] = &queues_forw[i*producer_count + j];
-			cons_queues_back[j][i] = &queues_forw[i*producer_count + j];
+			prod_queues_back[i][j] = &queues_back[i*producer_count + j];
+			cons_queues_back[j][i] = &queues_back[i*producer_count + j];
 		}
 	}
 
