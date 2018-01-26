@@ -150,7 +150,7 @@ int consumer ( void* data )
 			node->e = e;
 			node->f = f;
 			node->next = NULL;
-			while ( enqueue( qb[i], &node ) != SUCCESS )
+			while ( enqueue( qb[i], node ) != SUCCESS )
 				fipc_test_pause();
 		}
 
@@ -303,7 +303,7 @@ int controller ( void* data )
 	{
 		haltMsg[i].a = HALT;
 
-		enqueue( prod_queues[producer_count-1][i], &haltMsg[i] );
+		enqueue( prod_queues_forw[producer_count-1][i], &haltMsg[i] );
 	}
 
 	// Wait for consumers to complete
