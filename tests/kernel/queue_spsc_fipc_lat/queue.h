@@ -1,0 +1,35 @@
+/**
+ * @File     : queue.h
+ * @Author   : Abdullah Younis
+ */
+
+#ifndef LIBFIPC_TEST_QUEUE
+#define LIBFIPC_TEST_QUEUE
+
+#include "../libfipc_test.h"
+
+#define CHANNEL_ORDER ilog2(sizeof(message_t)) + 13
+
+// Error Values
+#define SUCCESS              0
+#define NO_MEMORY            1
+#define EMPTY_COLLECTION     2
+
+// Types
+typedef uint64_t data_t;
+
+typedef message_t node_t;
+
+typedef struct queue_t
+{
+	header_t* head;
+	header_t* tail;
+
+} queue_t;
+
+int init_queue ( queue_t* q );
+int free_queue ( queue_t* q );
+int enqueue    ( queue_t* q, data_t a, data_t b, data_t c, data_t d, data_t e, data_t f, data_t g );
+int dequeue    ( queue_t* q, data_t* a, data_t* b, data_t* c, data_t* d, data_t* e, data_t* f, data_t* g );
+
+#endif
