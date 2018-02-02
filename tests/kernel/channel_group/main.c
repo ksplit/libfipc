@@ -12,14 +12,46 @@ int noinline null_invocation ( void )
 	return 0;
 }
 
-uint_64 about_2000_cycles ( void )
+uint64_t about_200_cycles ( void )
 {
 	uint64_t i;
 	uint64_t t;
 	uint64_t x = 1;
 	uint64_t y = 1;
 	asm volatile ("");
-	for ( i = 0; i < 600; ++i )
+	for ( i = 0; i < 90; ++i )
+	{
+		t = y;
+		y = x + y;
+		x = t;
+	}
+	return y;
+}
+
+uint64_t about_1000_cycles ( void )
+{
+	uint64_t i;
+	uint64_t t;
+	uint64_t x = 1;
+	uint64_t y = 1;
+	asm volatile ("");
+	for ( i = 0; i < 485; ++i )
+	{
+		t = y;
+		y = x + y;
+		x = t;
+	}
+	return y;
+}
+
+uint64_t about_2000_cycles ( void )
+{
+	uint64_t i;
+	uint64_t t;
+	uint64_t x = 1;
+	uint64_t y = 1;
+	asm volatile ("");
+	for ( i = 0; i < 970; ++i )
 	{
 		t = y;
 		y = x + y;
@@ -141,16 +173,17 @@ int controller ( void* data )
 	uint64_t transaction_id;
 	uint64_t start;
 	uint64_t end;
+	uint64_t sum = 0;
 	start = RDTSC_START();
 
-	for ( transaction_id = 0; transaction_id < 10; ++transaction_id )
+	for ( transaction_id = 0; transaction_id < 1000; ++transaction_id )
 	{
-		about_2000_cycles();
+		sum += about_200_cycles();
 	}
 
 	end = RDTSCP();
 
-	pr_err( "%llu\n", ( end - start ) / 10 );
+	pr_err( "%llu\t%llu\n", ( end - start ) / 1000, sum );
 	// uint64_t i;
 	// uint64_t j;
 
