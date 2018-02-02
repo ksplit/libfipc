@@ -12,16 +12,16 @@
 #include "queue.h"
 
 // Test Variables
-static uint32_t transactions = 1000000;
+static uint32_t transactions = 1000;
 
-static uint8_t producer_count = 4;
-static uint8_t consumer_count = 4;
+static uint8_t producer_count = 7;
+static uint8_t consumer_count = 1;
 
 module_param( producer_count, byte, 0 );
 module_param( consumer_count, byte, 0 );
 
-static uint8_t producer_cpus[32] = { 0, 8, 16, 24 };
-static uint8_t consumer_cpus[32] = { 4, 12, 20, 28 };
+static uint8_t producer_cpus[32] = { 0, 4, 8, 12, 16, 20, 24 };
+static uint8_t consumer_cpus[32] = { 28 };
 
 // Queue Variables
 static queue_t*** prod_queues = NULL;

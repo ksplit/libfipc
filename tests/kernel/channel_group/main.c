@@ -66,6 +66,7 @@ int producer ( void* data )
 	uint64_t transaction_id;
 	uint64_t start;
 	uint64_t end;
+	uint64_t sum;
 	uint64_t i = 0;
 
 	uint64_t rank = *(uint64_t*)data;
@@ -91,22 +92,25 @@ int producer ( void* data )
 
 	start = RDTSC_START();
 
-	for ( transaction_id = 0; transaction_id < transactions; )
+	for ( transaction_id = 0; transaction_id < transactions; transaction_id++)
 	{
 		t[transaction_id].regs[0] = NULL_INVOCATION;
+		sum += about_1000_cycles();
 
-		if ( enqueue_forw( q[i], &t[transaction_id] ) == SUCCESS )
-		{
-			transaction_id++;
-		}
+		while ( enqueue_forw( q[i], &t[transaction_id] ) != SUCCESS )
+			fipc_test_pause();
 
-		++i; if (i >= consumer_count) i = 0;
+		while ( dequeue_back( q[i], &t[transaction_id] ) != SUCCESS )
+			fipc_test_pause();
+
+		sum += about_1000_cycles();
 	}
 
 	end = RDTSCP();
 
 	// End test
 	pr_err( "Producer %llu finished. Cycles per message %llu\n", rank, (end - start) / transactions );
+	pr_err( "Producer %llu finished. Sum %llu\n", rank, sum );
 	fipc_test_thread_release_control_of_CPU();
 	fipc_test_FAI(completed_producers);
 	return 0;
@@ -145,13 +149,16 @@ int consumer ( void* data )
 			switch ( d )
 			{
 				case NULL_INVOCATION:
-					null_invocation();
+					about_200_cycles();
 					break;
 
 				case HALT:
 					halt = 1;
 					break;
 			}
+
+			while ( enqueue_back( q[i], &d ) != SUCCESS )
+				fipc_test_pause();
 		}
 
 		++i; if ( i >= producer_count ) i = 0;
@@ -170,173 +177,159 @@ int consumer ( void* data )
 
 int controller ( void* data )
 {
-	uint64_t transaction_id;
-	uint64_t start;
-	uint64_t end;
-	uint64_t sum = 0;
-	start = RDTSC_START();
+	uint64_t i;
+	uint64_t j;
 
-	for ( transaction_id = 0; transaction_id < 1000; ++transaction_id )
+	// Queue Allocation
+	queue_t* queues = (queue_t*) vmalloc( producer_count*consumer_count*sizeof(queue_t) );
+
+	for ( i = 0; i < producer_count*consumer_count; ++i )
+		init_queue ( &queues[i] );
+
+	prod_queues = (queue_t***) vmalloc( producer_count*sizeof(queue_t**) );
+	cons_queues = (queue_t***) vmalloc( consumer_count*sizeof(queue_t**) );
+
+	for ( i = 0; i < producer_count; ++i )
+		prod_queues[i] = (queue_t**) vmalloc( consumer_count*sizeof(queue_t*) );
+
+	for ( i = 0; i < consumer_count; ++i )
+		cons_queues[i] = (queue_t**) vmalloc( producer_count*sizeof(queue_t*) );
+
+	// Queue Linking
+	for ( i = 0; i < producer_count; ++i )
 	{
-		sum += about_200_cycles();
+		for ( j = 0; j < consumer_count; ++j )
+		{
+			prod_queues[i][j] = &queues[i*producer_count + j];
+			cons_queues[j][i] = &queues[i*producer_count + j];
+		}
 	}
 
-	end = RDTSCP();
+	// Node Table Allocation
+	node_tables = (node_t**) vmalloc( producer_count*sizeof(node_t*) );
 
-	pr_err( "%llu\t%llu\n", ( end - start ) / 1000, sum );
-	// uint64_t i;
-	// uint64_t j;
+	for ( i = 0; i < producer_count; ++i )
+		node_tables[i] = (node_t*) vmalloc( transactions*sizeof(node_t) );
 
-	// // Queue Allocation
-	// queue_t* queues = (queue_t*) vmalloc( producer_count*consumer_count*sizeof(queue_t) );
+	node_t* haltMsg = (node_t*) vmalloc( consumer_count*sizeof(node_t) );
 
-	// for ( i = 0; i < producer_count*consumer_count; ++i )
-	// 	init_queue ( &queues[i] );
+	fipc_test_mfence();
 
-	// prod_queues = (queue_t***) vmalloc( producer_count*sizeof(queue_t**) );
-	// cons_queues = (queue_t***) vmalloc( consumer_count*sizeof(queue_t**) );
+	// Thread Allocation
+	kthread_t** cons_threads = (kthread_t**) vmalloc( consumer_count*sizeof(kthread_t*) );
+	kthread_t** prod_threads = NULL;
 
-	// for ( i = 0; i < producer_count; ++i )
-	// 	prod_queues[i] = (queue_t**) vmalloc( consumer_count*sizeof(queue_t*) );
+	if ( producer_count >= 2 )
+		prod_threads = (kthread_t**) vmalloc( (producer_count-1)*sizeof(kthread_t*) );
 
-	// for ( i = 0; i < consumer_count; ++i )
-	// 	cons_queues[i] = (queue_t**) vmalloc( producer_count*sizeof(queue_t*) );
+	uint64_t* p_rank = (uint64_t*) vmalloc( producer_count*sizeof(uint64_t) );
+	uint64_t* c_rank = (uint64_t*) vmalloc( consumer_count*sizeof(uint64_t) );
 
-	// // Queue Linking
-	// for ( i = 0; i < producer_count; ++i )
-	// {
-	// 	for ( j = 0; j < consumer_count; ++j )
-	// 	{
-	// 		prod_queues[i][j] = &queues[i*producer_count + j];
-	// 		cons_queues[j][i] = &queues[i*producer_count + j];
-	// 	}
-	// }
+	// Spawn Threads
+	for ( i = 0; i < (producer_count-1); ++i )
+	{
+		p_rank[i] = i;
+		prod_threads[i] = fipc_test_thread_spawn_on_CPU ( producer, &p_rank[i], producer_cpus[i] );
 
-	// // Node Table Allocation
-	// node_tables = (node_t**) vmalloc( producer_count*sizeof(node_t*) );
+		if ( prod_threads[i] == NULL )
+		{
+			pr_err( "%s\n", "Error while creating thread" );
+			return -1;
+		}
+	}
 
-	// for ( i = 0; i < producer_count; ++i )
-	// 	node_tables[i] = (node_t*) vmalloc( transactions*sizeof(node_t) );
+	for ( i = 0; i < consumer_count; ++i )
+	{
+		c_rank[i] = i;
+		cons_threads[i] = fipc_test_thread_spawn_on_CPU ( consumer, &c_rank[i], consumer_cpus[i] );
 
-	// node_t* haltMsg = (node_t*) vmalloc( consumer_count*sizeof(node_t) );
+		if ( cons_threads[i] == NULL )
+		{
+			pr_err( "%s\n", "Error while creating thread" );
+			return -1;
+		}
+	}
 
-	// fipc_test_mfence();
+	// Start threads
+	for ( i = 0; i < (producer_count-1); ++i )
+		wake_up_process( prod_threads[i] );
 
-	// // Thread Allocation
-	// kthread_t** cons_threads = (kthread_t**) vmalloc( consumer_count*sizeof(kthread_t*) );
-	// kthread_t** prod_threads = NULL;
+	for ( i = 0; i < consumer_count; ++i )
+		wake_up_process( cons_threads[i] );
 
-	// if ( producer_count >= 2 )
-	// 	prod_threads = (kthread_t**) vmalloc( (producer_count-1)*sizeof(kthread_t*) );
+	// Wait for threads to be ready for test
+	while ( ready_consumers < consumer_count )
+		fipc_test_pause();
 
-	// uint64_t* p_rank = (uint64_t*) vmalloc( producer_count*sizeof(uint64_t) );
-	// uint64_t* c_rank = (uint64_t*) vmalloc( consumer_count*sizeof(uint64_t) );
+	while ( ready_producers < (producer_count-1) )
+		fipc_test_pause();
 
-	// // Spawn Threads
-	// for ( i = 0; i < (producer_count-1); ++i )
-	// {
-	// 	p_rank[i] = i;
-	// 	prod_threads[i] = fipc_test_thread_spawn_on_CPU ( producer, &p_rank[i], producer_cpus[i] );
+	fipc_test_mfence();
 
-	// 	if ( prod_threads[i] == NULL )
-	// 	{
-	// 		pr_err( "%s\n", "Error while creating thread" );
-	// 		return -1;
-	// 	}
-	// }
+	// Begin Test
+	test_ready = 1;
 
-	// for ( i = 0; i < consumer_count; ++i )
-	// {
-	// 	c_rank[i] = i;
-	// 	cons_threads[i] = fipc_test_thread_spawn_on_CPU ( consumer, &c_rank[i], consumer_cpus[i] );
+	fipc_test_mfence();
 
-	// 	if ( cons_threads[i] == NULL )
-	// 	{
-	// 		pr_err( "%s\n", "Error while creating thread" );
-	// 		return -1;
-	// 	}
-	// }
+	// This thread is also a producer
+	p_rank[producer_count-1] = producer_count-1;
+	producer( &p_rank[producer_count-1] );
 
-	// // Start threads
-	// for ( i = 0; i < (producer_count-1); ++i )
-	// 	wake_up_process( prod_threads[i] );
+	// Wait for producers to complete
+	while ( completed_producers < producer_count )
+		fipc_test_pause();
 
-	// for ( i = 0; i < consumer_count; ++i )
-	// 	wake_up_process( cons_threads[i] );
+	fipc_test_mfence();
 
-	// // Wait for threads to be ready for test
-	// while ( ready_consumers < consumer_count )
-	// 	fipc_test_pause();
+	// Tell consumers to halt
+	for ( i = 0; i < consumer_count; ++i )
+	{
+		haltMsg[i].regs[0] = HALT;
 
-	// while ( ready_producers < (producer_count-1) )
-	// 	fipc_test_pause();
+		enqueue_forw( prod_queues[producer_count-1][i], &haltMsg[i] );
+	}
 
-	// fipc_test_mfence();
+	// Wait for consumers to complete
+	while ( completed_consumers < consumer_count )
+		fipc_test_pause();
 
-	// // Begin Test
-	// test_ready = 1;
+	fipc_test_mfence();
 
-	// fipc_test_mfence();
+	// Clean up
+	vfree( c_rank );
+	vfree( p_rank );
 
-	// // This thread is also a producer
-	// p_rank[producer_count-1] = producer_count-1;
-	// producer( &p_rank[producer_count-1] );
+	for ( i = 0; i < consumer_count; ++i )
+		fipc_test_thread_free_thread( cons_threads[i] );
 
-	// // Wait for producers to complete
-	// while ( completed_producers < producer_count )
-	// 	fipc_test_pause();
+	for ( i = 0; i < (producer_count-1); ++i )
+		fipc_test_thread_free_thread( prod_threads[i] );
 
-	// fipc_test_mfence();
+	vfree( cons_threads );
 
-	// // Tell consumers to halt
-	// for ( i = 0; i < consumer_count; ++i )
-	// {
-	// 	haltMsg[i].regs[0] = HALT;
+	if ( prod_threads != NULL )
+		vfree( prod_threads );
 
-	// 	enqueue_forw( prod_queues[producer_count-1][i], &haltMsg[i] );
-	// }
+	vfree( haltMsg );
 
-	// // Wait for consumers to complete
-	// while ( completed_consumers < consumer_count )
-	// 	fipc_test_pause();
+	for ( i = 0; i < producer_count; ++i )
+		vfree( node_tables[i] );
 
-	// fipc_test_mfence();
+	vfree( node_tables );
 
-	// // Clean up
-	// vfree( c_rank );
-	// vfree( p_rank );
+	for ( i = 0; i < consumer_count; ++i )
+		vfree( cons_queues[i] );
 
-	// for ( i = 0; i < consumer_count; ++i )
-	// 	fipc_test_thread_free_thread( cons_threads[i] );
+	for ( i = 0; i < producer_count; ++i )
+		vfree( prod_queues[i] );
 
-	// for ( i = 0; i < (producer_count-1); ++i )
-	// 	fipc_test_thread_free_thread( prod_threads[i] );
+	vfree( cons_queues );
+	vfree( prod_queues );
 
-	// vfree( cons_threads );
+	for ( i = 0; i < producer_count*consumer_count; ++i )
+		free_queue( &queues[i] );
 
-	// if ( prod_threads != NULL )
-	// 	vfree( prod_threads );
-
-	// vfree( haltMsg );
-
-	// for ( i = 0; i < producer_count; ++i )
-	// 	vfree( node_tables[i] );
-
-	// vfree( node_tables );
-
-	// for ( i = 0; i < consumer_count; ++i )
-	// 	vfree( cons_queues[i] );
-
-	// for ( i = 0; i < producer_count; ++i )
-	// 	vfree( prod_queues[i] );
-
-	// vfree( cons_queues );
-	// vfree( prod_queues );
-
-	// for ( i = 0; i < producer_count*consumer_count; ++i )
-	// 	free_queue( &queues[i] );
-
-	// vfree( queues );
+	vfree( queues );
 
 	// End Experiment
 	fipc_test_mfence();
