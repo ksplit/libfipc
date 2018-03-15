@@ -21,7 +21,8 @@ AM_CPPFLAGS = \
 	$(KERNEL_INCLUDES)
 
 COMMON_SRCS= \
-	../../common/ipc.c
+	../../common/ipc.c \
+	../../common/ipc_one-slot.c
 
 # Necessary to export so that these variables are available in Kbuilds
 export AM_CPPFLAGS COMMON_SRCS

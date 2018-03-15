@@ -3,6 +3,7 @@
 AC_PREREQ([2.68])
 AC_INIT([libfipc], [0.1])
 AC_CONFIG_SRCDIR([src/common/ipc.c])
+AC_CONFIG_SRCDIR([src/common/ipc_one-slot.c])
 AC_CONFIG_AUX_DIR(autoconf)
 AC_CONFIG_HEADERS([config.h])
 

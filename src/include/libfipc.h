@@ -198,6 +198,7 @@ void fipc_fini(void);
  * to fit at least one struct fipc_message.
  */
 int fipc_prep_buffers(unsigned int buf_order, void *buffer_1, void *buffer_2);
+int fipc_prep_buffers_0(unsigned int buf_order, void *buffer_1, void *buffer_2);
 /**
  * fipc_ring_channel_init -- Initialize ring channel header with buffers
  * @chnl: the struct fipc_ring_channel to initialize
@@ -214,6 +215,10 @@ int fipc_prep_buffers(unsigned int buf_order, void *buffer_1, void *buffer_2);
  * of sizeof(struct fipc_message).)
  */
 int fipc_ring_channel_init(struct fipc_ring_channel *chnl,
+			unsigned int buf_order,
+			void *buffer_tx, void *buffer_rx);
+
+int fipc_ring_channel_init_0(struct fipc_ring_channel *chnl,
 			unsigned int buf_order,
 			void *buffer_tx, void *buffer_rx);
 /**
@@ -235,6 +240,9 @@ int fipc_ring_channel_init(struct fipc_ring_channel *chnl,
  * returned, however, a subsequent call will not return the same message.
  */
 int fipc_send_msg_start(struct fipc_ring_channel *chnl,
+			struct fipc_message **msg);
+
+int fipc_send_msg_start_0(struct fipc_ring_channel *chnl,
 			struct fipc_message **msg);
 /**
  * fipc_send_msg_end -- Mark a message as ready for receipt from receiver
@@ -282,6 +290,10 @@ int fipc_send_msg_end(struct fipc_ring_channel *chnl,
  */
 int fipc_recv_msg_start(struct fipc_ring_channel *chnl,
 			struct fipc_message **msg);
+
+int fipc_recv_msg_start_0(struct fipc_ring_channel *chnl,
+			struct fipc_message **msg);
+
 /**
  * fipc_recv_msg_if -- Like fipc_recv_msg_start, but conditioned on a predicate
  * @chnl: the ring channel, whose rx we should receive from
@@ -305,6 +317,11 @@ int fipc_recv_msg_start(struct fipc_ring_channel *chnl,
  * critical section.
  */
 int fipc_recv_msg_if(struct fipc_ring_channel *chnl,
+		int (*pred)(struct fipc_message *, void *),
+		void *data,
+		struct fipc_message **msg);
+
+int fipc_recv_msg_if_0(struct fipc_ring_channel *chnl,
 		int (*pred)(struct fipc_message *, void *),
 		void *data,
 		struct fipc_message **msg);
