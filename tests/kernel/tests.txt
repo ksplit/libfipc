@@ -1,0 +1,29 @@
+libfipc_test.h            Main IPC helper functions
+libfipc_test_stat.h       Functions for calculating and displaying stats
+libfipc_test_thread.h     Functions for managing threads
+libfipc_test_time.h       Functions for measuring cycles
+
+spsc - single producer, single consumer
+mpmc - multiple producer, multiple consumer
+
+queue_spsc_fipc          Queue structure using fipc
+queue_lockfree           Queue structure using stone lockfree
+queue_spsc_fipc_lat      Queue structure using fipc (Latency test)
+queue_spinlock           Queue structure using spinlocks
+queue_spsc_mscott        Queue structure using michael-scott lockfree
+queue_spsc_bqueue        Queue structure using bqueue (not finished)
+queue_spsc_mscott_lat    Queue structure usingmichael-scott (Latency test)
+channel_group            Channel Group test (I don't think it's finished)
+
+ping_pong_bare_1         Two core ping pong communication using one line
+ping_pong_bare_2         Two core ping pong communication using two lines
+ping_pong_bare_fipc      Two core ping pong communication using fipc
+cc_load_M                Test to measure load on modified times
+cc_load_M_prefetch       Test to measure load on modified times with prefetching options
+cc_prefetch              Prefetch test
+cc_prefetchw             PrefetchW test
+perf_bare_1              Cache Event Measurement test for bare_1 test
+perf_bare_2              Cache Event Measurement test for bare_2 test
+perf_bare_fipc           Cache Event Measurement test for bare_fipc test
+rpc                      simulated rpc test
+

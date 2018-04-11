@@ -6,27 +6,14 @@
 #include <linux/module.h>
 #include "test.h"
 
-int noinline null_invocation ( void )
-{
-	asm volatile ("");
-	return 0;
-}
-
 int producer ( void* data )
 {
-	queue_t*   q = &queue;
-	request_t* t = (request_t*) data;
+	header_t*  chan = (header_t*) data;
+	message_t* request;
 
 	register uint64_t transaction_id;
 	register uint64_t start;
 	register uint64_t end;
-
-	// Touching data
-	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
-	{
-		t[transaction_id].data = 0;
-		t[transaction_id].next = NULL;
-	}
 
 	// Begin test
 	fipc_test_thread_take_control_of_CPU();
@@ -43,13 +30,13 @@ int producer ( void* data )
 
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 	{
-		t[transaction_id].data = NULL_INVOCATION;
-
-		enqueue( q, &t[transaction_id] );
+		fipc_test_blocking_send_start( chan, &request );
+		request->regs[0] = NULL_INVOCATION;
+		fipc_send_msg_end( chan, request );
 	}
 	
 	end = RDTSCP();
-	
+
 	// End test
 	pr_err( "Producer completed in %llu, and the average was %llu.\n", end - start, (end - start) / transactions );
 	fipc_test_thread_release_control_of_CPU();
@@ -59,9 +46,8 @@ int producer ( void* data )
 
 int consumer ( void* data )
 {
-	queue_t* q = (queue_t*) data;
-
-	uint64_t request;
+	header_t*  chan = (header_t*) data;
+	message_t* request;
 
 	int halt = 0;
 
@@ -73,27 +59,15 @@ int consumer ( void* data )
 
 	while ( !test_ready )
 		fipc_test_pause();
-
+	
 	fipc_test_mfence();
 
 	// Consume
 	while ( !halt )
 	{
-		// Receive and unmarshall request
-		if ( dequeue( q, &request ) == SUCCESS )
-		{
-			// Process Request
-			switch ( request )
-			{
-				case NULL_INVOCATION:
-					null_invocation();
-					break;
-	
-				case HALT:
-					halt = 1;
-					break;
-			}
-		}
+		fipc_test_blocking_recv_start( chan, &request );
+		if (request->regs[0] == HALT) halt = 1;
+		fipc_recv_msg_end( chan, request );
 	}
 
 	// End test
@@ -108,18 +82,20 @@ int consumer ( void* data )
 int controller ( void* data )
 {
 	int i;
+	message_t* haltMsg;
+	header_t*  producer_header = NULL;
+	header_t*  consumer_header = NULL;
 
-	// Queue Init
-	init_queue ( &queue );
+	// FIPC Init
+	fipc_init();
+	fipc_test_create_channel( CHANNEL_ORDER, &producer_header, &consumer_header );
 
-	// Node Table Allocation
-	request_t** node_table = (request_t**) vmalloc( producer_count*sizeof(request_t*) );
+	if ( producer_header == NULL || consumer_header == NULL )
+	{
+		pr_err( "%s\n", "Error while creating channel" );
+		return -1;
+	}
 
-	for ( i = 0; i < producer_count; ++i )
-		node_table[i] = (request_t*) vmalloc( transactions*sizeof(request_t) );
-
-	request_t* haltMsg = (request_t*) vmalloc( consumer_count*sizeof(request_t) );
-	
 	// Thread Allocation
 	kthread_t** cons_threads = (kthread_t**) vmalloc( consumer_count*sizeof(kthread_t*) );
 	kthread_t** prod_threads = NULL;
@@ -130,7 +106,7 @@ int controller ( void* data )
 	// Spawn Threads
 	for ( i = 0; i < (producer_count-1); ++i )
 	{
-		prod_threads[i] = fipc_test_thread_spawn_on_CPU ( producer, node_table[i], producer_cpus[i] );
+		prod_threads[i] = fipc_test_thread_spawn_on_CPU ( producer, producer_header, producer_cpus[i] );
 
 		if ( prod_threads[i] == NULL )
 		{
@@ -141,7 +117,7 @@ int controller ( void* data )
 
 	for ( i = 0; i < consumer_count; ++i )
 	{
-		cons_threads[i] = fipc_test_thread_spawn_on_CPU ( consumer, &queue, consumer_cpus[i] );
+		cons_threads[i] = fipc_test_thread_spawn_on_CPU ( consumer, consumer_header, consumer_cpus[i] );
 		
 		if ( cons_threads[i] == NULL )
 		{
@@ -150,7 +126,7 @@ int controller ( void* data )
 		}
 	}
 	
-	// Start Threads
+	// Start threads
 	for ( i = 0; i < (producer_count-1); ++i )
 		wake_up_process( prod_threads[i] );
 
@@ -170,7 +146,7 @@ int controller ( void* data )
 	test_ready = 1;
 
 	// This thread is also a producer
-	producer( node_table[producer_count-1] );
+	producer( producer_header );
 
 	// Wait for producers to complete
 	while ( completed_producers < producer_count )
@@ -181,10 +157,9 @@ int controller ( void* data )
 	// Tell consumers to halt
 	for ( i = 0; i < consumer_count; ++i )
 	{
-		haltMsg[i].next = 0;
-		haltMsg[i].data = HALT;
-
-		enqueue( &queue, &haltMsg[i] );
+		fipc_test_blocking_send_start( producer_header, &haltMsg );
+		haltMsg->regs[0] = HALT;
+		fipc_send_msg_end ( producer_header, haltMsg );
 	}
 	
 	// Wait for consumers to complete
@@ -196,20 +171,16 @@ int controller ( void* data )
 	// Clean up
 	for ( i = 0; i < (producer_count-1); ++i )
 		fipc_test_thread_free_thread( prod_threads[i] );
-	
+
 	for ( i = 0; i < consumer_count; ++i )
 		fipc_test_thread_free_thread( cons_threads[i] );
-	
-	for ( i = 0; i < producer_count; ++i )
-		vfree( node_table[i] );
 
 	if ( prod_threads != NULL )
 		vfree( prod_threads );
 
 	vfree( cons_threads );
-	vfree( node_table );
-	vfree( haltMsg );
-	free_queue( &queue );
+	fipc_test_free_channel( CHANNEL_ORDER, producer_header, consumer_header );
+	fipc_fini();
 
 	// End Experiment
 	fipc_test_mfence();

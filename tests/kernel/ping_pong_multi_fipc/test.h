@@ -9,10 +9,8 @@
 #define LIBFIPC_TEST_PING_PONG
 
 #include "../libfipc_test.h"
-#include "queue.h"
 
-// Queue Variable
-static queue_t queue;
+#define CHANNEL_ORDER ilog2(sizeof(message_t)) + 12
 
 // Test Variables
 static uint32_t transactions = 1000000;
