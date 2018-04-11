@@ -13,10 +13,12 @@
 
 #include "../libfipc_test.h"
 
+#define X_CYCLES 1000
+
 // Test Variables
 static uint32_t transactions   = 1000000;
 static uint8_t  requester_cpu  = 0;
-static uint8_t  responder_cpu  = 1;
+static uint8_t  responder_cpu  = 4;
 
 module_param( transactions,     uint, 0 );
 module_param( requester_cpu,    byte, 0 );
