@@ -16,7 +16,7 @@
 static uint64_t transactions   = 10000000;
 
 #define REQUESTER_CPU	0
-#define RESPONDER_CPU	4
+#define RESPONDER_CPU	3
 #define CHANNEL_ORDER	ilog2(sizeof(message_t)) + 7
 #define QUEUE_DEPTH	1
 
