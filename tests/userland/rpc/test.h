@@ -13,12 +13,12 @@
 
 #include "../libfipc_test.h"
 
-#define TRANSACTIONS	10000
+#define TRANSACTIONS	10000000
 #define REQUESTER_CPU	0
 #define RESPONDER_CPU	2
 #define CHANNEL_ORDER	ilog2(sizeof(message_t)) + 7
 #define MARSHALL_ORDER  4
-#define BATCHED_ORDER   4
+#define BATCHED_ORDER   1
 
 // Thread Locks
 pthread_mutex_t requester_mutex;

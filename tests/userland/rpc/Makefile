@@ -1,5 +1,5 @@
 CC:=gcc
-CFLAGS:=-Wall -D_GNU_SOURCE -pthread -lm
+CFLAGS:=-Wall -D_GNU_SOURCE -pthread -lm -O2
 INCLUDE_DIRS:=-I../../../include -I../../../include/userland
 TARGET:=$(notdir $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))))
 DEP:=main.c ../../../src/ipc.c
