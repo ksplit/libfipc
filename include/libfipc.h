@@ -161,8 +161,14 @@
 #include <libfipc_platform.h>
 
 #ifndef LIBFIPC_FUNC_ATTR
-#define LIBFIPC_FUNC_ATTR
+#define LIBFIPC_FUNC_ATTR inline
 #endif
+
+ // Message Statuses
+#define FIPC_MSG_STATUS_AVAILABLE 0xdeadU
+#define FIPC_MSG_STATUS_DUMMY     0xfadeU
+#define FIPC_MSG_STATUS_SENT      0xfeedU
+
 
 /* MAIN INTERFACE -------------------------------------------------- */
 
@@ -219,6 +225,7 @@ int fipc_ring_channel_init ( header_t* chnl, uint32_t buf_order, void* buffer_tx
 int fipc_tx_channel_init ( header_t* chnl, uint32_t buf_order, void* buffer_tx );
 int fipc_rx_channel_init ( header_t* chnl, uint32_t buf_order, void* buffer_rx );
 
+
 /**
  * fipc_send_msg_start -- Allocate a slot from tx buffer for sending
  * @chnl: the ring channel, whose tx we should allocate from
@@ -238,6 +245,8 @@ int fipc_rx_channel_init ( header_t* chnl, uint32_t buf_order, void* buffer_rx )
  * returned, however, a subsequent call will not return the same message.
  */
 int fipc_send_msg_start      ( header_t* chnl, message_t** msg );
+
+
 int fipc_send_long_msg_start ( header_t* chnl, message_t** msg, uint16_t len );
 /**
  * fipc_send_msg_end -- Mark a message as ready for receipt from receiver
@@ -321,8 +330,19 @@ int fipc_recv_msg_if(header_t *chnl,
  *
  * NOTE: This function is thread safe.
  */
-int fipc_recv_msg_end(header_t *chnl,
-		message_t *msg);
+//int fipc_recv_msg_end(header_t *chnl,
+//		message_t *msg);
+
+static inline int
+fipc_recv_msg_end ( header_t* chnl, message_t* msg )
+{
+	//FIPC_DEBUG(FIPC_DEBUG_VERB, "Marking message at idx %llu as received\n", (unsigned long long) rx_msg_to_idx( chnl, msg ));
+	msg->msg_status = FIPC_MSG_STATUS_AVAILABLE;
+	return 0;
+}
+//EXPORT_SYMBOL(fipc_recv_msg_end);
+
+
 
 // =============================================================
 // ------------------ MESSAGE ACCESSORS ------------------------
