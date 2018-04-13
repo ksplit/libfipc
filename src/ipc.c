@@ -38,25 +38,25 @@ uint64_t get_tx_slot ( header_t* rc )
 static inline
 uint64_t get_tx_idx ( header_t* rc )
 {
-	return rc->tx.slot & rc->tx.mask;
+	return rc->tx.slot /* & rc->tx.mask */;
 }
 
 static inline
 uint64_t get_rx_idx ( header_t* rc )
 {
-	return rc->rx.slot & rc->rx.mask;
+	return rc->rx.slot /* & rc->rx.mask */;
 }
 
 static inline
 void add_tx_slot ( header_t* rc, int amount )
 {
-	rc->tx.slot += amount;
+	rc->tx.slot = (rc->tx.slot + amount) & rc->tx.mask ;
 }
 
 static inline
 void add_rx_slot ( header_t* rc, int amount )
 {
-	rc->rx.slot += amount;
+	rc->rx.slot = (rc->rx.slot + amount) & rc->rx.mask ;
 }
 
 static inline
@@ -121,17 +121,17 @@ message_t* get_current_rx_slot ( header_t* rc )
 
 
 static inline
-uint64_t inc_tx_slot ( header_t* rc )
+void  inc_tx_slot ( header_t* rc )
 {
-	rc->tx.slot += 2;
-	return rc->tx.slot; 
+	rc->tx.slot = (rc->tx.slot + 2) & rc->tx.mask;
+	return; 
 }
 
 static inline
-uint64_t inc_rx_slot ( header_t* rc )
+void inc_rx_slot ( header_t* rc )
 {
-	rc->rx.slot += 2;
-	return rc->rx.slot;
+	rc->rx.slot = (rc->rx.slot + 2) & rc->rx.mask;
+	return;
 }
 
 
@@ -146,13 +146,13 @@ fipc_send_msg_start ( header_t* chnl, message_t** msg )
 {
 	if ( ! check_tx_slot_available ( get_current_tx_slot( chnl ) ) )
 	{
-		//FIPC_DEBUG(FIPC_DEBUG_VERB, "Failed to get a slot, out of slots right now.\n");
+		FIPC_DEBUG(FIPC_DEBUG_VERB, "Failed to get a slot, out of slots right now.\n");
 		return -EWOULDBLOCK;
 	}
 
 	*msg = get_current_tx_slot( chnl );
 	inc_tx_slot( chnl );
-	//FIPC_DEBUG(FIPC_DEBUG_VERB, "Allocated a slot at index %llu in tx\n", (unsigned long long) tx_msg_to_idx( chnl, *msg ));
+	FIPC_DEBUG(FIPC_DEBUG_VERB, "Allocated a slot at index %llu in tx\n", (unsigned long long) tx_msg_to_idx( chnl, *msg ));
 	return 0;
 }
 EXPORT_SYMBOL(fipc_send_msg_start);
@@ -161,7 +161,7 @@ int
 fipc_send_msg_end ( header_t* chnl, message_t* msg )
 {
 	msg->msg_status = FIPC_MSG_STATUS_SENT;
-	//FIPC_DEBUG(FIPC_DEBUG_VERB, "Marking message at idx %llu as sent\n", (unsigned long long) tx_msg_to_idx( chnl, msg ));
+	FIPC_DEBUG(FIPC_DEBUG_VERB, "Marking message at idx %llu as sent\n", (unsigned long long) tx_msg_to_idx( chnl, msg ));
 	return 0;
 }
 EXPORT_SYMBOL(fipc_send_msg_end);

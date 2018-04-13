@@ -13,10 +13,10 @@
 
 #include "../libfipc_test.h"
 
-#define TRANSACTIONS	10000000
+#define TRANSACTIONS	50000000
 #define REQUESTER_CPU	0
 #define RESPONDER_CPU	4
-#define CHANNEL_ORDER	ilog2(sizeof(message_t)) + 4
+#define CHANNEL_ORDER	ilog2(sizeof(message_t)) + 7
 #define QUEUE_DEPTH	1
 
 // Thread Locks
