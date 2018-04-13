@@ -6,7 +6,7 @@
 #include <linux/module.h>
 #include "test.h"
 
-static inline
+static int queue_depth = 1; 
 void request ( header_t* chan )
 {
 	message_t* request;
@@ -26,7 +26,6 @@ void request ( header_t* chan )
 	}
 }
 
-static inline
 void respond ( header_t* chan )
 {
 	message_t* request;

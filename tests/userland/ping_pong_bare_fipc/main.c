@@ -5,16 +5,25 @@
 
 #include "test.h"
 
+static int queue_depth = 1;
+
 void request ( header_t* chan )
 {
 	message_t* request;
 	message_t* response;
 
-	fipc_test_blocking_send_start( chan, &request );
-	fipc_send_msg_end ( chan, request );
+	int i;
 
-	fipc_test_blocking_recv_start( chan, &response );
-	fipc_recv_msg_end( chan, response );
+	for ( i = 0; i < queue_depth; ++i ) {
+		fipc_test_blocking_send_start( chan, &request );
+		fipc_send_msg_end ( chan, request );
+	}
+
+	for ( i = 0; i < queue_depth; ++i )
+	{
+		fipc_test_blocking_recv_start( chan, &response );
+		fipc_recv_msg_end( chan, response );
+	}
 }
 
 void respond ( header_t* chan )
@@ -22,11 +31,18 @@ void respond ( header_t* chan )
 	message_t* request;
 	message_t* response;
 
-	fipc_test_blocking_recv_start( chan, &request );
-	fipc_recv_msg_end( chan, request );
+	int i;
+	for ( i = 0; i < queue_depth; ++i )
+	{
+		fipc_test_blocking_recv_start( chan, &request );
+		fipc_recv_msg_end( chan, request );
+	}
 
-	fipc_test_blocking_send_start( chan, &response );
-	fipc_send_msg_end( chan, response );
+	for ( i = 0; i < queue_depth; ++i )
+	{
+		fipc_test_blocking_send_start( chan, &response );
+		fipc_send_msg_end( chan, response );
+	}
 }
 
 void* requester ( void* data )
