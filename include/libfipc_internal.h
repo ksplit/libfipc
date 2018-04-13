@@ -27,6 +27,7 @@
 
 #define fipc_debug(fmt, ...) __fipc_debug(fmt,##__VA_ARGS__)
 
+#if defined(DEBUG) 
 #define FIPC_DEBUG(lvl, fmt, ...)				\
 		do										\
 		{										\
@@ -35,6 +36,8 @@
 				fipc_debug(fmt,##__VA_ARGS__);	\
 			}									\
 		} while (0)
-
+#else 
+#define FIPC_DEBUG(lvl, fmt, ...)
+#endif 
 
 #endif

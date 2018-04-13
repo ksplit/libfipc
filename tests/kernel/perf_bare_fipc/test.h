@@ -22,7 +22,7 @@
 #define CHANNEL_ORDER ilog2(sizeof(message_t)) + 7
 
 // Test Variables
-static uint32_t transactions   = 1000000;
+static uint32_t transactions   = 50000000;
 static uint8_t  requester_cpu  = 0;
 static uint8_t  responder_cpu  = 4;
 static uint32_t queue_depth    = 1;

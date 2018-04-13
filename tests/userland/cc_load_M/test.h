@@ -17,7 +17,7 @@
 // Test Variables
 static uint32_t transactions   = 256;
 static uint8_t  loader_cpu     = 0;
-static uint8_t  stager_cpu     = 2;
+static uint8_t  stager_cpu     = 4;
 
 // Cache Variable
 volatile cache_line_t volatile * cache;
