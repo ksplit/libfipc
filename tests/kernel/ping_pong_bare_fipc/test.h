@@ -13,10 +13,13 @@
 
 #include "../libfipc_test.h"
 
-#define CHANNEL_ORDER ilog2(sizeof(message_t)) + 12
+#define CHANNEL_ORDER ilog2(sizeof(message_t)) + 7
 
 // Test Variables
+//static uint32_t transactions   = 100000000;
 static uint32_t transactions   = 100000000;
+
+
 static uint8_t  requester_cpu  = 0;
 static uint8_t  responder_cpu  = 4;
 //static uint32_t queue_depth    = 1;

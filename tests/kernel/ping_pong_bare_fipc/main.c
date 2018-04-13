@@ -6,6 +6,8 @@
 #include <linux/module.h>
 #include "test.h"
 
+#define FINE_GRAINED
+
 static int queue_depth = 1; 
 void request ( header_t* chan )
 {
@@ -50,28 +52,48 @@ int requester ( void* data )
 	header_t* chan = (header_t*) data;
 	
 	register uint64_t CACHE_ALIGNED transaction_id;
+#if defined(FINE_GRAINED)
 	register uint64_t CACHE_ALIGNED start;
 	register uint64_t CACHE_ALIGNED end;
+	register int64_t* CACHE_ALIGNED times = vmalloc( transactions * sizeof( int64_t ) );
 	register uint64_t CACHE_ALIGNED correction = fipc_test_time_get_correction();
-	register int32_t* CACHE_ALIGNED times = vmalloc( transactions * sizeof( int32_t ) );
+#endif
+	register uint64_t CACHE_ALIGNED whole_start;
+	register uint64_t CACHE_ALIGNED whole_end;
 
 	// Begin test
 	fipc_test_thread_take_control_of_CPU();
+        
+	whole_start = RDTSC_START();
 
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 	{
+#if defined(FINE_GRAINED)		
 		start = RDTSC_START();
-
+#endif
 		request( chan );
 
+#if defined(FINE_GRAINED)		
 		end = RDTSCP();
 		times[transaction_id] = (end - start) - correction;
+#endif		
 	}
+
+	whole_end = RDTSCP();
 
 	// End test
 	fipc_test_thread_release_control_of_CPU();
+#if defined(FINE_GRAINED) 
 	fipc_test_stat_get_and_print_stats( times, transactions );
+	pr_err("Correction value: %llu\n", correction);
+
 	vfree( times );
+#endif
+	// Print count
+	pr_err("-------------------------------------------------\n");
+	
+	pr_err("Average across entire loop: %llu\n", 
+			(whole_end - whole_start) / transactions);
 	complete( &requester_comp );
 	return 0;
 }
