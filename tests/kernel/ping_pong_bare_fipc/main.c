@@ -6,7 +6,7 @@
 #include <linux/module.h>
 #include "test.h"
 
-#define FINE_GRAINED
+//#define FINE_GRAINED
 
 static int queue_depth = 1; 
 void request ( header_t* chan )
