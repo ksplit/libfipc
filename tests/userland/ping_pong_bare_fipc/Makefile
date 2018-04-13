@@ -1,10 +1,8 @@
 CC:=gcc
-CFLAGS:=-Wall -D_GNU_SOURCE -pthread -lm
-CFLAGS_O2:=-Wall -D_GNU_SOURCE -pthread -lm -O2
+CFLAGS:=-Wall -D_GNU_SOURCE -pthread -lm -O2
 
 INCLUDE_DIRS:=-I../../../include -I../../../include/userland
 TARGET:=$(notdir $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))))
-TARGET_O2:=$(TARGET)_o2
 DEP:=main.c ../../../src/ipc.c
 
 PERF_CACHE:='cache-misses,cache-references,alignment-faults,major-faults, \
@@ -18,7 +16,6 @@ PERF_CPU:='cycles,instructions,migrations,stalled-cycles-frontend, \
 
 compile: $(DEP)
 	$(CC) $(INCLUDE_DIRS) $(DEP) -o $(TARGET) $(CFLAGS)
-	$(CC) $(INCLUDE_DIRS) $(DEP) -o $(TARGET_O2) $(CFLAGS_O2)
 
 clean:
 	rm -f $(TARGET)
