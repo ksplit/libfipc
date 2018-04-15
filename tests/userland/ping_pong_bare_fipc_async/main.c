@@ -97,7 +97,7 @@ retry:
 		return 0;
 	}
 	
-	//printf("Message not ours yielding to id:%llu\n", (*out)->regs[0]);
+	//printf("Message is not ours yielding to id:%llu\n", (*out)->regs[0]);
 	ret = THCYieldToIdAndSave((*out)->regs[0], id);
 	 
 	//ret = THCYieldToId((*out)->regs[0]);
