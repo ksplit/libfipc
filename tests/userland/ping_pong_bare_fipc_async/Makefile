@@ -1,6 +1,8 @@
 CC:=gcc
 CFLAGS:=-Wall -D_GNU_SOURCE -pthread -lm -O2
 CFLAGS += -DGLOBAL_PTS 
+CFLAGS += -DNDEBUG
+
 INCLUDE_DIRS:=-I../../../include -I../../../include/userland -I.
 TARGET:=$(notdir $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))))
 DEP:=main.c ../../../src/ipc.c thc.c awe_mapper.c

@@ -9,7 +9,7 @@
 
 #include "test.h"
 //#define FINE_GRAINED
-static uint64_t transactions   = 100000;
+static uint64_t transactions   = 1000000;
 static uint32_t num_inner_asyncs = 10; 
 
 #define REQUESTER_CPU	1
@@ -70,6 +70,84 @@ void request ( header_t* chan )
 	
 }
 
+static inline
+int fipc_test_blocking_recv_start_block ( header_t* channel, message_t** out, uint64_t id )
+{
+	int ret;
+retry:
+	while ( 1 )
+	{
+		// Poll until we get a message or error
+		*out = get_current_rx_slot( channel);
+
+		if ( ! check_rx_slot_msg_waiting( *out ) )
+		{
+			// No messages to receive, yield to next async
+			//printf("No messages to recv, yield and save into id:%llu\n", id);
+			THCYieldAndSave(id);
+			continue; 
+		}
+
+		break;
+	}
+
+	if((*out)->regs[0] == id) {
+		//printf("Message is ours id:%llu\n", (*out)->regs[0]);
+		inc_rx_slot( channel ); 
+		return 0;
+	}
+	
+	//printf("Message not ours yielding to id:%llu\n", (*out)->regs[0]);
+	ret = THCYieldToIdAndSave((*out)->regs[0], id);
+	 
+	//ret = THCYieldToId((*out)->regs[0]);
+	if (ret) {
+		printf("ALERT: wrong id\n");
+		return ret;
+	}
+
+	// We came back here but maybe we're the last AWE and 
+        // we're re-started by do finish
+	goto retry; 
+	return 0;
+}
+
+void request_blk ( header_t* chan)
+{
+	message_t* req;
+	message_t* resp;
+
+	int id = awe_mapper_create_id();
+	//printf("Got id:%d\n", id);
+
+ 	// Call
+	fipc_test_blocking_send_start( chan, &req );
+        req->regs[0] = (uint64_t)id;
+	fipc_send_msg_end ( chan, req );
+
+	// Reply (msg id is in reg[0]
+	fipc_test_blocking_recv_start_block (chan, &resp, id);
+	fipc_recv_msg_end( chan, resp );
+	awe_mapper_remove_id(id);
+	return; 	
+}
+void respond_blk ( header_t* chan )
+{
+	message_t* req;
+	message_t* resp;
+
+	uint64_t id;
+	
+	fipc_test_blocking_recv_start( chan, &req);
+	id = req->regs[0];
+	fipc_recv_msg_end( chan, req );
+	
+	fipc_test_blocking_send_start( chan, &resp );
+	resp->regs[0] = id; 
+	fipc_send_msg_end( chan, resp );
+}
+
+
 void respond ( header_t* chan )
 {
 	message_t* request;
@@ -106,10 +184,22 @@ void no_async_10_rsp(header_t *chan) {
 		for (j = 0; j < num_inner_asyncs; j++) {
 			respond( chan );
 		}
-	
 	}
-
 }
+
+void async_10_rsp_blk(header_t *chan) {
+	register uint64_t CACHE_ALIGNED transaction_id;
+
+	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
+	{
+		int j; 
+		for (j = 0; j < num_inner_asyncs; j++) {
+			respond_blk( chan );
+		}
+	}
+}
+
+
 void ping_pong_req(header_t *chan) {
 	register uint64_t CACHE_ALIGNED transaction_id;
 
@@ -224,6 +314,47 @@ void async_10_req(header_t *chan) {
 
 }
 
+void async_10_req_blk(header_t *chan) {
+	register uint64_t CACHE_ALIGNED transaction_id;
+
+	// Wait to begin test
+	pthread_mutex_lock( &requester_mutex );
+
+	whole_start = RDTSC_START();
+
+	// Begin test
+	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
+	{
+		int j;
+#if defined(FINE_GRAINED)		
+		start = RDTSC_START();
+#endif
+		DO_FINISH({
+			for (j = 0; j < num_inner_asyncs; j++) {
+				ASYNC({
+					request_blk( chan );
+				});
+			};
+		});
+#if defined(FINE_GRAINED)		
+		end = RDTSCP();
+		times[transaction_id] = (end - start) - correction;
+#endif		
+	}
+
+	whole_end = RDTSCP();
+#if defined(FINE_GRAINED)		
+ 	print_stats(times, transactions);
+#endif
+ 	printf("do{async{send_blk}}finish(), 10 msgs: %llu\n",  
+			(unsigned long long) (whole_end - whole_start) / transactions);
+
+
+	pthread_mutex_unlock( &requester_mutex );
+	return;
+
+}
+
 void* requester ( void* data )
 {
 	header_t* chan = (header_t*) data;
@@ -236,6 +367,7 @@ void* requester ( void* data )
 	ping_pong_req(chan);
 	no_async_10_req(chan);
 	async_10_req(chan);
+	async_10_req_blk(chan);
 	
 	thc_done();
 
@@ -258,6 +390,7 @@ void* responder ( void* data )
 	ping_pong_rsp(chan); 
 	no_async_10_rsp(chan);
 	no_async_10_rsp(chan); 
+	async_10_rsp_blk(chan);
 
 	// End test
 	pthread_mutex_unlock( &responder_mutex );

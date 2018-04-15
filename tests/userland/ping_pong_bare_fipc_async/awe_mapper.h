@@ -112,7 +112,7 @@ awe_mapper_remove_id(uint32_t id)
 static inline awe_t *
 _awe_mapper_get_awe(awe_table_t *awe_map, uint32_t id)
 {
-    assert(id >= AWE_TABLE_COUNT);
+    assert(id < AWE_TABLE_COUNT);
 
     if(!_is_slot_allocated(awe_map, id))
       return NULL;
