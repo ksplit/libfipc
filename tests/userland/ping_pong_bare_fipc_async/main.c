@@ -199,6 +199,21 @@ void async_10_rsp_blk(header_t *chan) {
 	}
 }
 
+void async_10_rsp_blk_srv_async_dispatch(header_t *chan) {
+	register uint64_t CACHE_ALIGNED transaction_id;
+
+	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
+	{
+		int j; 
+		DO_FINISH({
+			for (j = 0; j < num_inner_asyncs; j++) {
+				ASYNC({
+					respond_blk( chan );
+				});
+			}
+		});
+	}
+}
 
 void ping_pong_req(header_t *chan) {
 	register uint64_t CACHE_ALIGNED transaction_id;
@@ -355,6 +370,48 @@ void async_10_req_blk(header_t *chan) {
 
 }
 
+void async_10_req_blk_srv_async_dispatch(header_t *chan) {
+	register uint64_t CACHE_ALIGNED transaction_id;
+
+	// Wait to begin test
+	pthread_mutex_lock( &requester_mutex );
+
+	whole_start = RDTSC_START();
+
+	// Begin test
+	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
+	{
+		int j;
+#if defined(FINE_GRAINED)		
+		start = RDTSC_START();
+#endif
+		DO_FINISH({
+			for (j = 0; j < num_inner_asyncs; j++) {
+				ASYNC({
+					request_blk( chan );
+				});
+			};
+		});
+#if defined(FINE_GRAINED)		
+		end = RDTSCP();
+		times[transaction_id] = (end - start) - correction;
+#endif		
+	}
+
+	whole_end = RDTSCP();
+#if defined(FINE_GRAINED)		
+ 	print_stats(times, transactions);
+#endif
+ 	printf("do{async{send_blk}}finish(), 10 msgs, srv async dispatch: %llu\n",  
+			(unsigned long long) (whole_end - whole_start) / transactions);
+
+
+	pthread_mutex_unlock( &requester_mutex );
+	return;
+
+}
+
+
 void* requester ( void* data )
 {
 	header_t* chan = (header_t*) data;
@@ -368,7 +425,7 @@ void* requester ( void* data )
 	no_async_10_req(chan);
 	async_10_req(chan);
 	async_10_req_blk(chan);
-	
+        async_10_req_blk_srv_async_dispatch(chan);
 	thc_done();
 
 #if defined(FINE_GRAINED)		
@@ -391,6 +448,7 @@ void* responder ( void* data )
 	no_async_10_rsp(chan);
 	no_async_10_rsp(chan); 
 	async_10_rsp_blk(chan);
+	async_10_rsp_blk_srv_async_dispatch(chan);
 
 	// End test
 	pthread_mutex_unlock( &responder_mutex );
