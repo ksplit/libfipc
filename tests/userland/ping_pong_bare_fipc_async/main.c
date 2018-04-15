@@ -20,6 +20,36 @@ static uint32_t num_inner_asyncs = 10;
 
 static int queue_depth = 1;
 
+
+#if defined(FINE_GRAINED)
+register uint64_t CACHE_ALIGNED start;
+register uint64_t CACHE_ALIGNED end;
+register int64_t* CACHE_ALIGNED times;
+register uint64_t CACHE_ALIGNED correction;
+#endif
+uint64_t CACHE_ALIGNED whole_start;
+uint64_t CACHE_ALIGNED whole_end;
+
+void print_stats(int64_t *times, uint64_t transactions){
+
+	// End test
+#if defined(FINE_GRAINED) 
+	register uint64_t CACHE_ALIGNED transaction_id;
+
+	fipc_test_stat_get_and_print_stats( times, transactions );
+	printf("Correction value: %llu\n", (unsigned long long) correction);
+  	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
+	{
+		printf("%llu\n", (unsigned long long) times[transaction_id]);
+	}
+
+#endif
+	// Print count
+	printf("-------------------------------------------------\n");
+	
+}
+
+
 void request ( header_t* chan )
 {
 	message_t* request;
@@ -59,21 +89,61 @@ void respond ( header_t* chan )
 	}
 }
 
-void* requester ( void* data )
-{
-	header_t* chan = (header_t*) data;
-	
+void no_async_rsp(header_t *chan) {
 	register uint64_t CACHE_ALIGNED transaction_id;
-#if defined(FINE_GRAINED)
-	register uint64_t CACHE_ALIGNED start;
-	register uint64_t CACHE_ALIGNED end;
-	register int64_t* CACHE_ALIGNED times = malloc( transactions * sizeof( int64_t ) );
-	register uint64_t CACHE_ALIGNED correction = fipc_test_time_get_correction();
-#endif
-	register uint64_t CACHE_ALIGNED whole_start;
-	register uint64_t CACHE_ALIGNED whole_end;
 
-	thc_init();
+	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
+	{
+		int j; 
+		for (j = 0; j < num_inner_asyncs; j++) {
+			respond( chan );
+		}
+	
+	}
+
+}
+
+void no_async_req(header_t *chan) {
+	register uint64_t CACHE_ALIGNED transaction_id;
+
+	// Wait to begin test
+	pthread_mutex_lock( &requester_mutex );
+
+	whole_start = RDTSC_START();
+
+	// Begin test
+	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
+	{
+		int j;
+#if defined(FINE_GRAINED)		
+		start = RDTSC_START();
+#endif
+		DO_FINISH({
+			for (j = 0; j < num_inner_asyncs; j++) {
+				request( chan );
+			};
+		});
+#if defined(FINE_GRAINED)		
+		end = RDTSCP();
+		times[transaction_id] = (end - start) - correction;
+#endif		
+	}
+
+	whole_end = RDTSCP();
+#if defined(FINE_GRAINED)		
+ 	print_stats(times, transactions);
+#endif
+ 	printf("do_finish (10 msgs): %llu\n",  
+			(unsigned long long) (whole_end - whole_start) / transactions);
+
+
+	pthread_mutex_unlock( &requester_mutex );
+	return;
+
+}
+
+void async_req(header_t *chan) {
+	register uint64_t CACHE_ALIGNED transaction_id;
 
 	// Wait to begin test
 	pthread_mutex_lock( &requester_mutex );
@@ -101,26 +171,35 @@ void* requester ( void* data )
 	}
 
 	whole_end = RDTSCP();
-
-	// End test
-#if defined(FINE_GRAINED) 
-	fipc_test_stat_get_and_print_stats( times, transactions );
-	printf("Correction value: %llu\n", (unsigned long long) correction);
-  	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
-	{
-		printf("%llu\n", (unsigned long long) times[transaction_id]);
-	}
-
-	free( times );
+#if defined(FINE_GRAINED)		
+ 	print_stats(times, transactions);
 #endif
-	// Print count
-	printf("-------------------------------------------------\n");
-	
-	printf("Average across entire loop: %llu\n",  
+ 	printf("do{async{}}finish(), 10 msgs: %llu\n",  
 			(unsigned long long) (whole_end - whole_start) / transactions);
 
+
 	pthread_mutex_unlock( &requester_mutex );
+	return;
+
+}
+
+void* requester ( void* data )
+{
+	header_t* chan = (header_t*) data;
+#if defined(FINE_GRAINED)		
+	register int64_t* CACHE_ALIGNED times = malloc( transactions * sizeof( int64_t ) );
+	correction = fipc_test_time_get_correction();
+#endif
+	thc_init();
+
+	no_async_req(chan);
+	async_req(chan);
+	
 	thc_done();
+
+#if defined(FINE_GRAINED)		
+	free( times );
+#endif
 	pthread_exit( 0 );
 
 	return NULL;
@@ -130,20 +209,12 @@ void* responder ( void* data )
 {
 	header_t* chan = (header_t*) data;
 	
-	register uint64_t CACHE_ALIGNED transaction_id;
-
 	thc_init();
 	// Wait to begin test
 	pthread_mutex_lock( &responder_mutex );
 
-	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
-	{
-		int j; 
-		for (j = 0; j < num_inner_asyncs; j++) {
-			respond( chan );
-		}
-	
-	}
+	no_async_rsp(chan);
+	no_async_rsp(chan); 
 
 	// End test
 	pthread_mutex_unlock( &responder_mutex );
