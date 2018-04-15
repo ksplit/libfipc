@@ -147,20 +147,30 @@ void respond_ack ( header_t* chan )
 	fipc_send_msg_end( chan, resp );
 }
 
+static inline unsigned long long load(){
+	unsigned long long sum = 0;
+	int i;
+
+	for(i = 0; i < 100; i++)
+		sum += i;
+
+	return sum; 
+}
+
+
 void respond_ack_load100 ( header_t* chan )
 {
 	message_t* req;
 	message_t* resp;
 	uint64_t id;
-	int sum = 0, i;
+	unsigned long long sum;
 	
 	fipc_test_blocking_recv_start( chan, &req);
 	id = req->regs[0];
 	fipc_recv_msg_end( chan, req );
 
-	for(i = 0; i < 150; i++)
-		sum += i;
-	
+	sum = load();
+
 	fipc_test_blocking_send_start( chan, &resp );
 	resp->regs[0] = id; 
 	resp->regs[1] = sum;
@@ -276,6 +286,37 @@ void async_10_rsp_blk_srv_async_dispatch_load100(header_t *chan) {
 			}
 		});
 	}
+}
+
+void check_load(header_t *chan) {
+	register uint64_t CACHE_ALIGNED transaction_id;
+	unsigned long long sum; 
+
+	whole_start = RDTSC_START();
+
+	// Begin test
+	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
+	{
+#if defined(FINE_GRAINED)		
+		start = RDTSC_START();
+#endif
+		sum = load();
+
+#if defined(FINE_GRAINED)		
+		end = RDTSCP();
+		times[transaction_id] = (end - start) - correction;
+#endif		
+	}
+
+	whole_end = RDTSCP();
+#if defined(FINE_GRAINED)		
+ 	print_stats(times, transactions);
+#endif
+ 	printf("%llu (sum = %llu)\n",  
+			(unsigned long long) (whole_end - whole_start) / transactions, sum);
+
+	return;
+
 }
 
 void ping_pong_req(header_t *chan) {
@@ -482,6 +523,9 @@ void* requester ( void* data )
 	correction = fipc_test_time_get_correction();
 #endif
 	thc_init();
+
+	printf("load100 function:");
+	check_load(chan);
 
 	printf("ping-pong 1 msg:"); 
 	ping_pong_req(chan);
