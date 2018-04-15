@@ -49,6 +49,7 @@
 
 #ifdef linux
 #include <pthread.h>
+//#include <sys/types.h>
 #endif
 
 /* It is necessary to set the esp of a lazy awe some way into it's lazy */
@@ -1122,22 +1123,35 @@ EXPORT_SYMBOL(thc_global_fini);
 
 #if defined(GLOBAL_PTS)
 static PTState_t * global_pts = NULL;
+#elif defined(GLOBAL_PTS_ARRAY)
+//#define PTS_ARRAY_SIZE 64
+//static PTState_t * pts_array[PTS_ARRAY_SIZE];
+#elif defined(THREAD_PTS)
+__thread PTState_t * global_pts = NULL;
 #endif
 
 static inline PTState_t *thc_get_pts_0(void) {
-#if !defined(GLOBAL_PTS)	
-   return (PTState_t *) (pthread_getspecific(TlsKey));
-#else
+#if defined(GLOBAL_PTS) || defined(THREAD_PTS)
    return global_pts;
+#elif defined(GLOBAL_PTS_ARRAY)
+//   printf("pthread_self:%lu\n", (unsigned long) pthread_self());
+//   assert(pthread_self() < PTS_ARRAY_SIZE);
+//   return pts_array[pthread_self()];
+#else
+   return (PTState_t *) (pthread_getspecific(TlsKey));
 #endif   
 }
 
 static inline void thc_set_pts_0(PTState_t *st) {
   assert(TlsDoneInit);
-#if !defined(GLOBAL_PTS)
-  pthread_setspecific(TlsKey, (void*)st);
-#else
+#if defined(GLOBAL_PTS) || defined(THREAD_PTS)
   global_pts = st; 
+#elif defined(GLOBAL_PTS_ARRAY)
+//  printf("pthread_self:%lu\n", (unsigned long) pthread_self());
+//  assert(pthread_self() < PTS_ARRAY_SIZE);
+//  pts_array[pthread_self()] = st;
+#else
+  pthread_setspecific(TlsKey, (void*)st);
 #endif
 }
 
