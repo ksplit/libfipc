@@ -9,7 +9,7 @@
 
 #include "test.h"
 //#define FINE_GRAINED
-static uint64_t transactions   = 10000;
+static uint64_t transactions   = 100000;
 static uint32_t num_inner_asyncs = 10; 
 
 #define REQUESTER_CPU	1
@@ -89,7 +89,15 @@ void respond ( header_t* chan )
 	}
 }
 
-void no_async_rsp(header_t *chan) {
+void ping_pong_rsp(header_t *chan) {
+	register uint64_t CACHE_ALIGNED transaction_id;
+	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
+	{
+		respond( chan );
+	}
+}
+
+void no_async_10_rsp(header_t *chan) {
 	register uint64_t CACHE_ALIGNED transaction_id;
 
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
@@ -102,8 +110,41 @@ void no_async_rsp(header_t *chan) {
 	}
 
 }
+void ping_pong_req(header_t *chan) {
+	register uint64_t CACHE_ALIGNED transaction_id;
 
-void no_async_req(header_t *chan) {
+	// Wait to begin test
+	pthread_mutex_lock( &requester_mutex );
+
+	whole_start = RDTSC_START();
+
+	// Begin test
+	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
+	{
+#if defined(FINE_GRAINED)		
+		start = RDTSC_START();
+#endif
+		request( chan );
+#if defined(FINE_GRAINED)		
+		end = RDTSCP();
+		times[transaction_id] = (end - start) - correction;
+#endif		
+	}
+
+	whole_end = RDTSCP();
+#if defined(FINE_GRAINED)		
+ 	print_stats(times, transactions);
+#endif
+ 	printf("ping-pong 1 msg: %llu\n",  
+			(unsigned long long) (whole_end - whole_start) / transactions);
+
+
+	pthread_mutex_unlock( &requester_mutex );
+	return;
+
+}
+
+void no_async_10_req(header_t *chan) {
 	register uint64_t CACHE_ALIGNED transaction_id;
 
 	// Wait to begin test
@@ -142,7 +183,7 @@ void no_async_req(header_t *chan) {
 
 }
 
-void async_req(header_t *chan) {
+void async_10_req(header_t *chan) {
 	register uint64_t CACHE_ALIGNED transaction_id;
 
 	// Wait to begin test
@@ -192,8 +233,9 @@ void* requester ( void* data )
 #endif
 	thc_init();
 
-	no_async_req(chan);
-	async_req(chan);
+	ping_pong_req(chan);
+	no_async_10_req(chan);
+	async_10_req(chan);
 	
 	thc_done();
 
@@ -213,8 +255,9 @@ void* responder ( void* data )
 	// Wait to begin test
 	pthread_mutex_lock( &responder_mutex );
 
-	no_async_rsp(chan);
-	no_async_rsp(chan); 
+	ping_pong_rsp(chan); 
+	no_async_10_rsp(chan);
+	no_async_10_rsp(chan); 
 
 	// End test
 	pthread_mutex_unlock( &responder_mutex );
