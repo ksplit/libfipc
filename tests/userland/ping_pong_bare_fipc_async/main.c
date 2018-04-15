@@ -131,7 +131,7 @@ void request_blk ( header_t* chan)
 	awe_mapper_remove_id(id);
 	return; 	
 }
-void respond_blk ( header_t* chan )
+void respond_ack ( header_t* chan )
 {
 	message_t* req;
 	message_t* resp;
@@ -147,31 +147,53 @@ void respond_blk ( header_t* chan )
 	fipc_send_msg_end( chan, resp );
 }
 
+void respond_ack_load100 ( header_t* chan )
+{
+	message_t* req;
+	message_t* resp;
+	uint64_t id;
+	int sum = 0, i;
+	
+	fipc_test_blocking_recv_start( chan, &req);
+	id = req->regs[0];
+	fipc_recv_msg_end( chan, req );
+
+	for(i = 0; i < 150; i++)
+		sum += i;
+	
+	fipc_test_blocking_send_start( chan, &resp );
+	resp->regs[0] = id; 
+	resp->regs[1] = sum;
+	fipc_send_msg_end( chan, resp );
+}
+
 
 void respond ( header_t* chan )
 {
 	message_t* request;
 	message_t* response;
 
-	int i;
-	for ( i = 0; i < queue_depth; ++i )
-	{
-		fipc_test_blocking_recv_start( chan, &request );
-		fipc_recv_msg_end( chan, request );
-	}
+	fipc_test_blocking_recv_start( chan, &request );
+	fipc_recv_msg_end( chan, request );
 
-	for ( i = 0; i < queue_depth; ++i )
-	{
-		fipc_test_blocking_send_start( chan, &response );
-		fipc_send_msg_end( chan, response );
-	}
+	fipc_test_blocking_send_start( chan, &response );
+	fipc_send_msg_end( chan, response );
 }
+
 
 void ping_pong_rsp(header_t *chan) {
 	register uint64_t CACHE_ALIGNED transaction_id;
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 	{
 		respond( chan );
+	}
+}
+
+void ping_pong_rsp_load100(header_t *chan) {
+	register uint64_t CACHE_ALIGNED transaction_id;
+	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
+	{
+		respond_ack_load100( chan );
 	}
 }
 
@@ -187,6 +209,18 @@ void no_async_10_rsp(header_t *chan) {
 	}
 }
 
+void async_10_rsp(header_t *chan) {
+	register uint64_t CACHE_ALIGNED transaction_id;
+
+	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
+	{
+		int j; 
+		for (j = 0; j < num_inner_asyncs; j++) {
+			respond_ack( chan );
+		}
+	}
+}
+
 void async_10_rsp_blk(header_t *chan) {
 	register uint64_t CACHE_ALIGNED transaction_id;
 
@@ -194,10 +228,23 @@ void async_10_rsp_blk(header_t *chan) {
 	{
 		int j; 
 		for (j = 0; j < num_inner_asyncs; j++) {
-			respond_blk( chan );
+			respond_ack( chan );
 		}
 	}
 }
+
+void async_10_rsp_blk_load100(header_t *chan) {
+	register uint64_t CACHE_ALIGNED transaction_id;
+
+	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
+	{
+		int j; 
+		for (j = 0; j < num_inner_asyncs; j++) {
+			respond_ack_load100( chan );
+		}
+	}
+}
+
 
 void async_10_rsp_blk_srv_async_dispatch(header_t *chan) {
 	register uint64_t CACHE_ALIGNED transaction_id;
@@ -208,7 +255,23 @@ void async_10_rsp_blk_srv_async_dispatch(header_t *chan) {
 		DO_FINISH({
 			for (j = 0; j < num_inner_asyncs; j++) {
 				ASYNC({
-					respond_blk( chan );
+					respond_ack( chan );
+				});
+			}
+		});
+	}
+}
+
+void async_10_rsp_blk_srv_async_dispatch_load100(header_t *chan) {
+	register uint64_t CACHE_ALIGNED transaction_id;
+
+	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
+	{
+		int j; 
+		DO_FINISH({
+			for (j = 0; j < num_inner_asyncs; j++) {
+				ASYNC({
+					respond_ack_load100( chan );
 				});
 			}
 		});
@@ -240,7 +303,7 @@ void ping_pong_req(header_t *chan) {
 #if defined(FINE_GRAINED)		
  	print_stats(times, transactions);
 #endif
- 	printf("ping-pong 1 msg: %llu\n",  
+ 	printf("%llu\n",  
 			(unsigned long long) (whole_end - whole_start) / transactions);
 
 
@@ -279,7 +342,7 @@ void no_async_10_req(header_t *chan) {
 #if defined(FINE_GRAINED)		
  	print_stats(times, transactions);
 #endif
- 	printf("do_finish (10 msgs): %llu\n",  
+ 	printf(" %llu\n",  
 			(unsigned long long) (whole_end - whole_start) / transactions);
 
 
@@ -320,7 +383,7 @@ void async_10_req(header_t *chan) {
 #if defined(FINE_GRAINED)		
  	print_stats(times, transactions);
 #endif
- 	printf("do{async{}}finish(), 10 msgs: %llu\n",  
+ 	printf("%llu\n",  
 			(unsigned long long) (whole_end - whole_start) / transactions);
 
 
@@ -361,7 +424,7 @@ void async_10_req_blk(header_t *chan) {
 #if defined(FINE_GRAINED)		
  	print_stats(times, transactions);
 #endif
- 	printf("do{async{send_blk}}finish(), 10 msgs: %llu\n",  
+ 	printf("%llu\n",  
 			(unsigned long long) (whole_end - whole_start) / transactions);
 
 
@@ -402,7 +465,7 @@ void async_10_req_blk_srv_async_dispatch(header_t *chan) {
 #if defined(FINE_GRAINED)		
  	print_stats(times, transactions);
 #endif
- 	printf("do{async{send_blk}}finish(), 10 msgs, srv async dispatch: %llu\n",  
+ 	printf("%llu\n",  
 			(unsigned long long) (whole_end - whole_start) / transactions);
 
 
@@ -410,7 +473,6 @@ void async_10_req_blk_srv_async_dispatch(header_t *chan) {
 	return;
 
 }
-
 
 void* requester ( void* data )
 {
@@ -421,11 +483,34 @@ void* requester ( void* data )
 #endif
 	thc_init();
 
+	printf("ping-pong 1 msg:"); 
 	ping_pong_req(chan);
+ 	printf("ping-pong 1 msg, load 100:"); 
+	ping_pong_req(chan);
+
+	printf("do_finish (10 msgs):");
 	no_async_10_req(chan);
+	printf("do_finish (10 msgs), load 100:");
+	no_async_10_req(chan);
+
+	printf("do{async{}}finish(), 10 msgs:");
 	async_10_req(chan);
+	printf("do{async{}}finish(), 10 msgs, load 100:");
+	async_10_req(chan);
+
+
+	printf("do{async{send and yield}}finish(), 10 msgs:"); 
 	async_10_req_blk(chan);
+	printf("do{async{send and yeild}}finish(), 10 msgs, load 100:"); 
+	async_10_req_blk(chan);
+
+
+	printf("do{async{send_blk}}finish(), 10 msgs, srv async dispatch:"); 
         async_10_req_blk_srv_async_dispatch(chan);
+
+	printf("do{async{send_blk}}finish(), 10 msgs, srv async dispatch, load 100:");
+	async_10_req_blk_srv_async_dispatch(chan);
+
 	thc_done();
 
 #if defined(FINE_GRAINED)		
@@ -444,11 +529,30 @@ void* responder ( void* data )
 	// Wait to begin test
 	pthread_mutex_lock( &responder_mutex );
 
-	ping_pong_rsp(chan); 
-	no_async_10_rsp(chan);
-	no_async_10_rsp(chan); 
+	// ping-pong 1 msg
+	ping_pong_rsp(chan);
+	// ping-pong 1 msg, load 100
+	ping_pong_rsp_load100(chan); 
+	
+	// do_finish (10 msgs)
+	async_10_rsp(chan);
+	// do_finish (10 msgs), load 100
+	async_10_rsp_blk_load100(chan); 
+
+        // do{async{}}finish(), 10 msgs	
+	async_10_rsp(chan); 
+	// do{async{}}finish(), 10 msgs, load 100
+	async_10_rsp_blk_load100(chan);
+
+	// do{async{send and yield}}finish(), 10 msgs	
 	async_10_rsp_blk(chan);
+	// do{async{send and yield}}finish(), 10 msgs, load 100	
+	async_10_rsp_blk_load100(chan);
+
+	// do{async{send_blk}}finish(), 10 msgs, srv async dispatch
 	async_10_rsp_blk_srv_async_dispatch(chan);
+	// do{async{send_blk}}finish(), 10 msgs, srv async dispatch, load 100
+	async_10_rsp_blk_srv_async_dispatch_load100(chan);
 
 	// End test
 	pthread_mutex_unlock( &responder_mutex );
