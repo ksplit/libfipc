@@ -875,7 +875,7 @@ THCYieldToAweNoDispatch_TopLevel(awe_t *awe_to)
 EXPORT_SYMBOL(THCYieldToIdNoDispatch_TopLevel);
 
 
-int inline 
+int 
 _THCYieldToId(PTState_t *pts, uint32_t id_to)
 {
   awe_t *awe = _awe_mapper_get_awe(pts->awe_map, id_to);
@@ -890,7 +890,7 @@ _THCYieldToId(PTState_t *pts, uint32_t id_to)
 
   return 0;
 }
-EXPORT_SYMBOL(THCYieldToId);
+EXPORT_SYMBOL(_THCYieldToId);
 
 
 int
