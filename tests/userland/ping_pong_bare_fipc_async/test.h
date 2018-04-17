@@ -60,5 +60,4 @@ static inline void thc_kill_request_cookie(uint32_t request_cookie)
     awe_mapper_remove_id(request_cookie);
 }
 
-
 #endif

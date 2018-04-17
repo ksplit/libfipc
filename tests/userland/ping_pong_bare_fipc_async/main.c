@@ -8,7 +8,6 @@
 #include <awe_mapper.h>
 
 #include "thc_ipc_types.h"
-
 #include "test.h"
 
 //#define FINE_GRAINED
@@ -27,6 +26,9 @@ typedef enum {
 } dispatch_t;
 
 static int queue_depth = 1;
+
+header_t* requester_header_xmit = NULL;
+header_t* responder_header_xmit = NULL;
 
 static inline
 int
@@ -566,7 +568,6 @@ static int poll_recv_predicate(message_t* msg, void* data)
 static inline
 int fipc_test_blocking_recv_start_if ( header_t* channel, message_t** out)
 {
-	int ret;
 retry:
 	while ( 1 )
 	{
@@ -630,6 +631,38 @@ int thc_ipc_poll_recv(header_t *rx_chan, message_t **out_msg)
 	}
 }
 
+static inline header_t *
+thc_channel_group_item_channel(struct thc_channel_group_item *item)
+{
+    return item->channel;
+}
+
+
+int 
+thc_poll_recv_group(struct thc_channel_group* chan_group, 
+		struct thc_channel_group_item** chan_group_item, 
+		message_t** out_msg)
+{
+    struct thc_channel_group_item *curr_item;
+    message_t* recv_msg;
+    int ret;
+
+    list_for_each_entry(curr_item, &(chan_group->head), list)
+    {
+        ret = thc_ipc_poll_recv(thc_channel_group_item_channel(curr_item), 
+                        &recv_msg);
+        if( !ret )
+        {
+            *chan_group_item = curr_item;
+            *out_msg         = recv_msg;
+            
+            return 0;
+        }
+    }
+
+    return -EWOULDBLOCK;
+}
+
 int foo_callee(message_t *req, header_t *chan)
 {
 	unsigned int request_cookie;
@@ -640,8 +673,10 @@ int foo_callee(message_t *req, header_t *chan)
 	fipc_recv_msg_end(chan, req);
 
 	fipc_send_msg_start(chan, &resp);
+
 	thc_set_msg_type(resp, msg_type_response);
 	thc_set_msg_id(resp, request_cookie);
+
 	fipc_send_msg_end(chan, resp);
 	return 0;
 }
@@ -660,17 +695,101 @@ int foo_blocking_callee(message_t *req, header_t *chan)
 int respond_dispatch_async_loop(header_t *chan, message_t *msg)
 {
 	int fn_type = async_msg_get_fn_type(msg);
-
 	switch (fn_type) {
 	case FOO:
-//		printf("%s, dispatching foo\n", __func__);
+//		printf("%s, dispatching foo %d\n", __func__, iter);
 		return foo_callee(msg, chan);
 	case FOO_BLOCKING:
 //		printf("%s, dispatching foo_blocking\n", __func__);
 		return foo_blocking_callee(msg, chan);
+	case DONE:
+		fipc_recv_msg_end(chan, msg);
+		return DONE;
 	default:
 		return 1;
 	}
+}
+
+int __respond_dispatch(header_t *chan)
+{
+	message_t *msg;
+	int stop = 0;
+	int ret;
+
+//	DO_FINISH({
+	while (!stop) {
+		ret = thc_ipc_poll_recv(chan, &msg);
+
+		if (ret) {
+			if (ret == -EWOULDBLOCK) {
+				continue;
+			} else {
+				stop = 1;
+				printf("%s:%d error %d\n", __func__, __LINE__, ret);
+			}
+		}
+//		printf("%s, dispatching %d\n", __func__, thc_get_msg_type(msg));
+//		ASYNC(
+		ret = respond_dispatch_async_loop(chan, msg);
+//		);
+
+		if (ret)
+			return ret;	
+	}
+//	});
+	return ret;
+}
+
+struct thc_channel_group ch_grp;
+
+int respond_dispatch_two_channels(header_t *chan1, header_t *chan2)
+{
+	message_t *msg;
+	int stop = 0;
+	int ret;
+
+	struct thc_channel_group_item *xmit_ch_item;
+	struct thc_channel_group_item *item_ch1;
+
+	thc_channel_group_init(&ch_grp);
+
+	xmit_ch_item = malloc(sizeof(*xmit_ch_item));
+	item_ch1 = malloc(sizeof(*item_ch1));
+
+	thc_channel_group_item_init(xmit_ch_item, chan1, NULL);
+
+	thc_channel_group_item_init(item_ch1, chan2, NULL);
+
+	thc_channel_group_item_add(&ch_grp, xmit_ch_item);
+	thc_channel_group_item_add(&ch_grp, item_ch1);
+
+	DO_FINISH(
+	while (!stop) {
+		struct thc_channel_group_item* curr_item;
+
+		ret = thc_poll_recv_group(&ch_grp, &curr_item, &msg);
+
+		if (ret) {
+			if (ret == -EWOULDBLOCK) {
+				continue;
+			} else {
+				stop = 1;
+				printf("%s:%d error %d\n", __func__, __LINE__, ret);
+			}
+		}
+		ASYNC(
+		ret = respond_dispatch_async_loop(
+				curr_item->channel,
+				msg);
+		if (ret) {
+			printf("%s:%d dispatch loop returned %d\n",
+					__func__, __LINE__, ret);
+			stop = 1;
+		}
+		);
+	}
+	);
+	return ret;
 }
 
 int respond_dispatch(header_t *chan)
@@ -695,6 +814,7 @@ int respond_dispatch(header_t *chan)
 		if (ret)
 			return ret;
 	}
+	return ret;
 }
 
 int respond_dispatch_2(header_t *chan)
@@ -703,7 +823,6 @@ int respond_dispatch_2(header_t *chan)
 	int stop = 0;
 	int ret;
 
-//	printf("%s, looping\n", __func__);
 	while (!stop) {
 		ret = fipc_test_blocking_recv_start_if(chan, &msg);
 
@@ -720,6 +839,7 @@ int respond_dispatch_2(header_t *chan)
 				return ret;
 		}
 	}
+	return ret;
 }
 
 
@@ -834,7 +954,6 @@ static void try_yield(header_t *chnl, uint32_t our_request_cookie,
 	return;
 }
 
-
 int 
 thc_ipc_recv_response(header_t *chnl, 
 		uint32_t request_cookie, 
@@ -852,6 +971,7 @@ retry:
 		/*
 		 * Message for us; remove request_cookie from awe mapper
 		 */
+		//printf("%s:%d message for us, removing %d!\n", __func__, __LINE__, request_cookie);
                 awe_mapper_remove_id(request_cookie);
 		return 0;
 	} else if (ret == -ENOMSG && payload.msg_type == msg_type_request) {
@@ -883,7 +1003,7 @@ retry:
 		/*
 		 * No messages in rx buffer; go to sleep.
 		 */
-		printf("%s:%d, no message -> yield\n", __func__, __LINE__);
+		//printf("%s:%d, no message -> yield\n", __func__, __LINE__);
 		goto yield;
 	} else {
 		/*
@@ -900,7 +1020,7 @@ yield:
 	 * by the dispatch loop or some other awe.
 	 */
 	THCYieldAndSave(request_cookie);
-	printf("%s:%d woken up %d\n", __func__, __LINE__, request_cookie);
+//	printf("%s:%d woken up %d\n", __func__, __LINE__, request_cookie);
 	/*
 	 * We were woken up; make sure the channel didn't die while
 	 * we were asleep.
@@ -908,7 +1028,50 @@ yield:
 	goto retry;
 }
 
-//thc_get_msg_type(msg);
+static inline
+int thc_ipc_recv_response_new ( header_t* channel, message_t** out, uint64_t id )
+{
+	int ret;
+	int received_cookie;
+retry:
+	while ( 1 )
+	{
+		// Poll until we get a message or error
+		*out = get_current_rx_slot( channel);
+
+		if ( ! check_rx_slot_msg_waiting( *out ) )
+		{
+			// No messages to receive, yield to next async
+			//printf("No messages to recv, yield and save into id:%llu\n", id);
+			THCYieldAndSave(id);
+			continue; 
+		}
+
+		break;
+	}
+
+	received_cookie = thc_get_msg_id(*out);
+	if (received_cookie == id) {
+		//printf("Message is ours id:%llu\n", (*out)->regs[0]);
+		inc_rx_slot( channel ); 
+		return 0;
+	}
+	
+	//printf("Message is not ours yielding to id:%llu\n", (*out)->regs[0]);
+	ret = THCYieldToIdAndSave(received_cookie, id);
+	 
+	//ret = THCYieldToId((*out)->regs[0]);
+	if (ret) {
+		printf("ALERT: wrong id\n");
+		return ret;
+	}
+
+	// We came back here but maybe we're the last AWE and 
+        // we're re-started by do finish
+	goto retry; 
+	return 0;
+}
+
 
 int foo(header_t *chan)
 {
@@ -920,20 +1083,24 @@ int foo(header_t *chan)
 
 	async_msg_set_fn_type(req, FOO);
 
-//	printf("send\n");
 	ret = thc_ipc_send_request(chan, req, &request_cookie);
 
+//	printf("%s, sending reqcookie %d\n", __func__, request_cookie);
 	if (ret)
 		printf("%s:%d send error\n", __func__, __LINE__);
 
-//	printf("send done \n");
 
-	ret = thc_ipc_recv_response(chan, request_cookie, &resp); 
+//	ret = thc_ipc_recv_response(chan, request_cookie, &resp); 
+	ret = thc_ipc_recv_response_new(chan, &resp, request_cookie);
+
+	awe_mapper_remove_id(request_cookie);
 
 	if (ret)
 		printf("%s:%d send error\n", __func__, __LINE__);
 
 	fipc_recv_msg_end( chan, resp );
+
+//	printf("%s, got response for request_cookie %d\n", __func__, request_cookie);
 
 	return ret;
 }
@@ -941,27 +1108,28 @@ int foo(header_t *chan)
 int foo_blocking(header_t *chan)
 {
 	message_t *req, *resp;
-	unsigned int request_cookie;
-	int ret;
 
 	fipc_send_msg_start(chan, &req);
 
+	/* for dispatching the request at the responder */
 	async_msg_set_fn_type(req, FOO_BLOCKING);
     	thc_set_msg_type(req, msg_type_request);
 
 	fipc_send_msg_end ( chan, req );
 
-//	printf("%s, send\n", __func__);
 	fipc_test_blocking_recv_start(chan, &resp);
 
 	fipc_recv_msg_end(chan, resp); 
 
-//	printf("%s, recv\n", __func__);
-	return ret;
+	return 0;
 }
+
+/*
+ * to signal that the sender is done so that the receiver can exit the dispatch loop
+ */
 void done(header_t *chan)
 {
-	message_t *req, *resp;
+	message_t *req;
 	unsigned int request_cookie;
 	int ret;
 
@@ -969,30 +1137,72 @@ void done(header_t *chan)
 
 	async_msg_set_fn_type(req, DONE);
 
-	printf("sending done \n");
 	ret = thc_ipc_send_request(chan, req, &request_cookie);
 
 	if (ret)
 		printf("%s:%d send error\n", __func__, __LINE__);
+	awe_mapper_remove_id(request_cookie);
+//	printf("%s:%d sending done\n", __func__, __LINE__);
 }
 
-int request_dispatch(header_t *chan)
+int request_dispatch_blocking(header_t *chan)
 {
 	int i;
 	whole_start = RDTSC_START();
 
-//	for (i = 0; i < transactions * 10; i++) {
-	for (i = 0; i < transactions * 10; i++) {
+	for (i = 0; i < transactions; i++) {
 		foo_blocking(chan);
 	}
 
 	whole_end = RDTSCP();
 
+ 	printf("%llu\n",  
+			(unsigned long long) (whole_end - whole_start) / transactions);
+	done(chan);
+	return 0;
+}
+
+int request_dispatch_async_send(header_t *chan)
+{
+	int i;
+	whole_start = RDTSC_START();
+
+
+	for (i = 0; i < transactions; i++) {
+	//	printf("%s:%d sending %d\n", __func__, __LINE__, i);
+		DO_FINISH(
+			ASYNC(foo(chan));
+		);
+	}
+
+	whole_end = RDTSCP();
 
  	printf("%llu\n",  
-			(unsigned long long) (whole_end - whole_start) / (transactions * 10));
-
+			(unsigned long long) (whole_end - whole_start) / transactions);
 	done(chan);
+	return 0;
+}
+
+int request_dispatch_10_async_send(header_t *chan)
+{
+	int i;
+	whole_start = RDTSC_START();
+	int t;
+
+	for (i = 0; i < transactions; i++) {
+	//	printf("%s:%d sending %d\n", __func__, __LINE__, i);
+		DO_FINISH(
+			for (t = 0; t < num_inner_asyncs; t++)
+				ASYNC(foo(chan));
+		);
+	}
+
+	whole_end = RDTSCP();
+
+ 	printf("%llu\n",  
+			(unsigned long long) (whole_end - whole_start) / transactions);
+	done(chan);
+	return 0;
 }
 
 void* requester ( void* data )
@@ -1003,7 +1213,7 @@ void* requester ( void* data )
 	correction = fipc_test_time_get_correction();
 #endif
 	thc_init();
-#if 0
+#if 1
 	printf("load100 function:");
 	check_load(chan);
 
@@ -1016,16 +1226,11 @@ void* requester ( void* data )
 	no_async_10_req(chan);
 	printf("do_finish (10 msgs), load 100:");
 	no_async_10_req(chan);
-#endif
+
 	printf("do{async{}}finish(), 10 msgs:");
 	async_10_req(chan);
-
-	printf("using dispatch loop on the responder:");
-	request_dispatch(chan);
-#if 0
 	printf("do{async{}}finish(), 10 msgs, load 100:");
 	async_10_req(chan);
-
 
 	printf("do{async{send and yield}}finish(), 10 msgs:"); 
 	async_10_req_blk(chan);
@@ -1038,10 +1243,19 @@ void* requester ( void* data )
 
 	printf("do{async{send_blk}}finish(), 10 msgs, srv async dispatch, load 100:");
 	async_10_req_blk_srv_async_dispatch(chan);
-//	printf("fipc dispatch loop:");
-
-	
 #endif
+	printf("blocking sender, dispatch loop on the responder:");
+	request_dispatch_blocking(chan);
+
+	printf("async send, dispatch loop on the responder:");
+	request_dispatch_async_send(chan);
+
+	printf("do{async{}}finish(): 10 msgs: dispatch loop on the responder:");
+	request_dispatch_10_async_send(chan);
+
+	printf("private_channel: recv dispatch loop on the channel group:");
+	request_dispatch_10_async_send(requester_header_xmit);
+
 	thc_done();
 
 #if defined(FINE_GRAINED)		
@@ -1058,7 +1272,7 @@ void* responder ( void* data )
 	
 	thc_init();
 
-#if 0
+#if 1
 	// Wait to begin test
 	pthread_mutex_lock( &responder_mutex );
 
@@ -1071,13 +1285,9 @@ void* responder ( void* data )
 	async_10_rsp(chan);
 	// do_finish (10 msgs), load 100
 	async_10_rsp_blk_load100(chan); 
-
-#endif
         // do{async{}}finish(), 10 msgs	
 	async_10_rsp(chan); 
 
-	respond_dispatch_2(chan);
-#if 0
 	// do{async{}}finish(), 10 msgs, load 100
 	async_10_rsp_blk_load100(chan);
 
@@ -1091,7 +1301,19 @@ void* responder ( void* data )
 	// do{async{send_blk}}finish(), 10 msgs, srv async dispatch, load 100
 	async_10_rsp_blk_srv_async_dispatch_load100(chan);
 	// End test
-#endif
+#endif	
+	// blocking send, dispatch loop at receiver
+	respond_dispatch(chan);
+
+	// async send, dispatch loop at receiver
+	respond_dispatch(chan);
+
+	// 10 async send, dispatch loop at receiver
+	respond_dispatch(chan);
+
+	// 2 channels
+	respond_dispatch_two_channels(chan, responder_header_xmit);
+
 	pthread_mutex_unlock( &responder_mutex );
 	thc_done();
 	pthread_exit( 0 );
@@ -1113,8 +1335,14 @@ int main ( void )
 
 	fipc_init();
 	fipc_test_create_channel( CHANNEL_ORDER, &requester_header, &responder_header );
+	fipc_test_create_channel( CHANNEL_ORDER, &requester_header_xmit, &responder_header_xmit );
 
 	if ( requester_header == NULL || responder_header == NULL )
+	{
+		fprintf( stderr, "%s\n", "Error while creating channel" );
+		return -1;
+	}
+	if ( requester_header_xmit == NULL || responder_header_xmit == NULL )
 	{
 		fprintf( stderr, "%s\n", "Error while creating channel" );
 		return -1;
