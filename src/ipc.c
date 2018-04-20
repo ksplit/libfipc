@@ -80,19 +80,23 @@ uint64_t tx_msg_to_idx ( header_t *rc, message_t *msg )
 static inline
 int check_rx_slot_msg_waiting ( message_t *slot )
 {
-	return slot->msg_status == FIPC_MSG_STATUS_SENT;
+#if defined(FORCE_WRITE)
+	//slot->msg_status |= FIPC_MSG_STATUS_FORCE_WRITE;
+	slot->regs[FIPC_NR_REGS - 1 ] = 1;
+#endif
+	return slot->msg_status & FIPC_MSG_STATUS_SENT;
 }
 
 static inline
 int check_rx_slot_msg_dummy ( message_t *slot )
 {
-	return slot->msg_status == FIPC_MSG_STATUS_DUMMY;
+	return slot->msg_status & FIPC_MSG_STATUS_DUMMY;
 }
 
 static inline
 int check_tx_slots_available ( message_t *slot )
 {
-	return slot->msg_status == FIPC_MSG_STATUS_AVAILABLE;
+	return slot->msg_status & FIPC_MSG_STATUS_AVAILABLE;
 }
 
 static inline
@@ -138,7 +142,7 @@ void inc_rx_slot ( header_t* rc )
 static inline
 int check_tx_slot_available ( message_t *slot )
 {
-	return slot->msg_status == FIPC_MSG_STATUS_AVAILABLE;
+	return slot->msg_status & FIPC_MSG_STATUS_AVAILABLE;
 }
 
 int

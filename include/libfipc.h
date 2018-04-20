@@ -165,9 +165,10 @@
 #endif
 
  // Message Statuses
-#define FIPC_MSG_STATUS_AVAILABLE 0xdeadU
-#define FIPC_MSG_STATUS_DUMMY     0xfadeU
-#define FIPC_MSG_STATUS_SENT      0xfeedU
+#define FIPC_MSG_STATUS_AVAILABLE     0x1U
+#define FIPC_MSG_STATUS_DUMMY         0x2U
+#define FIPC_MSG_STATUS_SENT          0x4U
+#define FIPC_MSG_STATUS_FORCE_WRITE   0x8U
 
 
 /* MAIN INTERFACE -------------------------------------------------- */
