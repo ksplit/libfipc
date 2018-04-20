@@ -1,6 +1,6 @@
 CC:=gcc
 CFLAGS:=-Wall -D_GNU_SOURCE -pthread -lm -O2
-
+#CFLAGS+=-DFINE_GRAINED
 #CFLAGS+=-DFORCE_WRITE
 
 
