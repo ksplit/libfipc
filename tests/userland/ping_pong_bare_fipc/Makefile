@@ -1,7 +1,7 @@
 CC:=gcc
 CFLAGS:=-Wall -D_GNU_SOURCE -pthread -lm -O2
 
-CFLAGS+=-DFORCE_WRITE
+#CFLAGS+=-DFORCE_WRITE
 
 
 INCLUDE_DIRS:=-I../../../include -I../../../include/userland
