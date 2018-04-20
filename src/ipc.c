@@ -82,7 +82,7 @@ int check_rx_slot_msg_waiting ( message_t *slot )
 {
 #if defined(FORCE_WRITE)
 	//slot->msg_status |= FIPC_MSG_STATUS_FORCE_WRITE;
-	slot->regs[FIPC_NR_REGS - 1 ] = 1;
+	slot->regs[0] = 1;
 #endif
 	return slot->msg_status & FIPC_MSG_STATUS_SENT;
 }
