@@ -15,6 +15,11 @@
  */
 #define FIPC_CACHE_LINE_SIZE 64
 
+// Type modifier that aligns the variable to the cache line
+#ifndef CACHE_ALIGNED
+	#define CACHE_ALIGNED __attribute__((aligned(FIPC_CACHE_LINE_SIZE)))
+#endif
+
 /**
  * struct fipc_message
  *
@@ -42,7 +47,7 @@ struct fipc_message {
 	 * Not touched by libfipc.
 	 */
 	unsigned long regs[FIPC_NR_REGS];
-};
+} CACHE_ALIGNED ;
 
 /**
  * struct fipc_ring_buf
@@ -87,7 +92,7 @@ struct fipc_ring_buf {
 	 * Pad the struct up to a cacheline
 	 */
 	uint8_t padding[FIPC_RING_BUF_PADDING];
-};
+} CACHE_ALIGNED;
 
 /**
  * struct fipc_ring_channel
@@ -109,6 +114,6 @@ struct fipc_ring_channel {
 	 * Pointer to our receiving ring buffer.
 	 */
 	struct fipc_ring_buf rx;
-};
+} CACHE_ALIGNED;
 
 #endif /* LIBFIPC_TYPES_H */

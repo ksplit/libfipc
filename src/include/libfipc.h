@@ -325,6 +325,12 @@ int fipc_recv_msg_if_0(struct fipc_ring_channel *chnl,
 		int (*pred)(struct fipc_message *, void *),
 		void *data,
 		struct fipc_message **msg);
+
+int fipc_nonblocking_recv_start_if(struct fipc_ring_channel *chnl,
+				struct fipc_message **msg);
+
+int fipc_recv_msg_poll(struct fipc_ring_channel *chnl,
+		struct fipc_message **msg, uint32_t *received_cookie);
 /**
  * fipc_recv_msg_end -- Mark a message as received, so sender can re-use slot
  * @chnl: the ring channel containing @msg in rx

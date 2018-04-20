@@ -168,7 +168,7 @@ fipc_ring_channel_init(struct fipc_ring_channel *chnl,
 }
 EXPORT_SYMBOL(fipc_ring_channel_init);
 
-int 
+inline int
 LIBFIPC_FUNC_ATTR
 fipc_send_msg_start(struct fipc_ring_channel *chnl,
 		struct fipc_message **msg)
@@ -180,7 +180,6 @@ fipc_send_msg_start(struct fipc_ring_channel *chnl,
 		*msg = get_current_tx_slot(chnl);
 		inc_tx_slot(chnl);
 		ret = 0;
-
 	}
 
 #if FIPC_DEBUG_LVL >= FIPC_DEBUG_VERB
@@ -197,7 +196,7 @@ fipc_send_msg_start(struct fipc_ring_channel *chnl,
 }
 EXPORT_SYMBOL(fipc_send_msg_start);
 
-int 
+inline int
 LIBFIPC_FUNC_ATTR
 fipc_send_msg_end(struct fipc_ring_channel *chnl, 
 		struct fipc_message *msg)
@@ -215,7 +214,7 @@ fipc_send_msg_end(struct fipc_ring_channel *chnl,
 }
 EXPORT_SYMBOL(fipc_send_msg_end);
 
-static int recv_msg_peek(struct fipc_ring_channel *chnl,
+static inline int recv_msg_peek(struct fipc_ring_channel *chnl,
 			struct fipc_message **msg)
 {
 	int ret = -EWOULDBLOCK;
@@ -230,7 +229,7 @@ static int recv_msg_peek(struct fipc_ring_channel *chnl,
 	return ret;
 }
 
-int 
+inline int
 LIBFIPC_FUNC_ATTR
 fipc_recv_msg_start(struct fipc_ring_channel *chnl,
 		struct fipc_message **msg)
@@ -258,6 +257,94 @@ fipc_recv_msg_start(struct fipc_ring_channel *chnl,
 	return ret;
 }
 EXPORT_SYMBOL(fipc_recv_msg_start);
+
+typedef enum {
+    msg_type_unspecified,
+    msg_type_request,
+    msg_type_response,
+} msg_type_t;
+
+
+/* Message type is in low 2 bits of flags */
+static inline uint32_t thc_get_msg_type(struct fipc_message *msg)
+{
+	return fipc_get_flags(msg) & 0x3;
+}
+
+#define AWE_TABLE_ORDER 10
+static inline uint32_t thc_get_msg_id(struct fipc_message *msg)
+{
+	/* shift off type bits, and mask off msg id */
+	return (fipc_get_flags(msg) >> 2) & ((1 << AWE_TABLE_ORDER) - 1);
+}
+
+inline
+int fipc_nonblocking_recv_start_if(struct fipc_ring_channel *channel,
+				struct fipc_message** out)
+{
+retry:
+	while ( 1 )
+	{
+		// Poll until we get a message or error
+		*out = get_current_rx_slot( channel);
+
+		if (!check_rx_slot_msg_waiting(*out)) {
+			// message not for us
+			return 2;
+		}
+		break;
+	}
+
+	if( likely(thc_get_msg_type(*out) == (uint32_t)msg_type_request ))
+	{
+		inc_rx_slot (channel);
+		return 0;
+	}
+	else
+	{
+#if FIPC_DEBUG_LVL >= FIPC_DEBUG_VERB
+		fipc_debug("%s:%d msg not for us!\n", __func__, __LINE__);
+#endif
+		return 1; //message not for this awe
+	}
+	goto retry;
+	return 0;
+}
+EXPORT_SYMBOL(fipc_nonblocking_recv_start_if);
+
+int
+LIBFIPC_FUNC_ATTR
+fipc_recv_msg_poll(struct fipc_ring_channel *chnl,
+		struct fipc_message **msg, uint32_t *received_cookie)
+{
+	int ret;
+	struct fipc_message *m;
+
+	ret = recv_msg_peek(chnl, &m);
+	if (!ret) {
+		/* Message waiting to be received; query predicate */
+		if (thc_get_msg_type(m) == (uint32_t) msg_type_request) {
+			/* Caller wants the message */
+			*msg = m;
+			inc_rx_slot(chnl);
+			ret = 0;
+		} else {
+			*received_cookie = thc_get_msg_id(m);
+			ret = -ENOMSG;
+		}
+	}
+
+#if FIPC_DEBUG_LVL >= FIPC_DEBUG_VERB
+	if (!ret)
+		fipc_debug("Received a message at index %lu in rx\n",
+			rx_msg_to_idx(chnl, *msg));
+	else
+		fipc_debug("No messages to receive right now, or caller doesn't want it\n");
+#endif
+
+	return ret;
+}
+EXPORT_SYMBOL(fipc_recv_msg_poll);
 
 int 
 LIBFIPC_FUNC_ATTR
@@ -296,7 +383,7 @@ fipc_recv_msg_if(struct fipc_ring_channel *chnl,
 }
 EXPORT_SYMBOL(fipc_recv_msg_if);
 
-int 
+inline int
 LIBFIPC_FUNC_ATTR
 fipc_recv_msg_end(struct fipc_ring_channel *chnl,
 		struct fipc_message *msg)
