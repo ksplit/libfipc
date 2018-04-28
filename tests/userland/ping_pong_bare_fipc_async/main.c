@@ -1325,7 +1325,7 @@ static unsigned long long no_msg_count=0;
 static unsigned long long not_ours_msg_count=0;
 static unsigned long long spin_count=0;
 
-static inline  
+static  
 int thc_ipc_recv_response_new ( header_t* channel, message_t** out, uint64_t id )
 {
 	int ret;
