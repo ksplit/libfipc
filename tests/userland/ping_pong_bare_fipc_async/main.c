@@ -11,8 +11,9 @@
 #include "test.h"
 
 //#define FINE_GRAINED
-static uint64_t transactions   = 1000000;
+static uint64_t transactions   = 10000000;
 static uint32_t num_inner_asyncs = 2;
+static unsigned long long load_length = 19; 
 
 #define REQUESTER_CPU	1
 #define RESPONDER_CPU	2
@@ -190,11 +191,11 @@ void respond_ack ( header_t* chan )
 	fipc_send_msg_end( chan, resp );
 }
 
-static inline unsigned long long load(){
+static inline unsigned long long load(unsigned long long length){
 	unsigned long long sum = 0;
 	int i;
 
-	for(i = 0; i < 33; i++)
+	for(i = 0; i < length; i++)
 		sum += i;
 
 	return sum; 
@@ -212,7 +213,7 @@ void respond_ack_load100 ( header_t* chan )
 	id = req->regs[0];
 	fipc_recv_msg_end( chan, req );
 
-	sum = load();
+	sum = load(33);
 
 	fipc_test_blocking_send_start( chan, &resp );
 	resp->regs[0] = id; 
@@ -343,7 +344,7 @@ void check_load(header_t *chan) {
 #if defined(FINE_GRAINED)		
 		start = RDTSC_START();
 #endif
-		sum = load();
+		sum = load(33);
 
 #if defined(FINE_GRAINED)		
 		end = RDTSCP();
@@ -789,7 +790,7 @@ int foo_callee_with_load(message_t *req, header_t *chan)
 
 	fipc_recv_msg_end(chan, req);
 
-	sum = load();
+	sum = load(33);
 
 	// response
 	fipc_send_msg_start(chan, &resp);
@@ -1320,9 +1321,11 @@ yield:
 	goto retry;
 }
 
-static uint64_t no_msg_count=0;
+static unsigned long long no_msg_count=0;
+static unsigned long long not_ours_msg_count=0;
+static unsigned long long spin_count=0;
 
-static inline
+static inline  
 int thc_ipc_recv_response_new ( header_t* channel, message_t** out, uint64_t id )
 {
 	int ret;
@@ -1336,14 +1339,15 @@ retry:
 
 		if ( ! check_rx_slot_msg_waiting( *out ) )
 		{
-#if 0
+#if 1
 			if (pts->reached_dofin) {
 				fipc_test_pause();
+				spin_count ++;
 				continue;
 			}
 #endif
 
-//			no_msg_count++;
+			no_msg_count++;
 			// No messages to receive, yield to next async
 			//printf("No messages to recv, yield and save into id:%llu\n", id);
 			THCYieldAndSave(id);
@@ -1359,7 +1363,9 @@ retry:
 		inc_rx_slot( channel ); 
 		return 0;
 	}
-	
+ 
+	not_ours_msg_count++;
+
 	//printf("Message is not ours yielding to id:%llu\n", (*out)->regs[0]);
 	ret = THCYieldToIdAndSave(received_cookie, id);
 	 
@@ -1487,6 +1493,7 @@ int foo(header_t *chan)
 {
 	message_t *req, *resp;
 	unsigned int request_cookie;
+	unsigned long long sum; 
 	int ret;
 
 	fipc_send_msg_start(chan, &req);
@@ -1500,6 +1507,7 @@ int foo(header_t *chan)
 		printf("%s:%d send error\n", __func__, __LINE__);
 
 
+	sum = load(load_length); 
 //	ret = thc_ipc_recv_response(chan, request_cookie, &resp); 
 	ret = thc_ipc_recv_response_new(chan, &resp, request_cookie);
 
@@ -1512,7 +1520,7 @@ int foo(header_t *chan)
 
 //	printf("%s, got response for request_cookie %d\n", __func__, request_cookie);
 
-	return ret;
+	return (int) sum;
 }
 
 int foo_load(header_t *chan)
@@ -1750,7 +1758,8 @@ int request_dispatch_async_send(header_t *chan)
  	printf("%llu\n",  
 			(unsigned long long) (whole_end - whole_start) / transactions);
 #ifdef MSG_COUNT
-	printf("no msg count %llu\n", no_msg_count);
+	printf("no msg count %llu, not ours msg count:%llu, spin count:%llu\n", 
+			no_msg_count, not_ours_msg_count, spin_count);
 #endif
 	done(chan);
 	return 0;
@@ -1839,12 +1848,15 @@ void respond_blocking(header_t *chan) {
 void* requester ( void* data )
 {
 	header_t* chan = (header_t*) data;
+	int i; 
 	//int regs;
 #if defined(FINE_GRAINED)		
 	times = malloc( transactions * sizeof( int64_t ) );
 	correction = fipc_test_time_get_correction();
 #endif
 	thc_init();
+
+#if 0	
 	printf("load100 function:");
 	check_load(chan);
 
@@ -1897,9 +1909,16 @@ void* requester ( void* data )
 		request_dispatch_blocking_marshal_regs(chan, regs);
 	}
 */
-	printf("async send, dispatch loop on the responder:");
-	request_dispatch_async_send(chan);
+#endif
 
+	printf("async send, dispatch loop on the responder:");
+	for (i = 0; i < 100; i++) {
+		load_length = i; 
+		request_dispatch_async_send(chan);
+
+	}
+
+#if 0
 	printf("do{async{}}finish(): 10 msgs: dispatch loop on the responder:");
 	request_dispatch_10_async_send(chan);
 
@@ -1928,7 +1947,7 @@ void* requester ( void* data )
 
 	//printf("private_channel: send 10 asyncs: recv dispatch loop on the channel group:");
 	//request_dispatch_10_async_send(requester_header_xmit);
-
+#endif
 	thc_done();
 
 #if defined(FINE_GRAINED)		
@@ -1942,11 +1961,13 @@ void* requester ( void* data )
 void* responder ( void* data )
 {
 	header_t* chan = (header_t*) data;
+	int i; 
 	//int regs;	
 	thc_init();
 
 	// Wait to begin test
 	pthread_mutex_lock( &responder_mutex );
+#if 0
 
 	// ping-pong 1 msg
 	ping_pong_rsp(chan);
@@ -1990,9 +2011,14 @@ void* responder ( void* data )
 		respond_dispatch(chan);
 	}
 */
+#endif
 	// async send, dispatch loop at receiver
-	respond_dispatch(chan);
-
+	for (i = 0; i < 100; i++) {
+		load_length = i;
+		printf("load length:%llu\n", load_length); 
+	  	respond_dispatch(chan);
+	}
+#if 0
 	// 10 async send, dispatch loop at receiver
 	respond_dispatch(chan);
 
@@ -2013,6 +2039,7 @@ void* responder ( void* data )
 	respond_dispatch_two_channels(chan, rx_chnl2, rx_chnl3);
 
 	//respond_dispatch_two_channels(chan, responder_header_xmit);
+#endif
 
 	pthread_mutex_unlock( &responder_mutex );
 
