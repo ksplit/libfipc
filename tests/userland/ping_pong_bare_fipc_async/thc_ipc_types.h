@@ -32,6 +32,7 @@ enum {
 struct thc_channel_group_item
 {
     struct list_head list;
+    int xmit_channel;
     header_t *channel;
     int (*dispatch_fn)(struct thc_channel_group_item*, message_t *);
 };

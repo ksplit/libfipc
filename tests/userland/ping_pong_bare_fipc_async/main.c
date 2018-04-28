@@ -12,23 +12,36 @@
 
 //#define FINE_GRAINED
 static uint64_t transactions   = 1000000;
-static uint32_t num_inner_asyncs = 10; 
+static uint32_t num_inner_asyncs = 2;
 
 #define REQUESTER_CPU	1
-#define RESPONDER_CPU	3
+#define RESPONDER_CPU	2
 #define CHANNEL_ORDER	ilog2(sizeof(message_t)) + 7
 #define QUEUE_DEPTH	1
 
 typedef enum {
 	FOO = 2,
 	FOO_BLOCKING = 3,
-	DONE = 4,
+	FOO_BLOCKING_WITH_0_REGS = 4,
+	FOO_BLOCKING_WITH_1_REGS = 5,
+	FOO_BLOCKING_WITH_2_REGS = 6,
+	FOO_BLOCKING_WITH_3_REGS = 7,
+	FOO_BLOCKING_WITH_4_REGS = 8,
+	FOO_BLOCKING_WITH_5_REGS = 9,
+	FOO_BLOCKING_WITH_6_REGS = 10,
+	DONE = 11,
+	BAR = 12,
+	FOO_WITH_LOAD = 13,
+	FOO_WITH_BAR = 14,
 } dispatch_t;
 
 static int queue_depth = 1;
 
-header_t* requester_header_xmit = NULL;
-header_t* responder_header_xmit = NULL;
+header_t* tx_chnl2 = NULL;
+header_t* rx_chnl2 = NULL;
+
+header_t* tx_chnl3 = NULL;
+header_t* rx_chnl3 = NULL;
 
 static inline
 int
@@ -51,13 +64,11 @@ async_msg_set_fn_type(struct fipc_message *msg, int type)
 	fipc_set_flags(msg, flags);
 }
 
-
-
 #if defined(FINE_GRAINED)
-register uint64_t CACHE_ALIGNED start;
-register uint64_t CACHE_ALIGNED end;
-register int64_t* CACHE_ALIGNED times;
-register uint64_t CACHE_ALIGNED correction;
+uint64_t CACHE_ALIGNED start;
+uint64_t CACHE_ALIGNED end;
+int64_t* CACHE_ALIGNED times;
+uint64_t CACHE_ALIGNED correction;
 #endif
 uint64_t CACHE_ALIGNED whole_start;
 uint64_t CACHE_ALIGNED whole_end;
@@ -140,7 +151,7 @@ retry:
 
 	// We came back here but maybe we're the last AWE and 
         // we're re-started by do finish
-	goto retry; 
+	goto retry;
 	return 0;
 }
 
@@ -183,7 +194,7 @@ static inline unsigned long long load(){
 	unsigned long long sum = 0;
 	int i;
 
-	for(i = 0; i < 100; i++)
+	for(i = 0; i < 33; i++)
 		sum += i;
 
 	return sum; 
@@ -555,7 +566,6 @@ static int poll_recv_predicate(message_t* msg, void* data)
     if( likely(thc_get_msg_type(msg) == (uint32_t)msg_type_request ))
     {   
         payload_ptr->msg_type = msg_type_request;
-//	printf("%s, got request\n", __func__);
         return 1;
     }   
     else
@@ -610,6 +620,37 @@ retry:
 	return 0;
 }
 
+static inline
+int fipc_test_nonblocking_recv_start_if(header_t* channel, message_t** out)
+{
+	while ( 1 )
+	{
+		// Poll until we get a message or error
+		*out = get_current_rx_slot(channel);
+
+		if ( ! check_rx_slot_msg_waiting(*out))
+		{
+			return 2;
+		}
+
+		break;
+	}
+
+	if( likely(thc_get_msg_type(*out) == (uint32_t)msg_type_request ))
+	{
+		inc_rx_slot (channel);
+		return 0;
+	}
+	else
+	{
+		printf("%s:%d msg not for us!\n", __func__, __LINE__);
+		return 1; //message not for this awe
+	}
+
+	return 0;
+}
+
+
 int thc_ipc_poll_recv(header_t *rx_chan, message_t **out_msg)
 {
 	struct predicate_payload payload;
@@ -618,7 +659,6 @@ int thc_ipc_poll_recv(header_t *rx_chan, message_t **out_msg)
 	while (1) {
 		ret = fipc_recv_msg_if(rx_chan, poll_recv_predicate, &payload, out_msg);
 		if (likely(!ret)) {
-//		printf("%s, got %d\n", __func__, ret);
 			return 0;
 		} else if (ret == -ENOMSG) {
 			THCYieldToId((uint32_t)payload.actual_msg_id);
@@ -638,7 +678,36 @@ thc_channel_group_item_channel(struct thc_channel_group_item *item)
 }
 
 
-int 
+int
+thc_poll_recv_group_2(struct thc_channel_group* chan_group,
+		struct thc_channel_group_item** chan_group_item,
+		message_t** out_msg)
+{
+    struct thc_channel_group_item *curr_item;
+    message_t* recv_msg;
+    int ret;
+
+    list_for_each_entry(curr_item, &(chan_group->head), list)
+    {
+	if (curr_item->xmit_channel)
+		ret = fipc_test_nonblocking_recv_start_if(thc_channel_group_item_channel(curr_item), &recv_msg);
+	else
+		ret = thc_ipc_poll_recv(thc_channel_group_item_channel(curr_item), &recv_msg);
+
+        if( !ret )
+        {
+            *chan_group_item = curr_item;
+            *out_msg         = recv_msg;
+
+            return 0;
+        }
+    }
+
+    return -EWOULDBLOCK;
+}
+
+
+int
 thc_poll_recv_group(struct thc_channel_group* chan_group, 
 		struct thc_channel_group_item** chan_group_item, 
 		message_t** out_msg)
@@ -663,20 +732,72 @@ thc_poll_recv_group(struct thc_channel_group* chan_group,
     return -EWOULDBLOCK;
 }
 
-int foo_callee(message_t *req, header_t *chan)
+int foo_callee_bar_send(message_t *req, header_t *chan)
 {
 	unsigned int request_cookie;
 	message_t *resp;
-
+	message_t *req1;
 	request_cookie = thc_get_request_cookie(req);
 
 	fipc_recv_msg_end(chan, req);
+//	printf("%s:%d got msg\n", __func__, __LINE__);
+	//XXX: call actual function
 
+	// The actual function calls back to the other domain
+	fipc_send_msg_start(chan, &req1);
+	async_msg_set_fn_type(req1, BAR);
+	thc_set_msg_type(req1, msg_type_request);
+	fipc_send_msg_end(chan, req1);
+
+//	printf("%s:%d sent BAR msg\n", __func__, __LINE__);
+
+	// Post the actual response
 	fipc_send_msg_start(chan, &resp);
 
 	thc_set_msg_type(resp, msg_type_response);
 	thc_set_msg_id(resp, request_cookie);
 
+	fipc_send_msg_end(chan, resp);
+//	printf("%s:%d sent actual response\n", __func__, __LINE__);
+	return 0;
+}
+
+int foo_callee(message_t *req, header_t *chan)
+{
+	unsigned int request_cookie;
+	message_t *resp;
+	request_cookie = thc_get_request_cookie(req);
+
+	fipc_recv_msg_end(chan, req);
+
+	// response
+	fipc_send_msg_start(chan, &resp);
+
+	thc_set_msg_type(resp, msg_type_response);
+	thc_set_msg_id(resp, request_cookie);
+	fipc_send_msg_end(chan, resp);
+	return 0;
+}
+
+int foo_callee_with_load(message_t *req, header_t *chan)
+{
+	unsigned int request_cookie;
+	message_t *resp;
+	int sum;
+
+	request_cookie = thc_get_request_cookie(req);
+
+	fipc_recv_msg_end(chan, req);
+
+	sum = load();
+
+	// response
+	fipc_send_msg_start(chan, &resp);
+
+	thc_set_msg_type(resp, msg_type_response);
+	thc_set_msg_id(resp, request_cookie);
+
+	fipc_set_reg0(resp, sum);
 	fipc_send_msg_end(chan, resp);
 	return 0;
 }
@@ -692,16 +813,152 @@ int foo_blocking_callee(message_t *req, header_t *chan)
 	return 0;
 }
 
+int foo_blocking_callee_0_regs(message_t *req, header_t *chan)
+{
+	message_t *resp;
+	int reg0;
+	reg0 = fipc_get_reg0(req);
+	fipc_recv_msg_end(chan, req);
+
+	fipc_test_blocking_send_start( chan, &resp );
+	fipc_set_reg0(resp, reg0);
+	fipc_send_msg_end(chan, resp);
+	return 0;
+}
+
+int foo_blocking_callee_1_regs(message_t *req, header_t *chan)
+{
+	message_t *resp;
+	int reg0, reg1;
+
+	reg0 = fipc_get_reg0(req);
+	reg1 = fipc_get_reg1(req);
+
+	fipc_recv_msg_end(chan, req);
+
+	fipc_test_blocking_send_start( chan, &resp );
+	fipc_set_reg0(resp, reg0 | reg1);
+	fipc_send_msg_end(chan, resp);
+	return 0;
+}
+
+int foo_blocking_callee_2_regs(message_t *req, header_t *chan)
+{
+	message_t *resp;
+	int reg0, reg1, reg2;
+
+	reg0 = fipc_get_reg0(req);
+	reg1 = fipc_get_reg1(req);
+	reg2 = fipc_get_reg2(req);
+
+	fipc_recv_msg_end(chan, req);
+
+	fipc_test_blocking_send_start( chan, &resp );
+	fipc_set_reg0(resp, reg0 | reg1 | reg2);
+	fipc_send_msg_end(chan, resp);
+	return 0;
+}
+
+int foo_blocking_callee_3_regs(message_t *req, header_t *chan)
+{
+	message_t *resp;
+	int reg0, reg1, reg2, reg3;
+
+	reg0 = fipc_get_reg0(req);
+	reg1 = fipc_get_reg1(req);
+	reg2 = fipc_get_reg2(req);
+	reg3 = fipc_get_reg3(req);
+
+	fipc_recv_msg_end(chan, req);
+
+	fipc_test_blocking_send_start( chan, &resp );
+	fipc_set_reg0(resp, reg0 | reg1 | reg2 | reg3);
+	fipc_send_msg_end(chan, resp);
+	return 0;
+}
+
+int foo_blocking_callee_4_regs(message_t *req, header_t *chan)
+{
+	message_t *resp;
+	int reg0, reg1, reg2, reg3, reg4;
+
+	reg0 = fipc_get_reg0(req);
+	reg1 = fipc_get_reg1(req);
+	reg2 = fipc_get_reg2(req);
+	reg3 = fipc_get_reg3(req);
+	reg4 = fipc_get_reg4(req);
+
+	fipc_recv_msg_end(chan, req);
+
+	fipc_test_blocking_send_start( chan, &resp );
+	fipc_set_reg0(resp, reg0 | reg1 | reg2 | reg3 | reg4);
+	fipc_send_msg_end(chan, resp);
+	return 0;
+}
+
+int foo_blocking_callee_5_regs(message_t *req, header_t *chan)
+{
+	message_t *resp;
+	int reg0, reg1, reg2, reg3, reg4, reg5;
+
+	reg0 = fipc_get_reg0(req);
+	reg1 = fipc_get_reg1(req);
+	reg2 = fipc_get_reg2(req);
+	reg3 = fipc_get_reg3(req);
+	reg4 = fipc_get_reg4(req);
+	reg5 = fipc_get_reg5(req);
+
+	fipc_recv_msg_end(chan, req);
+
+	fipc_test_blocking_send_start( chan, &resp );
+	fipc_set_reg0(resp, reg0 | reg1 | reg2 | reg3 | reg4 | reg5);
+	fipc_send_msg_end(chan, resp);
+	return 0;
+}
+
+int foo_blocking_callee_6_regs(message_t *req, header_t *chan)
+{
+	message_t *resp;
+	int reg0, reg1, reg2, reg3, reg4, reg5, reg6;
+
+	reg0 = fipc_get_reg0(req);
+	reg1 = fipc_get_reg1(req);
+	reg2 = fipc_get_reg2(req);
+	reg3 = fipc_get_reg3(req);
+	reg4 = fipc_get_reg4(req);
+	reg5 = fipc_get_reg5(req);
+	reg6 = fipc_get_reg6(req);
+
+	fipc_recv_msg_end(chan, req);
+
+	fipc_test_blocking_send_start( chan, &resp );
+	fipc_set_reg0(resp, reg0 | reg1 | reg2 | reg3 | reg4 | reg5 | reg6);
+	fipc_send_msg_end(chan, resp);
+	return 0;
+}
+
 int respond_dispatch_async_loop(header_t *chan, message_t *msg)
 {
 	int fn_type = async_msg_get_fn_type(msg);
 	switch (fn_type) {
 	case FOO:
-//		printf("%s, dispatching foo %d\n", __func__, iter);
 		return foo_callee(msg, chan);
 	case FOO_BLOCKING:
-//		printf("%s, dispatching foo_blocking\n", __func__);
 		return foo_blocking_callee(msg, chan);
+	case FOO_BLOCKING_WITH_0_REGS:
+		return foo_blocking_callee_0_regs(msg, chan);
+	case FOO_BLOCKING_WITH_1_REGS:
+		return foo_blocking_callee_1_regs(msg, chan);
+	case FOO_BLOCKING_WITH_2_REGS:
+		return foo_blocking_callee_2_regs(msg, chan);
+	case FOO_BLOCKING_WITH_3_REGS:
+		return foo_blocking_callee_3_regs(msg, chan);
+	case FOO_BLOCKING_WITH_4_REGS:
+		return foo_blocking_callee_4_regs(msg, chan);
+	case FOO_BLOCKING_WITH_5_REGS:
+		return foo_blocking_callee_5_regs(msg, chan);
+	case FOO_BLOCKING_WITH_6_REGS:
+		return foo_blocking_callee_6_regs(msg, chan);
 	case DONE:
 		fipc_recv_msg_end(chan, msg);
 		return DONE;
@@ -742,32 +999,37 @@ int __respond_dispatch(header_t *chan)
 
 struct thc_channel_group ch_grp;
 
-int respond_dispatch_two_channels(header_t *chan1, header_t *chan2)
+int respond_dispatch_two_channels(header_t *chan1, header_t *chan2, header_t *chan3)
 {
 	message_t *msg;
 	int stop = 0;
 	int ret;
 
-	struct thc_channel_group_item *xmit_ch_item;
 	struct thc_channel_group_item *item_ch1;
+	struct thc_channel_group_item *item_ch2;
+	struct thc_channel_group_item *item_ch3;
 
 	thc_channel_group_init(&ch_grp);
 
-	xmit_ch_item = malloc(sizeof(*xmit_ch_item));
 	item_ch1 = malloc(sizeof(*item_ch1));
+	item_ch2 = malloc(sizeof(*item_ch2));
+	item_ch3 = malloc(sizeof(*item_ch3));
 
-	thc_channel_group_item_init(xmit_ch_item, chan1, NULL);
+	thc_channel_group_item_init(item_ch1, chan1, NULL);
+	thc_channel_group_item_init(item_ch2, chan2, NULL);
+	thc_channel_group_item_init(item_ch3, chan3, NULL);
 
-	thc_channel_group_item_init(item_ch1, chan2, NULL);
-
-	thc_channel_group_item_add(&ch_grp, xmit_ch_item);
 	thc_channel_group_item_add(&ch_grp, item_ch1);
+	thc_channel_group_item_add(&ch_grp, item_ch2);
+	thc_channel_group_item_add(&ch_grp, item_ch3);
+
+	item_ch2->xmit_channel = item_ch3->xmit_channel = 1;
 
 	DO_FINISH(
 	while (!stop) {
 		struct thc_channel_group_item* curr_item;
 
-		ret = thc_poll_recv_group(&ch_grp, &curr_item, &msg);
+		ret = thc_poll_recv_group_2(&ch_grp, &curr_item, &msg);
 
 		if (ret) {
 			if (ret == -EWOULDBLOCK) {
@@ -777,18 +1039,48 @@ int respond_dispatch_two_channels(header_t *chan1, header_t *chan2)
 				printf("%s:%d error %d\n", __func__, __LINE__, ret);
 			}
 		}
-		ASYNC(
-		ret = respond_dispatch_async_loop(
-				curr_item->channel,
-				msg);
-		if (ret) {
-			printf("%s:%d dispatch loop returned %d\n",
-					__func__, __LINE__, ret);
-			stop = 1;
+		if (async_msg_get_fn_type(msg) == FOO_BLOCKING) {
+			ret = foo_blocking_callee(
+					msg,
+					curr_item->channel);
+			if (ret) {
+				stop = 1;
+			}
+		} else if (async_msg_get_fn_type(msg) == FOO) {
+			ret = foo_callee(
+					msg,
+					curr_item->channel);
+			if (ret) {
+				stop = 1;
+			}
+		} else if (async_msg_get_fn_type(msg) == FOO_WITH_LOAD) {
+			ret = foo_callee_with_load(
+					msg,
+					curr_item->channel);
+			if (ret) {
+				stop = 1;
+			}
+		} else if (async_msg_get_fn_type(msg) == FOO_WITH_BAR) {
+			ret = foo_callee_bar_send(msg, curr_item->channel);
+
+			if (ret)
+				stop = 1;
+		} else {
+			ASYNC(
+			ret = respond_dispatch_async_loop(
+					curr_item->channel,
+					msg);
+			if (ret) {
+				stop = 1;
+			}
+			);
 		}
-		);
 	}
 	);
+	free(item_ch1);
+	free(item_ch2);
+	free(item_ch3);
+
 	return ret;
 }
 
@@ -1028,11 +1320,14 @@ yield:
 	goto retry;
 }
 
+static uint64_t no_msg_count=0;
+
 static inline
 int thc_ipc_recv_response_new ( header_t* channel, message_t** out, uint64_t id )
 {
 	int ret;
 	int received_cookie;
+	PTState_t *pts = PTS();
 retry:
 	while ( 1 )
 	{
@@ -1041,6 +1336,14 @@ retry:
 
 		if ( ! check_rx_slot_msg_waiting( *out ) )
 		{
+#if 0
+			if (pts->reached_dofin) {
+				fipc_test_pause();
+				continue;
+			}
+#endif
+
+//			no_msg_count++;
 			// No messages to receive, yield to next async
 			//printf("No messages to recv, yield and save into id:%llu\n", id);
 			THCYieldAndSave(id);
@@ -1060,7 +1363,6 @@ retry:
 	//printf("Message is not ours yielding to id:%llu\n", (*out)->regs[0]);
 	ret = THCYieldToIdAndSave(received_cookie, id);
 	 
-	//ret = THCYieldToId((*out)->regs[0]);
 	if (ret) {
 		printf("ALERT: wrong id\n");
 		return ret;
@@ -1072,6 +1374,114 @@ retry:
 	return 0;
 }
 
+#define	bar()	do { } while(0)
+
+int bar_callee(header_t *channel, message_t *out)
+{
+	fipc_recv_msg_end(channel, out);
+	/* call the real function
+	 * we do not need to send a response in order to save some time
+	 */
+	bar();
+	return 0;
+}
+
+int dispatch_request(header_t *channel, message_t *out)
+{
+	int fn_type = async_msg_get_fn_type(out);
+	switch(fn_type) {
+		case BAR:
+			return bar_callee(channel, out);
+		default:
+			printf("unknown dispatch request\n");
+			break;
+	}
+	return 0;
+}
+
+static inline
+int thc_ipc_recv_dispatch(header_t* channel, message_t** out, int id)
+{
+	int got_resp = 0;
+	int received_cookie;
+retry:
+	while ( 1 )
+	{
+		// Poll until we get a message or error
+		*out = get_current_rx_slot( channel);
+
+		if ( ! check_rx_slot_msg_waiting( *out ) )
+		{
+			//printf("No messages to recv, yield and save into id:%llu\n", id);
+			THCYieldAndSave(id);
+			continue;
+		}
+
+		break;
+	}
+
+	if( likely(thc_get_msg_type(*out) == (uint32_t)msg_type_request )) {
+//		printf("%s:%d got request (ctx = %d)\n", __func__, __LINE__, id);
+		inc_rx_slot (channel);
+		dispatch_request(channel, *out);
+		if (got_resp)
+			return 0;
+		else
+			goto retry;
+	} else if( likely(thc_get_msg_type(*out) == (uint32_t)msg_type_response )) {
+
+//		printf("%s:%d got response (ctx = %d)\n", __func__, __LINE__, id);
+
+		received_cookie = thc_get_msg_id(*out);
+		if (received_cookie == id) {
+			got_resp = 1;
+			inc_rx_slot (channel);
+			awe_mapper_remove_id(id);
+			return 0;
+		} else {
+//			printf("%s:%d yielding to id %d (ctx = %d)\n", __func__, __LINE__, received_cookie, id);
+			THCYieldToIdAndSave(received_cookie, id);
+		}
+	} else {
+		printf("%s:%d msg not for us!\n", __func__, __LINE__);
+		return 1; //message not for this awe
+	}
+
+	// We came back here but maybe we're the last AWE and 
+        // we're re-started by do finish
+	goto retry; 
+	return 0;
+}
+
+int foo_with_dispatch(header_t *chan)
+{
+	message_t *req, *resp1;
+	unsigned int request_cookie;
+	int ret;
+
+	fipc_send_msg_start(chan, &req);
+
+	async_msg_set_fn_type(req, FOO_WITH_BAR);
+
+	ret = thc_ipc_send_request(chan, req, &request_cookie);
+
+	//printf("%s, sending reqcookie %d\n", __func__, request_cookie);
+
+	if (ret)
+		printf("%s:%d send error\n", __func__, __LINE__);
+
+
+	ret = thc_ipc_recv_dispatch(chan, &resp1, request_cookie);
+
+	if (ret)
+		printf("%s:%d send error\n", __func__, __LINE__);
+
+	fipc_recv_msg_end( chan, resp1 );
+
+	//printf("%s, got response for request_cookie %d\n", __func__, request_cookie);
+
+	return ret;
+}
 
 int foo(header_t *chan)
 {
@@ -1082,6 +1492,38 @@ int foo(header_t *chan)
 	fipc_send_msg_start(chan, &req);
 
 	async_msg_set_fn_type(req, FOO);
+
+	ret = thc_ipc_send_request(chan, req, &request_cookie);
+
+//	printf("%s, sending reqcookie %d\n", __func__, request_cookie);
+	if (ret)
+		printf("%s:%d send error\n", __func__, __LINE__);
+
+
+//	ret = thc_ipc_recv_response(chan, request_cookie, &resp); 
+	ret = thc_ipc_recv_response_new(chan, &resp, request_cookie);
+
+	awe_mapper_remove_id(request_cookie);
+
+	if (ret)
+		printf("%s:%d send error\n", __func__, __LINE__);
+
+	fipc_recv_msg_end( chan, resp );
+
+//	printf("%s, got response for request_cookie %d\n", __func__, request_cookie);
+
+	return ret;
+}
+
+int foo_load(header_t *chan)
+{
+	message_t *req, *resp;
+	unsigned int request_cookie;
+	int ret;
+
+	fipc_send_msg_start(chan, &req);
+
+	async_msg_set_fn_type(req, FOO_WITH_LOAD);
 
 	ret = thc_ipc_send_request(chan, req, &request_cookie);
 
@@ -1124,6 +1566,83 @@ int foo_blocking(header_t *chan)
 	return 0;
 }
 
+int foo_blocking_with_regs(header_t *chan, int num_regs)
+{
+	message_t *req, *resp;
+
+	fipc_send_msg_start(chan, &req);
+
+	/* for dispatching the request at the responder */
+	thc_set_msg_type(req, msg_type_request);
+
+	switch(num_regs) {
+	case 0:
+		fipc_set_reg0(req, 0);
+		async_msg_set_fn_type(req, FOO_BLOCKING_WITH_0_REGS);
+		break;
+
+	case 1:
+		fipc_set_reg0(req, 0);
+		fipc_set_reg1(req, 1);
+		async_msg_set_fn_type(req, FOO_BLOCKING_WITH_1_REGS);
+		break;
+	case 2:
+		fipc_set_reg0(req, 0);
+		fipc_set_reg1(req, 1);
+		fipc_set_reg2(req, 2);
+		async_msg_set_fn_type(req, FOO_BLOCKING_WITH_2_REGS);
+		break;
+	case 3:
+		fipc_set_reg0(req, 0);
+		fipc_set_reg1(req, 1);
+		fipc_set_reg2(req, 2);
+		fipc_set_reg3(req, 3);
+		async_msg_set_fn_type(req, FOO_BLOCKING_WITH_3_REGS);
+		break;
+	case 4:
+		fipc_set_reg0(req, 0);
+		fipc_set_reg1(req, 1);
+		fipc_set_reg2(req, 2);
+		fipc_set_reg3(req, 3);
+		fipc_set_reg4(req, 4);
+		async_msg_set_fn_type(req, FOO_BLOCKING_WITH_4_REGS);
+		break;
+	case 5:
+		fipc_set_reg0(req, 0);
+		fipc_set_reg1(req, 1);
+		fipc_set_reg2(req, 2);
+		fipc_set_reg3(req, 3);
+		fipc_set_reg4(req, 4);
+		fipc_set_reg5(req, 5);
+		async_msg_set_fn_type(req, FOO_BLOCKING_WITH_5_REGS);
+		break;
+
+	case 6:
+		fipc_set_reg0(req, 0);
+		fipc_set_reg1(req, 1);
+		fipc_set_reg2(req, 2);
+		fipc_set_reg3(req, 3);
+		fipc_set_reg4(req, 4);
+		fipc_set_reg5(req, 5);
+		fipc_set_reg6(req, 6);
+		async_msg_set_fn_type(req, FOO_BLOCKING_WITH_6_REGS);
+		break;
+
+	default:
+		printf("%s, failed trying to marshal %d registers!\n", __func__, num_regs);
+		break;
+	}
+
+	fipc_send_msg_end ( chan, req );
+
+	fipc_test_blocking_recv_start(chan, &resp);
+
+	fipc_recv_msg_end(chan, resp); 
+
+	return 0;
+}
+
+
 /*
  * to signal that the sender is done so that the receiver can exit the dispatch loop
  */
@@ -1142,16 +1661,64 @@ void done(header_t *chan)
 	if (ret)
 		printf("%s:%d send error\n", __func__, __LINE__);
 	awe_mapper_remove_id(request_cookie);
-//	printf("%s:%d sending done\n", __func__, __LINE__);
 }
 
 int request_dispatch_blocking(header_t *chan)
 {
 	int i;
+
 	whole_start = RDTSC_START();
 
 	for (i = 0; i < transactions; i++) {
-		foo_blocking(chan);
+		int j;
+		for (j = 0; j < num_inner_asyncs; j++) {
+			foo_blocking(chan);
+		}
+	}
+
+#if defined(FINE_GRAINED)
+ 	print_stats(times, transactions);
+#endif
+
+	whole_end = RDTSCP();
+
+ 	printf("%llu\n",  
+			(unsigned long long) (whole_end - whole_start) / transactions);
+	return 0;
+}
+
+int request_dispatch_blocking_dispatch(header_t *chan)
+{
+	int i;
+
+	whole_start = RDTSC_START();
+
+	for (i = 0; i < transactions; i++) {
+		int j;
+		for (j = 0; j < num_inner_asyncs; j++) {
+			foo_blocking(chan);
+		}
+	}
+
+#if defined(FINE_GRAINED)
+ 	print_stats(times, transactions);
+#endif
+
+	whole_end = RDTSCP();
+
+ 	printf("%llu\n",  
+			(unsigned long long) (whole_end - whole_start) / transactions);
+	done(chan);
+	return 0;
+}
+
+int request_dispatch_blocking_marshal_regs(header_t *chan, int num_regs)
+{
+	int i;
+	whole_start = RDTSC_START();
+
+	for (i = 0; i < transactions; i++) {
+		foo_blocking_with_regs(chan, num_regs);
 	}
 
 	whole_end = RDTSCP();
@@ -1169,10 +1736,40 @@ int request_dispatch_async_send(header_t *chan)
 
 
 	for (i = 0; i < transactions; i++) {
-	//	printf("%s:%d sending %d\n", __func__, __LINE__, i);
-		DO_FINISH(
-			ASYNC(foo(chan));
-		);
+		int j;
+		DO_FINISH({
+			for (j = 0; j < num_inner_asyncs; j++) {
+				ASYNC(foo(chan));
+			};
+		});
+
+	}
+
+	whole_end = RDTSCP();
+
+ 	printf("%llu\n",  
+			(unsigned long long) (whole_end - whole_start) / transactions);
+#ifdef MSG_COUNT
+	printf("no msg count %llu\n", no_msg_count);
+#endif
+	done(chan);
+	return 0;
+}
+
+int request_dispatch_async_send_foo_load(header_t *chan)
+{
+	int i;
+	whole_start = RDTSC_START();
+
+
+	for (i = 0; i < transactions; i++) {
+		int j;
+		DO_FINISH({
+			for (j = 0; j < num_inner_asyncs; j++) {
+				ASYNC(foo_load(chan));
+			};
+		});
+
 	}
 
 	whole_end = RDTSCP();
@@ -1182,7 +1779,6 @@ int request_dispatch_async_send(header_t *chan)
 	done(chan);
 	return 0;
 }
-
 int request_dispatch_10_async_send(header_t *chan)
 {
 	int i;
@@ -1190,7 +1786,6 @@ int request_dispatch_10_async_send(header_t *chan)
 	int t;
 
 	for (i = 0; i < transactions; i++) {
-	//	printf("%s:%d sending %d\n", __func__, __LINE__, i);
 		DO_FINISH(
 			for (t = 0; t < num_inner_asyncs; t++)
 				ASYNC(foo(chan));
@@ -1205,15 +1800,51 @@ int request_dispatch_10_async_send(header_t *chan)
 	return 0;
 }
 
+int request_dispatch_async_send_foo_recvbar(header_t *chan)
+{
+	int i;
+	whole_start = RDTSC_START();
+
+
+	for (i = 0; i < transactions; i++) {
+		int j;
+		DO_FINISH({
+			for (j = 0; j < num_inner_asyncs; j++) {
+				ASYNC(foo_with_dispatch(chan));
+			};
+		});
+
+	}
+
+	whole_end = RDTSCP();
+
+ 	printf("%llu\n",  
+			(unsigned long long) (whole_end - whole_start) / transactions);
+	done(chan);
+	return 0;
+}
+
+void respond_blocking(header_t *chan) {
+	register uint64_t CACHE_ALIGNED transaction_id;
+
+	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
+	{
+		int j; 
+			for (j = 0; j < num_inner_asyncs; j++) {
+					respond( chan );
+			}
+	}
+}
+
 void* requester ( void* data )
 {
 	header_t* chan = (header_t*) data;
+	//int regs;
 #if defined(FINE_GRAINED)		
-	register int64_t* CACHE_ALIGNED times = malloc( transactions * sizeof( int64_t ) );
+	times = malloc( transactions * sizeof( int64_t ) );
 	correction = fipc_test_time_get_correction();
 #endif
 	thc_init();
-#if 1
 	printf("load100 function:");
 	check_load(chan);
 
@@ -1231,30 +1862,72 @@ void* requester ( void* data )
 	async_10_req(chan);
 	printf("do{async{}}finish(), 10 msgs, load 100:");
 	async_10_req(chan);
-
 	printf("do{async{send and yield}}finish(), 10 msgs:"); 
 	async_10_req_blk(chan);
-	printf("do{async{send and yeild}}finish(), 10 msgs, load 100:"); 
-	async_10_req_blk(chan);
+//	printf("do{async{send and yeild}}finish(), 10 msgs, load 100:"); 
+//	async_10_req_blk(chan);
 
 
-	printf("do{async{send_blk}}finish(), 10 msgs, srv async dispatch:"); 
-        async_10_req_blk_srv_async_dispatch(chan);
+	//printf("do{async{send_blk}}finish(), 10 msgs, srv async dispatch:"); 
+        //async_10_req_blk_srv_async_dispatch(chan);
 
-	printf("do{async{send_blk}}finish(), 10 msgs, srv async dispatch, load 100:");
-	async_10_req_blk_srv_async_dispatch(chan);
-#endif
-	printf("blocking sender, dispatch loop on the responder:");
+//	printf("do{async{send_blk}}finish(), 10 msgs, srv async dispatch, load 100:");
+//	async_10_req_blk_srv_async_dispatch(chan);
+
+	printf("blocking sender, sending %d msgs blocking recv on the responder:", num_inner_asyncs);
 	request_dispatch_blocking(chan);
 
+	printf("blocking sender, sending %d msgs on ch2, blocking recv on the responder:", num_inner_asyncs);
+	request_dispatch_blocking(tx_chnl2);
+
+	printf("blocking sender, sending %d msgs on ch3, blocking recv on the responder:", num_inner_asyncs);
+	request_dispatch_blocking(tx_chnl3);
+
+	printf("blocking sender, sending %d msgs dispatch loop on the responder:", num_inner_asyncs);
+	request_dispatch_blocking_dispatch(chan);
+
+	printf("blocking sender, sending %d msgs on ch2, dispatch loop on the responder:", num_inner_asyncs);
+	request_dispatch_blocking_dispatch(tx_chnl2);
+
+	printf("blocking sender, sending %d msgs on ch3, dispatch loop on the responder:", num_inner_asyncs);
+	request_dispatch_blocking_dispatch(tx_chnl3);
+
+/*	for (regs = 0; regs < 7; regs++) {
+		printf("blocking sender, marshal %d regs dispatch loop on the responder:", regs);
+		request_dispatch_blocking_marshal_regs(chan, regs);
+	}
+*/
 	printf("async send, dispatch loop on the responder:");
 	request_dispatch_async_send(chan);
 
 	printf("do{async{}}finish(): 10 msgs: dispatch loop on the responder:");
 	request_dispatch_10_async_send(chan);
 
-	printf("private_channel: recv dispatch loop on the channel group:");
-	request_dispatch_10_async_send(requester_header_xmit);
+	printf("private_channel: recv dispatch loop on the channel2 group:");
+	request_dispatch_async_send(tx_chnl2);
+
+	printf("private_channel: recv dispatch loop on the channel1 group:");
+	request_dispatch_async_send(chan);
+
+
+	printf("private_channel: recv dispatch loop on the channel3 group:");
+	request_dispatch_async_send(tx_chnl3);
+
+	printf("private_channel: recv with load dispatch loop on the channel1 group:");
+	request_dispatch_async_send_foo_load(chan);
+
+	printf("private_channel: recv with load dispatch loop on the channel2 group:");
+	request_dispatch_async_send_foo_load(tx_chnl2);
+
+	printf("private_channel: recv with load dispatch loop on the channel3 group:");
+	request_dispatch_async_send_foo_load(tx_chnl3);
+
+	//request_dispatch_blocking(requester_header_xmit);
+	printf("private_channel: send disploop for request and recv with dispatch loop on the channel3 group:");
+	request_dispatch_async_send_foo_recvbar(tx_chnl3);
+
+	//printf("private_channel: send 10 asyncs: recv dispatch loop on the channel group:");
+	//request_dispatch_10_async_send(requester_header_xmit);
 
 	thc_done();
 
@@ -1269,10 +1942,9 @@ void* requester ( void* data )
 void* responder ( void* data )
 {
 	header_t* chan = (header_t*) data;
-	
+	//int regs;	
 	thc_init();
 
-#if 1
 	// Wait to begin test
 	pthread_mutex_lock( &responder_mutex );
 
@@ -1294,17 +1966,30 @@ void* responder ( void* data )
 	// do{async{send and yield}}finish(), 10 msgs	
 	async_10_rsp_blk(chan);
 	// do{async{send and yield}}finish(), 10 msgs, load 100	
-	async_10_rsp_blk_load100(chan);
+	//async_10_rsp_blk_load100(chan);
 
 	// do{async{send_blk}}finish(), 10 msgs, srv async dispatch
-	async_10_rsp_blk_srv_async_dispatch(chan);
+	//async_10_rsp_blk_srv_async_dispatch(chan);
 	// do{async{send_blk}}finish(), 10 msgs, srv async dispatch, load 100
-	async_10_rsp_blk_srv_async_dispatch_load100(chan);
+	//async_10_rsp_blk_srv_async_dispatch_load100(chan);
 	// End test
-#endif	
 	// blocking send, dispatch loop at receiver
-	respond_dispatch(chan);
+	//respond_dispatch(chan);
+	//respond_dispatch(chan);
+	//respond_dispatch(chan);
 
+	respond_blocking(chan);
+	respond_blocking(rx_chnl2);
+	respond_blocking(rx_chnl3);
+
+	respond_dispatch_two_channels(chan, rx_chnl2, rx_chnl3);
+	respond_dispatch_two_channels(chan, rx_chnl2, rx_chnl3);
+	respond_dispatch_two_channels(chan, rx_chnl2, rx_chnl3);
+/*	for (regs = 0; regs < 7; regs++) {
+		// blocking send, marshal 7 regs dispatch loop at receiver
+		respond_dispatch(chan);
+	}
+*/
 	// async send, dispatch loop at receiver
 	respond_dispatch(chan);
 
@@ -1312,14 +1997,38 @@ void* responder ( void* data )
 	respond_dispatch(chan);
 
 	// 2 channels
-	respond_dispatch_two_channels(chan, responder_header_xmit);
+
+	respond_dispatch_two_channels(chan, rx_chnl2, rx_chnl3);
+
+	respond_dispatch_two_channels(chan, rx_chnl2, rx_chnl3);
+
+	respond_dispatch_two_channels(chan, rx_chnl2, rx_chnl3);
+
+	respond_dispatch_two_channels(chan, rx_chnl2, rx_chnl3);
+
+	respond_dispatch_two_channels(chan, rx_chnl2, rx_chnl3);
+
+	respond_dispatch_two_channels(chan, rx_chnl2, rx_chnl3);
+
+	respond_dispatch_two_channels(chan, rx_chnl2, rx_chnl3);
+
+	//respond_dispatch_two_channels(chan, responder_header_xmit);
 
 	pthread_mutex_unlock( &responder_mutex );
+
+
 	thc_done();
 	pthread_exit( 0 );
 	return NULL;
 }
 
+int do_mlock(void *buf, int size)
+{
+	if (mlock(buf, PAGES_NEEDED(size)*PAGE_SIZE)) {
+		perror("mlock:");
+	}
+	return 0;
+}
 
 int main ( void )
 {
@@ -1335,14 +2044,31 @@ int main ( void )
 
 	fipc_init();
 	fipc_test_create_channel( CHANNEL_ORDER, &requester_header, &responder_header );
-	fipc_test_create_channel( CHANNEL_ORDER, &requester_header_xmit, &responder_header_xmit );
+	fipc_test_create_channel( CHANNEL_ORDER, &tx_chnl2, &rx_chnl2 );
+	fipc_test_create_channel( CHANNEL_ORDER, &tx_chnl3, &rx_chnl3 );
+
+	do_mlock(requester_header, CHANNEL_ORDER);
+	do_mlock(responder_header, CHANNEL_ORDER);
+
+	do_mlock(tx_chnl2, CHANNEL_ORDER);
+	do_mlock(tx_chnl3, CHANNEL_ORDER);
+
+	do_mlock(rx_chnl2, CHANNEL_ORDER);
+	do_mlock(rx_chnl3, CHANNEL_ORDER);
 
 	if ( requester_header == NULL || responder_header == NULL )
 	{
 		fprintf( stderr, "%s\n", "Error while creating channel" );
 		return -1;
 	}
-	if ( requester_header_xmit == NULL || responder_header_xmit == NULL )
+
+	if ( tx_chnl2 == NULL || rx_chnl2 == NULL )
+	{
+		fprintf( stderr, "%s\n", "Error while creating channel" );
+		return -1;
+	}
+
+	if ( tx_chnl3 == NULL || rx_chnl3 == NULL )
 	{
 		fprintf( stderr, "%s\n", "Error while creating channel" );
 		return -1;

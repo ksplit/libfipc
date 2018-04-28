@@ -1,5 +1,5 @@
 CC:=gcc
-CFLAGS:=-Wall -D_GNU_SOURCE -pthread -lm -O2 -fno-pic -g
+CFLAGS:=-Wall -D_GNU_SOURCE -pthread -lm -O2 -fno-pic -g -fomit-frame-pointer
 #CFLAGS += -DGLOBAL_PTS 
 CFLAGS += -DTHREAD_PTS
 CFLAGS += -DNDEBUG

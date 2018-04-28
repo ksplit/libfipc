@@ -79,6 +79,7 @@ struct ptstate_t {
   int doneInit;
   int shouldExit;
 
+  int reached_dofin;
   // Stack that the thread's dispatch loop will run on
   void *dispatchStack;
 
