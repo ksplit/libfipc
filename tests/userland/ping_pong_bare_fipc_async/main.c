@@ -197,13 +197,19 @@ void respond_ack ( header_t* chan )
 void respond_ack_dispatch ( header_t* chan )
 {
 	message_t* req;
+	int i;
 
-	
-	fipc_test_blocking_recv_start( chan, &req);
-        respond_dispatch_async_loop(chan, req);
+	for (i = 0; i < transactions; i++) {
+		int j;
+		for (j = 0; j < num_inner_asyncs; j++) {
+			fipc_test_blocking_recv_start( chan, &req);
+		        respond_dispatch_async_loop(chan, req);
+		};
+
+	}
 
         //id = req->regs[0];
-	fipc_recv_msg_end( chan, req );
+//	fipc_recv_msg_end( chan, req );
 	//
 	//fipc_test_blocking_send_start( chan, &resp );
 	//resp->regs[0] = id; 
@@ -1781,7 +1787,7 @@ int request_dispatch_async_send(header_t *chan)
 	printf("no msg count %llu, not ours msg count:%llu, spin count:%llu\n", 
 			no_msg_count, not_ours_msg_count, spin_count);
 #endif
-	done(chan);
+	//done(chan);
 	return 0;
 }
 
@@ -1935,7 +1941,6 @@ void* requester ( void* data )
 	for (i = 0; i < 2; i++) {
 		load_length = i; 
 		request_dispatch_async_send(chan);
-
 	}
 
 #if 0
@@ -2037,8 +2042,9 @@ void* responder ( void* data )
 		load_length = i;
 		printf("load length:%llu\n", load_length); 
 	  	//respond_dispatch(chan);
-                respond_ack(chan); 
+                respond_ack_dispatch(chan);
 	}
+	printf("%s, done\n", __func__);
 #if 0
 	// 10 async send, dispatch loop at receiver
 	respond_dispatch(chan);
