@@ -11,7 +11,7 @@
 #include "test.h"
 
 //#define FINE_GRAINED
-static uint64_t transactions   = 10000000;
+static uint64_t transactions   = 1000000;
 static uint32_t num_inner_asyncs = 2;
 static unsigned long long load_length = 19; 
 
@@ -51,13 +51,21 @@ static inline
 int
 async_msg_get_fn_type(struct fipc_message *msg)
 {
+#if defined(SIMPLE_MSG_TYPES)
+	return msg->regs[0];
+#else
 	return fipc_get_flags(msg) >> THC_RESERVED_MSG_FLAG_BITS;
+#endif
 }
 
 static inline
 void
 async_msg_set_fn_type(struct fipc_message *msg, int type)
 {
+#if defined(SIMPLE_MSG_TYPES)
+	msg->regs[0] = type; 
+#else
+
 	uint32_t flags = fipc_get_flags(msg);
 	/* ensure type is in range */
 	type &= (1 << (32 - THC_RESERVED_MSG_FLAG_BITS)) - 1;
@@ -66,6 +74,7 @@ async_msg_set_fn_type(struct fipc_message *msg, int type)
 	/* install new type */
 	flags |= (type << THC_RESERVED_MSG_FLAG_BITS);
 	fipc_set_flags(msg, flags);
+#endif
 }
 
 #if defined(FINE_GRAINED)
@@ -795,6 +804,7 @@ int foo_callee(message_t *req, header_t *chan)
 	message_t *resp;
 	request_cookie = thc_get_request_cookie(req);
 
+        //printf("foo_calle: req cookie: %d\n", request_cookie);
 	fipc_recv_msg_end(chan, req);
 
 	// response
@@ -967,9 +977,13 @@ int foo_blocking_callee_6_regs(message_t *req, header_t *chan)
 int respond_dispatch_async_loop(header_t *chan, message_t *msg)
 {
 	int fn_type = async_msg_get_fn_type(msg);
+
+        //printf("Respond, got msg type:%d\n", fn_type); 
+
 	switch (fn_type) {
 	case FOO:
 		return foo_callee(msg, chan);
+#if 0
 	case FOO_BLOCKING:
 		return foo_blocking_callee(msg, chan);
 	case FOO_BLOCKING_WITH_0_REGS:
@@ -986,6 +1000,7 @@ int respond_dispatch_async_loop(header_t *chan, message_t *msg)
 		return foo_blocking_callee_5_regs(msg, chan);
 	case FOO_BLOCKING_WITH_6_REGS:
 		return foo_blocking_callee_6_regs(msg, chan);
+#endif
 	case DONE:
 		fipc_recv_msg_end(chan, msg);
 		return DONE;
@@ -1178,7 +1193,7 @@ thc_ipc_send_request(header_t *chnl,
         printf("thc_ipc_send: error getting request cookie\n");
 	goto fail0;
     }
-    thc_set_msg_type(request, msg_type_request);
+  //  thc_set_msg_type(request, msg_type_request);
     thc_set_msg_id(request, msg_id);
     /*
      * Send request
@@ -1368,12 +1383,12 @@ retry:
 #if 1
 			if (pts->reached_dofin) {
 				fipc_test_pause();
-				spin_count ++;
+				//spin_count ++;
 				continue;
 			}
 #endif
 
-			no_msg_count++;
+			//no_msg_count++;
 			// No messages to receive, yield to next async
 			//printf("No messages to recv, yield and save into id:%llu\n", id);
 			THCYieldAndSave(id);
@@ -1385,14 +1400,14 @@ retry:
 
 	received_cookie = thc_get_msg_id(*out);
 	if (received_cookie == id) {
-		//printf("Message is ours id:%llu\n", (*out)->regs[0]);
+		//printf("Message is ours id:%llu\n", received_cookie);
 		inc_rx_slot( channel ); 
 		return 0;
 	}
- 
-	not_ours_msg_count++;
+	
+	//not_ours_msg_count++;
 
-	//printf("Message is not ours yielding to id:%llu\n", (*out)->regs[0]);
+	//printf("Message is not ours yielding to id:%llu\n", received_cookie);
 	ret = THCYieldToIdAndSave(received_cookie, id);
 	 
 	if (ret) {
@@ -1519,10 +1534,11 @@ int foo(header_t *chan)
 {
 	message_t *req, *resp;
 	unsigned int request_cookie;
-	unsigned long long sum; 
+	unsigned long long sum = 0; 
 	int ret;
 
-	fipc_send_msg_start(chan, &req);
+	//fipc_send_msg_start(chan, &req);
+	fipc_test_blocking_send_start (chan, &req);
 
 	async_msg_set_fn_type(req, FOO);
 
@@ -1533,16 +1549,23 @@ int foo(header_t *chan)
 		printf("%s:%d send error\n", __func__, __LINE__);
 
 
-	sum = load(load_length); 
+	//sum = load(load_length); 
 //	ret = thc_ipc_recv_response(chan, request_cookie, &resp); 
 	ret = thc_ipc_recv_response_new(chan, &resp, request_cookie);
 
+	sum = load(load_length); 
+
+	fipc_recv_msg_end( chan, resp );
+
+        //sum = load(load_length); 
+
+	
 	awe_mapper_remove_id(request_cookie);
 
 	if (ret)
 		printf("%s:%d send error\n", __func__, __LINE__);
 
-	fipc_recv_msg_end( chan, resp );
+//	fipc_recv_msg_end( chan, resp );
 
 //	printf("%s, got response for request_cookie %d\n", __func__, request_cookie);
 
@@ -1938,8 +1961,9 @@ void* requester ( void* data )
 #endif
 
 	printf("async send, dispatch loop on the responder:");
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < 100; i++) {
 		load_length = i; 
+		printf("load len:%d:", load_length);
 		request_dispatch_async_send(chan);
 	}
 
@@ -2038,13 +2062,13 @@ void* responder ( void* data )
 */
 #endif
 	// async send, dispatch loop at receiver
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < 100; i++) {
 		load_length = i;
-		printf("load length:%llu\n", load_length); 
+		//printf("load length:%llu\n", load_length); 
 	  	//respond_dispatch(chan);
                 respond_ack_dispatch(chan);
 	}
-	printf("%s, done\n", __func__);
+	//printf("%s, done\n", __func__);
 #if 0
 	// 10 async send, dispatch loop at receiver
 	respond_dispatch(chan);

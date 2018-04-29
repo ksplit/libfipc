@@ -267,14 +267,14 @@ message_t* get_current_rx_slot ( header_t* rc )
 static inline
 void  inc_tx_slot ( header_t* rc )
 {
-	rc->tx.slot = (rc->tx.slot + 2) & rc->tx.mask;
+	rc->tx.slot = (rc->tx.slot + 1) & rc->tx.mask;
 	return; 
 }
 
 static inline
 void inc_rx_slot ( header_t* rc )
 {
-	rc->rx.slot = (rc->rx.slot + 2) & rc->rx.mask;
+	rc->rx.slot = (rc->rx.slot + 1) & rc->rx.mask;
 	return;
 }
 
