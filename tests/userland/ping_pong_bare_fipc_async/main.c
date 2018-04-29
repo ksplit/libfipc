@@ -44,6 +44,9 @@ header_t* rx_chnl2 = NULL;
 header_t* tx_chnl3 = NULL;
 header_t* rx_chnl3 = NULL;
 
+int respond_dispatch_async_loop(header_t *chan, message_t *msg);
+
+
 static inline
 int
 async_msg_get_fn_type(struct fipc_message *msg)
@@ -183,13 +186,30 @@ void respond_ack ( header_t* chan )
 	uint64_t id;
 	
 	fipc_test_blocking_recv_start( chan, &req);
-	id = req->regs[0];
+        id = req->regs[0];
 	fipc_recv_msg_end( chan, req );
 	
 	fipc_test_blocking_send_start( chan, &resp );
 	resp->regs[0] = id; 
 	fipc_send_msg_end( chan, resp );
 }
+
+void respond_ack_dispatch ( header_t* chan )
+{
+	message_t* req;
+
+	
+	fipc_test_blocking_recv_start( chan, &req);
+        respond_dispatch_async_loop(chan, req);
+
+        //id = req->regs[0];
+	fipc_recv_msg_end( chan, req );
+	//
+	//fipc_test_blocking_send_start( chan, &resp );
+	//resp->regs[0] = id; 
+	//fipc_send_msg_end( chan, resp );
+}
+
 
 static inline unsigned long long load(unsigned long long length){
 	unsigned long long sum = 0;
@@ -1325,7 +1345,7 @@ static unsigned long long no_msg_count=0;
 static unsigned long long not_ours_msg_count=0;
 static unsigned long long spin_count=0;
 
-static  
+static inline 
 int thc_ipc_recv_response_new ( header_t* channel, message_t** out, uint64_t id )
 {
 	int ret;
@@ -1912,7 +1932,7 @@ void* requester ( void* data )
 #endif
 
 	printf("async send, dispatch loop on the responder:");
-	for (i = 0; i < 100; i++) {
+	for (i = 0; i < 2; i++) {
 		load_length = i; 
 		request_dispatch_async_send(chan);
 
@@ -2013,10 +2033,11 @@ void* responder ( void* data )
 */
 #endif
 	// async send, dispatch loop at receiver
-	for (i = 0; i < 100; i++) {
+	for (i = 0; i < 2; i++) {
 		load_length = i;
 		printf("load length:%llu\n", load_length); 
-	  	respond_dispatch(chan);
+	  	//respond_dispatch(chan);
+                respond_ack(chan); 
 	}
 #if 0
 	// 10 async send, dispatch loop at receiver
