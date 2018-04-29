@@ -11,9 +11,10 @@
 #include "test.h"
 
 //#define FINE_GRAINED
-static uint64_t transactions   = 1000000;
+static uint64_t transactions   = 10000000;
 static uint32_t num_inner_asyncs = 2;
 static unsigned long long load_length = 19; 
+static unsigned long long LOAD_TEST_LENGH = 2; 
 
 #define REQUESTER_CPU	1
 #define RESPONDER_CPU	2
@@ -1383,7 +1384,7 @@ retry:
 #if 1
 			if (pts->reached_dofin) {
 				fipc_test_pause();
-				//spin_count ++;
+				spin_count ++;
 				continue;
 			}
 #endif
@@ -1961,7 +1962,7 @@ void* requester ( void* data )
 #endif
 
 	printf("async send, dispatch loop on the responder:");
-	for (i = 0; i < 100; i++) {
+	for (i = 0; i < LOAD_TEST_LENGH; i++) {
 		load_length = i; 
 		printf("load len:%d:", load_length);
 		request_dispatch_async_send(chan);
@@ -2062,7 +2063,7 @@ void* responder ( void* data )
 */
 #endif
 	// async send, dispatch loop at receiver
-	for (i = 0; i < 100; i++) {
+	for (i = 0; i < LOAD_TEST_LENGH; i++) {
 		load_length = i;
 		//printf("load length:%llu\n", load_length); 
 	  	//respond_dispatch(chan);

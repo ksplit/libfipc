@@ -3,7 +3,7 @@ CFLAGS:=-Wall -D_GNU_SOURCE -pthread -lm -O2 -fno-pic -g -fomit-frame-pointer
 #CFLAGS += -DGLOBAL_PTS 
 CFLAGS += -DTHREAD_PTS
 CFLAGS += -DNDEBUG
-#CFLAGS += -DMSG_COUNT
+CFLAGS += -DMSG_COUNT
 CFLAGS += -DSIMPLE_MSG_TYPES
 
 INCLUDE_DIRS:=-I../../../include -I../../../include/userland -I.
