@@ -10,10 +10,10 @@
 #include "test.h"
 //#define FINE_GRAINED
 static uint64_t transactions   = 1000000;
-static uint32_t num_inner_asyncs = 10; 
+static uint32_t num_inner_asyncs = 2; 
 
 #define REQUESTER_CPU	1
-#define RESPONDER_CPU	3
+#define RESPONDER_CPU	2
 #define CHANNEL_ORDER	ilog2(sizeof(message_t)) + 7
 #define QUEUE_DEPTH	1
 
@@ -532,27 +532,27 @@ void* requester ( void* data )
  	printf("ping-pong 1 msg, load 100:"); 
 	ping_pong_req(chan);
 
-	printf("do_finish (10 msgs):");
+	printf("do_finish (%d msgs):", num_inner_asyncs);
 	no_async_10_req(chan);
-	printf("do_finish (10 msgs), load 100:");
+	printf("do_finish (%d msgs), load 100:", num_inner_asyncs);
 	no_async_10_req(chan);
 
-	printf("do{async{}}finish(), 10 msgs:");
+	printf("do{async{}}finish(), %d msgs:", num_inner_asyncs);
 	async_10_req(chan);
-	printf("do{async{}}finish(), 10 msgs, load 100:");
+	printf("do{async{}}finish(), %d msgs, load 100:", num_inner_asyncs);
 	async_10_req(chan);
 
 
-	printf("do{async{send and yield}}finish(), 10 msgs:"); 
+	printf("do{async{send and yield}}finish(), %d msgs:", num_inner_asyncs); 
 	async_10_req_blk(chan);
-	printf("do{async{send and yeild}}finish(), 10 msgs, load 100:"); 
+	printf("do{async{send and yeild}}finish(), %d msgs, load 100:", num_inner_asyncs); 
 	async_10_req_blk(chan);
 
 
-	printf("do{async{send_blk}}finish(), 10 msgs, srv async dispatch:"); 
+	printf("do{async{send_blk}}finish(), %d msgs, srv async dispatch:", num_inner_asyncs); 
         async_10_req_blk_srv_async_dispatch(chan);
 
-	printf("do{async{send_blk}}finish(), 10 msgs, srv async dispatch, load 100:");
+	printf("do{async{send_blk}}finish(), %d msgs, srv async dispatch, load 100:", num_inner_asyncs);
 	async_10_req_blk_srv_async_dispatch(chan);
 
 	thc_done();
