@@ -11,6 +11,7 @@
 //#define FINE_GRAINED
 static uint64_t transactions   = 1000000;
 static uint32_t num_inner_asyncs = 2; 
+static uint32_t load_length = 100; 
 
 #define REQUESTER_CPU	1
 #define RESPONDER_CPU	2
@@ -70,7 +71,7 @@ void request ( header_t* chan )
 	
 }
 
-static inline
+static inline  
 int fipc_test_blocking_recv_start_block ( header_t* channel, message_t** out, uint64_t id )
 {
 	int ret;
@@ -151,7 +152,7 @@ static inline unsigned long long load(){
 	unsigned long long sum = 0;
 	int i;
 
-	for(i = 0; i < 100; i++)
+	for(i = 0; i < load_length; i++)
 		sum += i;
 
 	return sum; 
@@ -517,6 +518,7 @@ void async_10_req_blk_srv_async_dispatch(header_t *chan) {
 
 void* requester ( void* data )
 {
+	int i; 
 	header_t* chan = (header_t*) data;
 #if defined(FINE_GRAINED)		
 	register int64_t* CACHE_ALIGNED times = malloc( transactions * sizeof( int64_t ) );
@@ -548,6 +550,13 @@ void* requester ( void* data )
 	printf("do{async{send and yeild}}finish(), %d msgs, load 100:", num_inner_asyncs); 
 	async_10_req_blk(chan);
 
+	for(i = 0; i < 100; i ++) {
+		load_length = i; 
+		printf("do{async{send and yeild}}finish(), %d msgs, load %d:", num_inner_asyncs, load_length); 
+		async_10_req_blk(chan);
+	}
+
+
 
 	printf("do{async{send_blk}}finish(), %d msgs, srv async dispatch:", num_inner_asyncs); 
         async_10_req_blk_srv_async_dispatch(chan);
@@ -567,6 +576,7 @@ void* requester ( void* data )
 
 void* responder ( void* data )
 {
+	int i; 
 	header_t* chan = (header_t*) data;
 	
 	thc_init();
@@ -590,8 +600,13 @@ void* responder ( void* data )
 
 	// do{async{send and yield}}finish(), 10 msgs	
 	async_10_rsp_blk(chan);
-	// do{async{send and yield}}finish(), 10 msgs, load 100	
+	// do{async{send and yield}}finish(), 10 msgs, load 100
 	async_10_rsp_blk_load100(chan);
+
+	for(i = 0; i < 100; i ++) {
+		load_length = i; 
+		async_10_rsp_blk_load100(chan);
+	}
 
 	// do{async{send_blk}}finish(), 10 msgs, srv async dispatch
 	async_10_rsp_blk_srv_async_dispatch(chan);
