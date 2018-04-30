@@ -294,6 +294,9 @@ int fipc_recv_msg_start(struct fipc_ring_channel *chnl,
 int fipc_recv_msg_start_0(struct fipc_ring_channel *chnl,
 			struct fipc_message **msg);
 
+int fipc_recv_msg_mwait(struct fipc_ring_channel *chnl,
+			struct fipc_message **msg);
+
 /**
  * fipc_recv_msg_if -- Like fipc_recv_msg_start, but conditioned on a predicate
  * @chnl: the ring channel, whose rx we should receive from
@@ -322,6 +325,11 @@ int fipc_recv_msg_if(struct fipc_ring_channel *chnl,
 		struct fipc_message **msg);
 
 int fipc_recv_msg_if_0(struct fipc_ring_channel *chnl,
+		int (*pred)(struct fipc_message *, void *),
+		void *data,
+		struct fipc_message **msg);
+
+int fipc_recv_msg_klcd_if(struct fipc_ring_channel *chnl,
 		int (*pred)(struct fipc_message *, void *),
 		void *data,
 		struct fipc_message **msg);

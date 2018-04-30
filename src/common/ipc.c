@@ -13,6 +13,8 @@
 
 #include <libfipc.h>
 #include <libfipc_internal.h>
+#include <linux/spinlock.h>
+#include <asm/mwait.h>
 
 #ifdef LCD_DOMAINS
 #include <lcd_config/post_hook.h>
@@ -231,6 +233,52 @@ static inline int recv_msg_peek(struct fipc_ring_channel *chnl,
 
 inline int
 LIBFIPC_FUNC_ATTR
+fipc_recv_msg_mwait(struct fipc_ring_channel *chnl,
+		struct fipc_message **msg)
+{
+	int ret;
+
+	while(1) {
+
+		if(check_rx_slot_msg_waiting(get_current_rx_slot(chnl))) {
+			goto out;
+		
+		} else {
+			__monitor((void *)&get_current_rx_slot(chnl)->msg_status, 0, 0);
+			//printk("armed monitor.\n");
+
+			//if(check_rx_slot_msg_waiting(get_current_rx_slot(chnl))) {
+			//	goto out;
+			//}
+			//printk("mwaiting..\n");
+			__mwait(0, 0);
+			//printk("outof mwait\n");
+		}
+	
+	}
+out:
+	*msg = get_current_rx_slot(chnl);
+	inc_rx_slot(chnl);
+	ret = 0;
+
+
+#if FIPC_DEBUG_LVL >= FIPC_DEBUG_VERB
+
+	if (!ret)
+		fipc_debug("Received a message at index %lu in rx\n",
+			rx_msg_to_idx(chnl, *msg));
+	else
+		fipc_debug("No messages to receive right now\n");
+
+#endif
+
+
+	return ret;
+}
+EXPORT_SYMBOL(fipc_recv_msg_mwait);
+
+int 
+LIBFIPC_FUNC_ATTR
 fipc_recv_msg_start(struct fipc_ring_channel *chnl,
 		struct fipc_message **msg)
 {
@@ -345,6 +393,49 @@ fipc_recv_msg_poll(struct fipc_ring_channel *chnl,
 	return ret;
 }
 EXPORT_SYMBOL(fipc_recv_msg_poll);
+
+int 
+LIBFIPC_FUNC_ATTR
+fipc_recv_msg_klcd_if(struct fipc_ring_channel *chnl,
+		int (*pred)(struct fipc_message *, void *),
+		void *data,
+		struct fipc_message **msg)
+{
+	int ret;
+	struct fipc_message *m;
+	//unsigned long flags = 0;
+
+	//spin_lock_irqsave(&lock, flags);
+	//spin_lock(&lock);
+	ret = recv_msg_peek(chnl, &m);
+	if (!ret) {
+		/* Message waiting to be received; query predicate */
+		if (pred(m, data)) {
+			/* Caller wants the message */
+			*msg = m;
+			inc_rx_slot(chnl);
+			ret = 0;
+		} else {
+			ret = -ENOMSG;
+		}
+	}
+
+	//spin_unlock_irqrestore(&lock, flags);
+	//spin_unlock(&lock);
+#if FIPC_DEBUG_LVL >= FIPC_DEBUG_VERB
+
+	if (!ret)
+		fipc_debug("Received a message at index %lu in rx\n",
+			rx_msg_to_idx(chnl, *msg));
+	else
+		fipc_debug("No messages to receive right now, or caller doesn't want it\n");
+
+#endif
+
+	return ret;
+}
+EXPORT_SYMBOL(fipc_recv_msg_klcd_if);
+
 
 int 
 LIBFIPC_FUNC_ATTR
