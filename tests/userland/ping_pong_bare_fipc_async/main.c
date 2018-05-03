@@ -10,11 +10,42 @@
 #include "thc_ipc_types.h"
 #include "test.h"
 
-//#define FINE_GRAINED
-static uint64_t transactions   = 10000000;
+// Note on how to run perf on a specific machine, e.g., 
+// 1) Find family and model numbers. 
+// Anton's laptop is family 06, model 3D (you need hex, 
+// note, cat /proc/cpuinfo returns decimal, so convert)
+//
+// 2) Search this 06_3D in Chapter 19 of the Intel Dev Man
+// 
+// 3) For Anton's the counter number 24H with umask E2H counts
+//    all RFO requests to L2
+// 
+// 24H E2H L2_RQSTS.ALL_RFO Counts all L2 store RFO requests.
+//
+// 4) Run perf like this: 
+//    perf record -e re224 -o perf.data.inline ./ping_pong_bare_fipc_async 
+//
+// 5) Report 
+//    perf report -i perf.data.inline
+//
+// For example this counter reports the number that correlates with the
+// spin_count, i.e., inlined spins 186M times (on a 10M test), and 
+// the counter reports 217M RFOs and non-inlined version spins 123M times 
+// and the counter reports 153M. Spin count: 186M - 123M = 63M and RFO: 
+// 217M - 153M = 64M
+//
+// Note for perf experiments set this to 10M to let 
+// perf enough time to kick in
+static uint64_t transactions   = 1000000;
 static uint32_t num_inner_asyncs = 4;
 static unsigned long long load_length = 19; 
-static unsigned long long LOAD_TEST_LENGH = 2; 
+static unsigned long long LOAD_TEST_LENGH = 100; 
+
+static unsigned long long no_msg_count=0;
+static unsigned long long not_ours_msg_count=0;
+static unsigned long long spin_count=0;
+
+
 
 #define REQUESTER_CPU	0
 #define RESPONDER_CPU	4
@@ -1363,15 +1394,12 @@ yield:
 	goto retry;
 }
 
-static unsigned long long no_msg_count=0;
-static unsigned long long not_ours_msg_count=0;
-static unsigned long long spin_count=0;
-
-static  
+static inline 
 int thc_ipc_recv_response_new ( header_t* channel, message_t** out, uint64_t id )
 {
 	int ret;
 	int received_cookie;
+	unsigned long long sum;
 	PTState_t *pts = PTS();
 retry:
 	while ( 1 )
@@ -1393,6 +1421,7 @@ retry:
 			// No messages to receive, yield to next async
 			//printf("No messages to recv, yield and save into id:%llu\n", id);
 			THCYieldAndSave(id);
+			//sum = load(load_length); 
 			continue; 
 		}
 
@@ -1406,7 +1435,7 @@ retry:
 		return 0;
 	}
 	
-	//not_ours_msg_count++;
+	not_ours_msg_count++;
 
 	//printf("Message is not ours yielding to id:%llu\n", received_cookie);
 	ret = THCYieldToIdAndSave(received_cookie, id);
@@ -1554,7 +1583,7 @@ int foo(header_t *chan)
 //	ret = thc_ipc_recv_response(chan, request_cookie, &resp); 
 	ret = thc_ipc_recv_response_new(chan, &resp, request_cookie);
 
-	sum = load(load_length); 
+	//sum = load(load_length); 
 
 	fipc_recv_msg_end( chan, resp );
 
