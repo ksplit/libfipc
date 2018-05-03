@@ -4,9 +4,9 @@
  */
 
 #include "test.h"
-#define FINE_GRAINED
+//#define FINE_GRAINED
 
-static int queue_depth = 1;
+static int queue_depth = 8;
 
 void request ( header_t* chan )
 {

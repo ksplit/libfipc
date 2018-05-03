@@ -12,12 +12,12 @@
 
 //#define FINE_GRAINED
 static uint64_t transactions   = 10000000;
-static uint32_t num_inner_asyncs = 2;
+static uint32_t num_inner_asyncs = 4;
 static unsigned long long load_length = 19; 
 static unsigned long long LOAD_TEST_LENGH = 2; 
 
-#define REQUESTER_CPU	1
-#define RESPONDER_CPU	2
+#define REQUESTER_CPU	0
+#define RESPONDER_CPU	4
 #define CHANNEL_ORDER	ilog2(sizeof(message_t)) + 7
 #define QUEUE_DEPTH	1
 
@@ -448,11 +448,11 @@ void no_async_10_req(header_t *chan) {
 #if defined(FINE_GRAINED)		
 		start = RDTSC_START();
 #endif
-		DO_FINISH({
+		//DO_FINISH({
 			for (j = 0; j < num_inner_asyncs; j++) {
 				request( chan );
 			};
-		});
+		//});
 #if defined(FINE_GRAINED)		
 		end = RDTSCP();
 		times[transaction_id] = (end - start) - correction;
@@ -1367,7 +1367,7 @@ static unsigned long long no_msg_count=0;
 static unsigned long long not_ours_msg_count=0;
 static unsigned long long spin_count=0;
 
-static inline 
+static  
 int thc_ipc_recv_response_new ( header_t* channel, message_t** out, uint64_t id )
 {
 	int ret;
@@ -1906,7 +1906,7 @@ void* requester ( void* data )
 #endif
 	thc_init();
 
-#if 0	
+#if 1	
 	printf("load100 function:");
 	check_load(chan);
 
@@ -1915,16 +1915,16 @@ void* requester ( void* data )
  	printf("ping-pong 1 msg, load 100:"); 
 	ping_pong_req(chan);
 
-	printf("do_finish (10 msgs):");
+	printf("ping-ping (%d msgs):", num_inner_asyncs );
 	no_async_10_req(chan);
-	printf("do_finish (10 msgs), load 100:");
+	printf("do_finish (%d msgs), load 100:", num_inner_asyncs) ;
 	no_async_10_req(chan);
 
-	printf("do{async{}}finish(), 10 msgs:");
+	printf("do{async{}}finish(), %d msgs:", num_inner_asyncs );
 	async_10_req(chan);
-	printf("do{async{}}finish(), 10 msgs, load 100:");
+	printf("do{async{}}finish(), %d msgs, load 100:",  num_inner_asyncs);
 	async_10_req(chan);
-	printf("do{async{send and yield}}finish(), 10 msgs:"); 
+	printf("do{async{send and yield}}finish(), %d msgs:",  num_inner_asyncs); 
 	async_10_req_blk(chan);
 //	printf("do{async{send and yeild}}finish(), 10 msgs, load 100:"); 
 //	async_10_req_blk(chan);
@@ -1961,14 +1961,17 @@ void* requester ( void* data )
 */
 #endif
 
+#if 0	
+
 	printf("async send, dispatch loop on the responder:");
 	for (i = 0; i < LOAD_TEST_LENGH; i++) {
 		load_length = i; 
 		printf("load len:%d:", load_length);
 		request_dispatch_async_send(chan);
 	}
+#endif
 
-#if 0
+#if 1
 	printf("do{async{}}finish(): 10 msgs: dispatch loop on the responder:");
 	request_dispatch_10_async_send(chan);
 
@@ -2017,7 +2020,7 @@ void* responder ( void* data )
 
 	// Wait to begin test
 	pthread_mutex_lock( &responder_mutex );
-#if 0
+#if 1
 
 	// ping-pong 1 msg
 	ping_pong_rsp(chan);
@@ -2062,6 +2065,8 @@ void* responder ( void* data )
 	}
 */
 #endif
+
+#if 0
 	// async send, dispatch loop at receiver
 	for (i = 0; i < LOAD_TEST_LENGH; i++) {
 		load_length = i;
@@ -2069,8 +2074,9 @@ void* responder ( void* data )
 	  	//respond_dispatch(chan);
                 respond_ack_dispatch(chan);
 	}
+#endif	
 	//printf("%s, done\n", __func__);
-#if 0
+#if 1
 	// 10 async send, dispatch loop at receiver
 	respond_dispatch(chan);
 
