@@ -9,6 +9,8 @@
  * NOTE: This library assumes an x86 architecture.
  */
 
+// À¯Àú
+
 #ifndef LIBFIPC_TEST_LIBRARY_LOCK
 #define LIBFIPC_TEST_LIBRARY_LOCK
 
@@ -18,10 +20,14 @@
 #define fipc_test_pause()    asm volatile ( "pause\n": : :"memory" );
 #define fipc_test_clflush(X) asm volatile("clflush %0" : "+m" (*(volatile char*)X))
 
+//--
+
 #define likely(x)       __builtin_expect(!!(x), 1)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
 
-#define NUM_CORES sysconf(_SC_NPROCESSORS_ONLN)
+//--
+
+////
 #define PAGE_SIZE sysconf(_SC_PAGESIZE)
 
 #define PAGES_NEEDED(x) \
@@ -34,6 +40,11 @@
 #include <pthread.h>
 #include <limits.h>
 #include <libfipc.h>
+////
+
+#define NUM_CORES sysconf(_SC_NPROCESSORS_ONLN)
+
+//--
 
 typedef struct fipc_message cache_line_t;
 typedef CACHE_ALIGNED unsigned long long cache_aligned_ull_int_t;
@@ -41,7 +52,9 @@ typedef CACHE_ALIGNED unsigned long long cache_aligned_ull_int_t;
 #include "libfipc_test_time.h"
 #include "libfipc_test_thread.h"
 #include "libfipc_test_stat.h"
+////
 #include "libfipc_test_shm.h"
+////
 
 /**
  * This function initializes the two headers referenced by h1 and h2 to point
@@ -55,9 +68,11 @@ int fipc_test_create_channel ( size_t buffer_order, header_t** h1, header_t** h2
 	void*     buffer2    = NULL;
 	header_t* tempH1     = NULL;
 	header_t* tempH2     = NULL;
+//--
 
 	// (1) Allocate Buffer Pages
 	buffer1 = aligned_alloc( PAGE_SIZE, PAGES_NEEDED(buffer_order)*PAGE_SIZE );
+//>	buffer1 = (void*)__get_free_pages(GFP_KERNEL, page_order);
 
 	if ( buffer1 == NULL )
 	{
@@ -83,7 +98,8 @@ int fipc_test_create_channel ( size_t buffer_order, header_t** h1, header_t** h2
 
 	// (3) Allocate Headers
 	tempH1 = (header_t*) malloc( sizeof( header_t ) );
-
+//>	tempH1 = (header_t*)kmalloc(sizeof(header_t), GFP_KERNEL);
+	
 	if ( tempH1 == NULL )
 	{
 		error_code = -ENOMEM;
@@ -91,7 +107,7 @@ int fipc_test_create_channel ( size_t buffer_order, header_t** h1, header_t** h2
 	}
 
 	tempH2 = (header_t*) malloc( sizeof( header_t ) );
-
+//> kmalloc
 	if ( tempH2 == NULL )
 	{
 		error_code = -ENOMEM;
@@ -125,8 +141,11 @@ fail5:
 fail4:
 fail3:
 	free ( buffer2 );
+//>	free_pages((unsigned long)buffer2, page_order);
+
 fail2:
 	free ( buffer1 );
+//> free_pages
 fail1:
 success:
 	return error_code;
@@ -138,13 +157,17 @@ success:
 static inline
 void fipc_test_free_channel ( size_t buffer_order, header_t* h1, header_t* h2 )
 {
+//>	size_t page_order = (buffer_order < PAGE_SHIFT ? 0 : buffer_order - PAGE_SHIFT);
+
 	// Free Buffers
 	free ( h1->tx.buffer );
 	free ( h2->tx.buffer );
+//> free pages
 
 	// Free Headers
 	free( h1 );
 	free( h2 );
+//> kfree
 }
 
 /**
@@ -219,6 +242,8 @@ int fipc_test_blocking_long_send_start ( header_t* channel, message_t** out, uin
 	return 0;
 }
 
+
+////
 /**
  * An integer log base 2 helper function.
  */
@@ -235,5 +260,5 @@ unsigned int ilog2 (unsigned int val)
 	}
 	return ret;
 }
-
+////
 #endif

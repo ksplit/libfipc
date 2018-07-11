@@ -9,6 +9,8 @@
  * NOTE: This library assumes an x86 architecture.
  */
 
+// Ä¿³Î
+
 #ifndef LIBFIPC_TEST_LIBRARY_LOCK
 #define LIBFIPC_TEST_LIBRARY_LOCK
 
@@ -17,6 +19,7 @@
 #define fipc_test_mfence()     asm volatile ( "mfence" :: )
 #define fipc_test_pause()      asm volatile ( "pause\n": : :"memory" )
 #define fipc_test_clflush(X)   asm volatile ( "clflush %0" : "+m" (*(volatile char*)X) )
+
 #define fipc_test_prefetch(X)  __builtin_prefetch( (void*)&X, 0 )
 #define fipc_test_prefetchw(X) __builtin_prefetch( (void*)&X, 1 )
 

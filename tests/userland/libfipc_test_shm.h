@@ -26,6 +26,8 @@ typedef struct shared_mutex
 } shared_mutex_t;
 
 
+
+
 /**
  * This function gets/creates a region of shared memory and places a ptr to it in shm.
  */
@@ -87,7 +89,7 @@ success:
 /**
  * This function unlinks a region of shared memory.
  */
-static inline
+staticd inline
 int fipc_test_shm_unlink ( const char* key )
 {
 	return shm_unlink( key );
