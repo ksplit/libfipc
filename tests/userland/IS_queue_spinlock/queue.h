@@ -7,14 +7,14 @@
 #define LIBFIPC_TEST_QUEUE
 
 //#include <asm-generic/qspinlock.h>
-#include <pthread.h>
-
+#include "spinlock.c"
 // Error Values
 #define SUCCESS              0
 #define NO_MEMORY            1
 #define EMPTY_COLLECTION     2
 
 // Types
+
 typedef struct linked_node_t
 {
 	uint64_t data;
@@ -33,9 +33,8 @@ typedef struct queue_t
 
 	//struct qspinlock H_lock;
 //	struct qspinlock T_lock;
-	pthread_spinlock_t H_lock;
-	pthread_spinlock_t T_lock;
-	
+	spinlock_lock_t H_lock;
+	spinlock_lock_t T_lock;
 
 } queue_t;
 
