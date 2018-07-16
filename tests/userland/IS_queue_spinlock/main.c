@@ -3,7 +3,6 @@
  * @Author   : Abdullah Younis
  */
 
-#include <linux/module.h>
 #include "test.h"
 
 int noinline null_invocation ( void )
@@ -29,11 +28,12 @@ int producer ( void* data )
 	}
 
 	// Begin test
-	fipc_test_thread_take_control_of_CPU();
-
+	//fipc_test_thread_take_control_of_CPU();
+	pthread_mutex_lock(&producer_mutex);
 	// Wait for everyone to be ready
 	fipc_test_FAI(ready_producers);
 
+	//>>
 	while ( !test_ready )
 		fipc_test_pause();
 	
@@ -52,8 +52,10 @@ int producer ( void* data )
 	
 	// End test
 	pr_err( "Producer completed in %llu, and the average was %llu.\n", end - start, (end - start) / transactions );
-	fipc_test_thread_release_control_of_CPU();
+	//fipc_test_thread_release_control_of_CPU();
+	pthread_mutex_unlock(&producer_mutex);
 	fipc_test_FAI(completed_producers);
+
 	return 0;
 }
 
@@ -66,8 +68,8 @@ int consumer ( void* data )
 	int halt = 0;
 
 	// Begin test
-	fipc_test_thread_take_control_of_CPU();
-
+	//fipc_test_thread_take_control_of_CPU();
+	pthread_mutex_lock(&consumer_mutex);
 	// Wait for everyone to be ready
 	fipc_test_FAI( ready_consumers );
 
@@ -99,7 +101,8 @@ int consumer ( void* data )
 	// End test
 	fipc_test_mfence();
 	pr_err("CONSUMER FINISHING\n");
-	fipc_test_thread_release_control_of_CPU();
+	//fipc_test_thread_release_control_of_CPU();
+	pthread_mutex_unlock(&consumer_mutex);
 	fipc_test_FAI( completed_consumers );
 	return 0;
 }
@@ -217,7 +220,7 @@ int controller ( void* data )
 	return 0;
 }
 
-int init_module(void)
+int main(void)
 {
 	kthread_t* controller_thread = fipc_test_thread_spawn_on_CPU ( controller, NULL, producer_cpus[producer_count-1] );
 
@@ -239,9 +242,6 @@ int init_module(void)
 	return 0;
 }
 
-void cleanup_module(void)
-{
-	return;
-}
+
 
 MODULE_LICENSE("GPL");
