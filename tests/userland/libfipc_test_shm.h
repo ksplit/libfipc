@@ -89,7 +89,7 @@ success:
 /**
  * This function unlinks a region of shared memory.
  */
-staticd inline
+static inline
 int fipc_test_shm_unlink ( const char* key )
 {
 	return shm_unlink( key );
