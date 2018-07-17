@@ -51,14 +51,14 @@ int dequeue ( queue_t* q, uint64_t* data )
 	unit32_t limit = 1;
 
 	// Acquire Lock, Enter Critical Section
-	spinlock_lock(&H_lock, &limit);
+	spinlock_lock(&q->H_lock, &limit);
 
 	temp     = q->head;
 	new_head = q->head->next;
 
 	if ( new_head == NULL )
 	{
-		spinlock_lock(&H_lock, &limit);
+		spinlock_lock(&q->H_lock, &limit);
 		return EMPTY_COLLECTION;
 	}
 
@@ -66,7 +66,7 @@ int dequeue ( queue_t* q, uint64_t* data )
 	q->head = new_head;
 
 	// Release Lock, Exit Critical Section
-	spinlock_unlock(&H_lock, &limit);
+	spinlock_unlock(&q->H_lock, &limit);
 
 	return SUCCESS;
 }
