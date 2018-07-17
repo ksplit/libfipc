@@ -118,19 +118,19 @@ void* controller ( void* data )
 	init_queue ( &queue );
 
 	// Node Table Allocation
-	request_t** node_table = (request_t**) vmalloc( producer_count*sizeof(request_t*) );
+	request_t** node_table = (request_t**) malloc( producer_count*sizeof(request_t*) );
 
 	for ( i = 0; i < producer_count; ++i )
-		node_table[i] = (request_t*) vmalloc( transactions*sizeof(request_t) );
+		node_table[i] = (request_t*) malloc( transactions*sizeof(request_t) );
 
-	request_t* haltMsg = (request_t*) vmalloc( consumer_count*sizeof(request_t) );
+	request_t* haltMsg = (request_t*) malloc( consumer_count*sizeof(request_t) );
 	
 	// Thread Allocation
-	pthread_t** cons_threads = (pthread_t**) vmalloc( consumer_count*sizeof(pthread_t*) );
+	pthread_t** cons_threads = (pthread_t**) malloc( consumer_count*sizeof(pthread_t*) );
 	pthread_t** prod_threads = NULL;
 	
 	if ( producer_count >= 2 )
-		prod_threads = (pthread_t**) vmalloc( (producer_count-1)*sizeof(pthread_t*) );
+		prod_threads = (pthread_t**) malloc( (producer_count-1)*sizeof(pthread_t*) );
 
 	// Spawn Threads
 	for ( i = 0; i < (producer_count-1); ++i )
@@ -239,7 +239,8 @@ int main(void)
 	}
 
 // ware_up_process를 하지 않아도 controller_thread가 자동적으로 thread를 spawn하고 하는건가?
-/* wake_up_process(controller_thread)
+/*
+	wake_up_process(controller_thread)
 
 	// Start threads
 	testready = 1;
