@@ -5,7 +5,7 @@
 
 #include "test.h"
 
-int noinline null_invocation(void)
+int __attribute__ ((noinline)) null_invocation(void)
 {
 	asm volatile ("");
 	return 0;
@@ -52,7 +52,15 @@ void* producer(void* data)
 	end = RDTSCP();
 
 	// End test
-	pr_err("Producer completed in %llu, and the average was %llu.\n", end - start, (end - start) / transactions);
+/*	
+	char *str = "Producer completed in ";
+	char *buffer;
+	strcat(str,ulltoa(end-start,buffer,DECIMAL));
+	buffer = ",and the average was ";
+	strcat(str,buffer);
+	strcat(str,ulltoa( (end-start)/transactions, buffer, DECIMAL));
+	perror(str);
+*/	
 	//fipc_test_thread_release_control_of_CPU();
 	pthread_mutex_unlock(&producer_mutex);
 
@@ -102,7 +110,7 @@ void* consumer(void* data)
 
 	// End test
 	fipc_test_mfence();
-	pr_err("CONSUMER FINISHING\n");
+	perror("CONSUMER FINISHING\n");
 	//fipc_test_thread_release_control_of_CPU();
 	pthread_mutex_unlock(&consumer_mutex);
 	fipc_test_FAI(completed_consumers);
@@ -139,8 +147,8 @@ void* controller(void* data)
 
 		if (prod_threads[i] == NULL)
 		{
-			pr_err("%s\n", "Error while creating thread");
-			return -1;
+			perror("Error while creating thread");
+			return NULL;
 		}
 	}
 
@@ -150,8 +158,8 @@ void* controller(void* data)
 
 		if (cons_threads[i] == NULL)
 		{
-			pr_err("%s\n", "Error while creating thread");
-			return -1;
+			perror("Error while creating thread");
+			return NULL;
 		}
 	}
 

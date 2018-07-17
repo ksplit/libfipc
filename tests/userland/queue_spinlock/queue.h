@@ -31,8 +31,8 @@ typedef struct queue_t
 
 	node_t header;
 
-	thread_spinlock H_lock;	
-	thread_spinlock T_lock;	
+ 	struct thread_spinlock H_lock;	
+	struct thread_spinlock T_lock;	
 
 } queue_t;
 

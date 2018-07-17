@@ -10,7 +10,6 @@
 
 #include "../libfipc_test.h"
 #include "queue.h"
-#include "spinlock.h"
 
 // Queue Variable
 static queue_t queue;
@@ -36,5 +35,8 @@ static uint64_t ready_consumers     = 0;
 static uint64_t ready_producers     = 0;
 static uint64_t test_ready          = 0;
 static uint64_t test_finished       = 0;
+
+pthread_mutex_t producer_mutex;
+pthread_mutex_t consumer_mutex;
 
 #endif
