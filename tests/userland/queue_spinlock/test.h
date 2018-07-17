@@ -10,6 +10,7 @@
 
 #include "../libfipc_test.h"
 #include "queue.h"
+#include "spinlock.h"
 
 // Queue Variable
 static queue_t queue;

@@ -6,8 +6,8 @@
 #ifndef LIBFIPC_TEST_QUEUE
 #define LIBFIPC_TEST_QUEUE
 
-//#include <asm-generic/qspinlock.h>
 #include <pthread.h>
+#include "spinlock.h"
 
 // Error Values
 #define SUCCESS              0
@@ -31,11 +31,8 @@ typedef struct queue_t
 
 	node_t header;
 
-	//struct qspinlock H_lock;
-//	struct qspinlock T_lock;
-	pthread_spinlock_t H_lock;
-	pthread_spinlock_t T_lock;
-	
+	thread_spinlock H_lock;	
+	thread_spinlock T_lock;	
 
 } queue_t;
 

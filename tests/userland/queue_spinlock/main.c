@@ -224,12 +224,6 @@ void* controller ( void* data )
 	return NULL;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-int noinline null_invocation ( void )
-{
-	asm volatile ("");
-	return 0;
-}
 
 int main(void)
 {
@@ -264,11 +258,3 @@ int main(void)
 	pthread_exit( NULL );
 	return 0;
 }
-
-
-
-
-
-
-
-

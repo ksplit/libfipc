@@ -1,10 +1,9 @@
-#include <stdio.h>
-#include <inttypes.h>
+/**
+ * @File     : spinlock.c
+ * @Author   : Minjun Cha
+ */
 
-
-struct thread_spinlock {
-  unsigned int locked;       // Is the lock held?
-};
+#include "spinlock.h"
 
 static inline uint
 xchg(volatile uint *addr, uint newval)
@@ -28,7 +27,6 @@ thread_spin_init(struct thread_spinlock *lk)
 void
 thread_spin_lock(struct thread_spinlock *lk)
 {
-
   // The xchg is atomic.
   while(xchg(&lk->locked, 1) != 0)
     ;
