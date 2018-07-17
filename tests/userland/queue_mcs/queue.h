@@ -32,8 +32,21 @@ typedef struct queue_t
 
 	struct qspinlock H_lock;
 	struct qspinlock T_lock;
+    struct qnode lock;
 
 } queue_t;
+
+
+struct qnode {
+    volatile void *next;
+    volatile char locked;
+    char __pad[0] __attribute__((aligned(CACHELINE)));
+};
+
+typedef struct {
+    struct qnode *v __align__;
+    int lock_idx __align__;
+} mcslock;
 
 int init_queue ( queue_t* q );
 int free_queue ( queue_t* q );
