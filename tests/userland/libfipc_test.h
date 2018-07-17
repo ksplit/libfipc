@@ -20,6 +20,9 @@
 #define fipc_test_pause()    asm volatile ( "pause\n": : :"memory" );
 #define fipc_test_clflush(X) asm volatile("clflush %0" : "+m" (*(volatile char*)X))
 
+#define fipc_test_FAI(X)       __sync_fetch_and_add( &X, 1 )
+#define fipc_test_CAS(a,b,c)   __sync_bool_compare_and_swap(a,b,c)
+
 //--
 
 #define likely(x)       __builtin_expect(!!(x), 1)
