@@ -52,8 +52,8 @@ int producer ( void* data )
 	
 	// End test
 	pr_err( "Producer completed in %llu, and the average was %llu.\n", end - start, (end - start) / transactions );
-	//fipc_test_thread_release_control_of_CPU();
-	pthread_mutex_unlock(&producer_mutex);
+	fipc_test_thread_release_control_of_CPU();
+	//pthread_mutex_unlock(&producer_mutex);
 	fipc_test_FAI(completed_producers);
 
 	return 0;
@@ -101,8 +101,8 @@ int consumer ( void* data )
 	// End test
 	fipc_test_mfence();
 	pr_err("CONSUMER FINISHING\n");
-	//fipc_test_thread_release_control_of_CPU();
-	pthread_mutex_unlock(&consumer_mutex);
+	fipc_test_thread_release_control_of_CPU();
+//	pthread_mutex_unlock(&consumer_mutex);
 	fipc_test_FAI( completed_consumers );
 	return 0;
 }
@@ -124,11 +124,11 @@ int controller ( void* data )
 	request_t* haltMsg = (request_t*) vmalloc( consumer_count*sizeof(request_t) );
 	
 	// Thread Allocation
-	kthread_t** cons_threads = (kthread_t**) vmalloc( consumer_count*sizeof(kthread_t*) );
-	kthread_t** prod_threads = NULL;
+	pthread_t** cons_threads = (pthread_t**) vmalloc( consumer_count*sizeof(pthread_t*) );
+	pthread_t** prod_threads = NULL;
 	
 	if ( producer_count >= 2 )
-		prod_threads = (kthread_t**) vmalloc( (producer_count-1)*sizeof(kthread_t*) );
+		prod_threads = (kthread_t**) vmalloc( (producer_count-1)*sizeof(pthread_t*) );
 
 	// Spawn Threads
 	for ( i = 0; i < (producer_count-1); ++i )
@@ -204,14 +204,14 @@ int controller ( void* data )
 		fipc_test_thread_free_thread( cons_threads[i] );
 	
 	for ( i = 0; i < producer_count; ++i )
-		vfree( node_table[i] );
+		free( node_table[i] );
 
 	if ( prod_threads != NULL )
-		vfree( prod_threads );
+		free( prod_threads );
 
-	vfree( cons_threads );
-	vfree( node_table );
-	vfree( haltMsg );
+	free( cons_threads );
+	free( node_table );
+	free( haltMsg );
 	free_queue( &queue );
 
 	// End Experiment
@@ -243,5 +243,3 @@ int main(void)
 }
 
 
-
-MODULE_LICENSE("GPL");

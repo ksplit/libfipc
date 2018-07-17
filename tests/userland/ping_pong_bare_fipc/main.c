@@ -40,6 +40,7 @@ void* requester ( void* data )
 	register int64_t* CACHE_ALIGNED times = malloc( TRANSACTIONS * sizeof( int64_t ) );
 	
 	// Wait to begin test
+	//>>>>>>
 	pthread_mutex_lock( &requester_mutex );
 
 	// Begin test
