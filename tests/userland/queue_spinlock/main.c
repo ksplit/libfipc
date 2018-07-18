@@ -1,6 +1,8 @@
 /**
 * @File     : main.c
 * @Author   : Abdullah Younis
+* @Author   : Minjun Cha
+* @Author   : Jeonghoon Lee
 */
 
 #include "test.h"
@@ -121,7 +123,7 @@ void* controller(void* data)
 	// Node Table Allocation
 	request_t** node_table = (request_t**) malloc( producer_count*sizeof(request_t*) );
 
-	for (i = 0; i < producer_count; ++i )
+	for ( i = 0; i < producer_count; ++i )
 		node_table[i] = (request_t*) malloc( transactions*sizeof(request_t) );
 
 	request_t* haltMsg = (request_t*) malloc( consumer_count*sizeof(request_t) );
@@ -130,49 +132,49 @@ void* controller(void* data)
 	pthread_t** cons_threads = (pthread_t**) malloc( consumer_count*sizeof(pthread_t*) );
 	pthread_t** prod_threads = (pthread_t**) malloc( producer_count*sizeof(pthread_t*) );
 
-	for (i = 0; i < producer_count; ++i) {
+	for (i = 0; i < producer_count; ++i) 
+	{
 		pthread_mutex_init( &producer_mutex[i] , NULL );
 		pthread_mutex_lock( &producer_mutex[i] );
 	}
 
-	for (i = 0; i < consumer_count; ++i){
+	for (i = 0; i < consumer_count; ++i)
+	{
 		pthread_mutex_init( &consumer_mutex[i], NULL );
 		pthread_mutex_lock( &consumer_mutex[i] );
 	}
 
 	// Spawn Threads
-	for (i = 0; i < producer_count; ++i)
+	for ( i = 0; i < producer_count; ++i )
 	{
-		prod_threads[i] = fipc_test_thread_spawn_on_CPU(producer, node_table[i], producer_cpus[i]);
-		printf("a\n");		
-		if (prod_threads[i] == NULL)
+		prod_threads[i] = fipc_test_thread_spawn_on_CPU( producer, node_table[i], producer_cpus[i] );
+		
+		if ( prod_threads[i] == NULL )
 		{
-			perror("Error while creating thread");
-			return NULL;
+			fprintf( stderr, "%s\n", "Error while creating thread" );
+			return -1;
 		}
 	}
 
-	for (i = 0; i < consumer_count; ++i)
+	for ( i = 0; i < consumer_count; ++i )
 	{
-		cons_threads[i] = fipc_test_thread_spawn_on_CPU(consumer, &queue, consumer_cpus[i]);
-		printf("b\n");
-		if (cons_threads[i] == NULL)
+		cons_threads[i] = fipc_test_thread_spawn_on_CPU( consumer, &queue, consumer_cpus[i] );
+
+		if ( cons_threads[i] == NULL )
 		{
-			perror("Error while creating thread");
-			return NULL;
+			fprintf( stderr, "%s\n", "Error while creating thread" );
+			return -1;
 		}
 	}
 
-	for(i = 0; i < producer_count; ++i) 
+	for ( i = 0; i < producer_count; ++i )
 	{
-		printf("c\n");
-		pthread_mutex_unlock(&producer_mutex[i]);
+		pthread_mutex_unlock( &producer_mutex[i] );
 	}
 
-	for(i = 0; i < consumer_count; ++i)
+	for ( i = 0; i < consumer_count; ++i )
 	{
-		printf("d\n");
-		pthread_mutex_unlock(&consumer_mutex[i]);
+		pthread_mutex_unlock( &consumer_mutex[i] );
 	}
 
 	//fipc_test_mfence();
@@ -186,42 +188,39 @@ void* controller(void* data)
 		haltMsg[i].next = 0;
 		haltMsg[i].data = HALT;
 
-		enqueue(&queue, &haltMsg[i]);
+		enqueue( &queue, &haltMsg[i] );
 	}
-
-
 
 	//fipc_test_mfence();
 
 	// Clean up
-	for (i = 0; i < producer_count; ++i)
-		fipc_test_thread_free_thread(prod_threads[i]);
+	for ( i = 0; i < producer_count; ++i )
+		fipc_test_thread_free_thread( prod_threads[i] );
 
-	for (i = 0; i < consumer_count; ++i)
-		fipc_test_thread_free_thread(cons_threads[i]);
+	for ( i = 0; i < consumer_count; ++i )
+		fipc_test_thread_free_thread( cons_threads[i] );
 
-	for (i = 0; i < producer_count; ++i)
-		free(node_table[i]);
+	for ( i = 0; i < producer_count; ++i )
+		free( node_table[i] );
 /*
 
 	if (prod_threads != NULL)
 		free(prod_threads);
 
-	free(cons_threads);
-	free(node_table);
-	free(haltMsg);
-	free_queue(&queue);
+	free( cons_threads );
+	free( node_table );
+	free( haltMsg );
+	free_queue( &queue );
 */
 	// End Experiment
 	//fipc_test_mfence();
 	test_finished = 1;
-	return NULL;
+	return 0;
 }
 
-int main(void)
+int main ( void )
 {
 	//pthread_t* controller_thread = NULL;
-
 
     controller(NULL);
 
@@ -233,9 +232,6 @@ int main(void)
 		fprintf(stderr, "%s\n", "Error while creating thread");
 		return -1;
 	}
-
-
-
 
 
 	// Start threads
@@ -253,6 +249,6 @@ int main(void)
 	// Clean up
 	fipc_test_thread_free_thread(controller_thread);
 #endif
-	pthread_exit(NULL);
+	pthread_exit( NULL );
 	return 0;
 }
