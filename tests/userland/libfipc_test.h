@@ -27,6 +27,9 @@
 #define PAGES_NEEDED(x) \
 				((1UL << (x)) < PAGE_SIZE ? 1 : (1UL << (x)) / PAGE_SIZE)
 
+#define fipc_test_FAI(X)       __sync_fetch_and_add( &X, 1 )
+#define fipc_test_CAS(a,b,c)   __sync_bool_compare_and_swap(a,b,c)
+
 #include <stdlib.h>
 #include <sched.h>
 #include <unistd.h>
