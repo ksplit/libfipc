@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <inttypes.h>
 
+typedef unsigned int uint;
 
 struct thread_spinlock {
   unsigned int locked;       // Is the lock held?

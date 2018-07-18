@@ -4,6 +4,7 @@
 */
 
 #include "test.h"
+#include <stdlib.h>
 
 int __attribute__ ((noinline)) null_invocation(void)
 {
@@ -52,15 +53,8 @@ void* producer(void* data)
 	end = RDTSCP();
 
 	// End test
-/*	
-	char *str = "Producer completed in ";
-	char *buffer;
-	strcat(str,ulltoa(end-start,buffer,DECIMAL));
-	buffer = ",and the average was ";
-	strcat(str,buffer);
-	strcat(str,ulltoa( (end-start)/transactions, buffer, DECIMAL));
-	perror(str);
-*/	
+	printf("Producer completed in %lld and the average was %lld", end-start, (end-start)/transactions);
+	
 	//fipc_test_thread_release_control_of_CPU();
 	pthread_mutex_unlock(&producer_mutex);
 
@@ -81,13 +75,14 @@ void* consumer(void* data)
 	//fipc_test_thread_take_control_of_CPU();
 	pthread_mutex_lock(&consumer_mutex);
 	// Wait for everyone to be ready
+
 	fipc_test_FAI(ready_consumers);
 
 	while (!test_ready)
 		fipc_test_pause();
-
+	printf("comeon\n");
 	fipc_test_mfence();
-
+	printf("why not");
 	// Consume
 	while (!halt)
 	{
@@ -107,7 +102,6 @@ void* consumer(void* data)
 			}
 		}
 	}
-
 	// End test
 	fipc_test_mfence();
 	perror("CONSUMER FINISHING\n");
@@ -162,7 +156,6 @@ void* controller(void* data)
 			return NULL;
 		}
 	}
-
 	/*
 	// Start Threads
 	for ( i = 0; i < (producer_count-1); ++i )
@@ -174,11 +167,17 @@ void* controller(void* data)
 
 	// Wait for threads to be ready for test
 	while (ready_consumers < consumer_count)
+	{
+		//printf("w\n");
 		fipc_test_pause();
+	}
 
 	while (ready_producers < (producer_count - 1))
+	{
 		fipc_test_pause();
+	}
 
+	printf("d\n");
 	fipc_test_mfence();
 
 	// Begin Test
@@ -245,17 +244,16 @@ int main(void)
 	}
 
 
-/*
-	wake_up_process(controller_thread)
+
 
 
 	// Start threads
-	testready = 1;
+	test_ready = 1;
 
 	// Wait for thread completion
-	fipc_test_thread_wait_for_thread( controller_thread );
-*/
+//	fipc_test_thread_wait_for_thread( controller_thread );/
 
+	
 	while (!test_finished)
 		fipc_test_pause();
 
