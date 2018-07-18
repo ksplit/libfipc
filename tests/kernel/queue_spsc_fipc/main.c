@@ -301,8 +301,9 @@ int init_module(void)
 
 	wake_up_process( controller_thread );
 
-	while ( !test_finished )
-		fipc_test_pause();
+	while ( !test_finished ) {
+		cond_resched();
+	}
 
 	fipc_test_mfence();
 	fipc_test_thread_free_thread( controller_thread );
