@@ -36,6 +36,8 @@ typedef struct queue_t
 
 } queue_t;
 
+extern __thread volatile struct qnode I[MAX_MCS_LOCKS];
+extern struct atomic_uint64_t lock_used[MAX_MCS_LOCKS];
 
 struct qnode {
     volatile void *next;
