@@ -16,7 +16,8 @@ int __attribute__ ((noinline)) null_invocation(void)
 void* producer(void* data)
 {
 	queue_t*   q = &queue;
-	request_t* t = (request_t*)data;
+	request_t* t = (request_t*)data->node_table;
+	int i = data->mutex_num;
 
 	register uint64_t transaction_id;
 	register uint64_t start;
@@ -31,7 +32,7 @@ void* producer(void* data)
 
 	// Begin test
 	// fipc_test_thread_take_control_of_CPU();
-	pthread_mutex_lock(&producer_mutex);
+	pthread_mutex_lock(&producer_mutex[i]);
 	// Wait for everyone to be ready
 
 	fipc_test_FAI(ready_producers);
@@ -57,7 +58,7 @@ void* producer(void* data)
 	printf("Producer completed in %llu and the average was %llu\n", end-start, (end-start)/transactions);
 	
 	//fipc_test_thread_release_control_of_CPU();
-	pthread_mutex_unlock(&producer_mutex);
+	pthread_mutex_unlock(&producer_mutex[i]);
 
 	fipc_test_FAI(completed_producers);
 
@@ -66,15 +67,15 @@ void* producer(void* data)
 
 void* consumer(void* data)
 {
-	queue_t* q = (queue_t*)data;
-
+	queue_t* q = (queue_t*)data->que;
+	int i = data->mutex_num;
 	uint64_t request;
 
 	int halt = 0;
 
 	// Begin test
 	// fipc_test_thread_take_control_of_CPU();
-	pthread_mutex_lock(&consumer_mutex);
+	pthread_mutex_lock(&consumer_mutex[i]);
 	// Wait for everyone to be ready
 
 	fipc_test_FAI(ready_consumers);
@@ -107,7 +108,7 @@ void* consumer(void* data)
 	fipc_test_mfence();
 	perror("CONSUMER FINISHING\n");
 	//fipc_test_thread_release_control_of_CPU();
-	pthread_mutex_unlock(&consumer_mutex);
+	pthread_mutex_unlock(&consumer_mutex[i]);
 	fipc_test_FAI(completed_consumers);
 	return NULL;
 }
@@ -128,7 +129,7 @@ void* controller(void* data)
 
 	request_t* haltMsg = (request_t*) malloc( consumer_count*sizeof(request_t) );
 	
-	// Thread Allocation
+	// Thread Allocation€
 	pthread_t** cons_threads = (pthread_t**) malloc( consumer_count*sizeof(pthread_t*) );
 	pthread_t** prod_threads = (pthread_t**) malloc( producer_count*sizeof(pthread_t*) );
 
@@ -147,7 +148,12 @@ void* controller(void* data)
 	// Spawn Threads
 	for ( i = 0; i < producer_count; ++i )
 	{
-		prod_threads[i] = fipc_test_thread_spawn_on_CPU( producer, node_table[i], producer_cpus[i] );
+		struct Arg_pthread_prod data;
+		data->node_t = node_table[i];
+		data->mutex_num = i;
+
+		//prod_threads[i] = fipc_test_thread_spawn_on_CPU( producer, node_table[i], producer_cpus[i]);
+		prod_threads[i] = fipc_test_thread_spawn_on_CPU( producer, &data, producer_cpus[i]);
 		
 		if ( prod_threads[i] == NULL )
 		{
@@ -158,7 +164,11 @@ void* controller(void* data)
 
 	for ( i = 0; i < consumer_count; ++i )
 	{
-		cons_threads[i] = fipc_test_thread_spawn_on_CPU( consumer, &queue, consumer_cpus[i] );
+		struct Arg_pthread_cons data;
+		data->que = &queue;
+		data->mutex_num = i;
+		//cons_threads[i] = fipc_test_thread_spawn_on_CPU( consumer, &queue, consumer_cpus[i]);
+		cons_threads[i] = fipc_test_thread_spawn_on_CPU( consumer, &queue, consumer_cpus[i]);
 
 		if ( cons_threads[i] == NULL )
 		{

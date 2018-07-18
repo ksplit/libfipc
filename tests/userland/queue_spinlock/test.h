@@ -36,7 +36,18 @@ static uint64_t ready_producers     = 0;
 static uint64_t test_ready          = 0;
 static uint64_t test_finished       = 0;
 
-pthread_mutex_t producer_mutex[4];
-pthread_mutex_t consumer_mutex[4];
+pthread_mutex_t producer_mutexes[4];
+pthread_mutex_t consumer_mutexes[4];
+
+
+struct Arg_pthread_prod{
+	request_t* node_t;
+	int mutex_num;
+};
+
+struct Arg_pthread_cons{
+	queue_t* que;
+	int mutex_num;
+};
 
 #endif
