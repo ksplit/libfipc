@@ -235,6 +235,10 @@ int main(void)
 {
 	pthread_t* controller_thread = NULL;
 
+
+        controller(NULL);
+
+#if 0
 	// Create Threads
 	controller_thread = fipc_test_thread_spawn_on_CPU(controller, NULL, producer_cpus[producer_count - 1]);
 	if (controller_thread == NULL)
@@ -261,6 +265,7 @@ int main(void)
 
 	// Clean up
 	fipc_test_thread_free_thread(controller_thread);
+#endif
 	pthread_exit(NULL);
 	return 0;
 }
