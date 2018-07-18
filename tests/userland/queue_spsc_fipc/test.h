@@ -21,8 +21,9 @@ module_param( producer_count, byte, 0 );
 module_param( consumer_count, byte, 0 );
 #endif
 
-static uint8_t producer_cpus[32] = { 0, 8, 16, 24 };
-static uint8_t consumer_cpus[32] = { 4, 12, 20, 28 };
+//d820 Numa node 0: 0,4,8,12,16,20,24,28
+static uint8_t producer_cpus[32] = {  8, 0, 16, 24 };
+static uint8_t consumer_cpus[32] = { 12, 4, 20, 28 };
 #define pr_err printf
 
 // Queue Variables

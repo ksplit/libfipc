@@ -23,6 +23,9 @@ int producer ( void* data )
 	node_t*   t = node_tables[rank];
 	queue_t** q = prod_queues[rank];
 
+        pr_err( "Producer %llu starting...\n", rank );
+
+
 	// Touching data
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 	{
@@ -30,7 +33,7 @@ int producer ( void* data )
 	}
 
 	// Begin test
-	fipc_test_thread_take_control_of_CPU();
+	//fipc_test_thread_take_control_of_CPU();
 
 	// Wait for everyone to be ready
 	fipc_test_FAI(ready_producers);
@@ -74,8 +77,11 @@ int consumer ( void* data )
 	uint64_t rank = *(uint64_t*)data;
 	queue_t** q = cons_queues[rank];
 
+	pr_err( "Consumer %llu starting\n", rank );
+
+
 	// Begin test
-	fipc_test_thread_take_control_of_CPU();
+	// fipc_test_thread_take_control_of_CPU();
 
 	// Wait for everyone to be ready
 	fipc_test_FAI( ready_consumers );
@@ -163,7 +169,9 @@ int controller ( void* data )
 	kthread_t** cons_threads = (kthread_t**) vmalloc( consumer_count*sizeof(kthread_t*) );
 	kthread_t** prod_threads = NULL;
 
-	if ( producer_count >= 2 )
+	// In case there is only one producer, the controller thread becomes 
+	// that producer
+	if ( producer_count > 1 )
 		prod_threads = (kthread_t**) vmalloc( (producer_count-1)*sizeof(kthread_t*) );
 
 	uint64_t* p_rank = (uint64_t*) vmalloc( producer_count*sizeof(uint64_t) );
