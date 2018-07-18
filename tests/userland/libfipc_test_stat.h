@@ -95,6 +95,7 @@ int64_t fipc_test_stat_get_tolerance ( int64_t* sample_set, uint64_t sample_size
 /**
  * This function populates the stat data structure with statistics.
  */
+static inline
 int fipc_test_stat_calculate_stats ( int64_t* sample_set, uint64_t sample_size, stats_t* stat )
 {
 	// Error Checking
@@ -352,6 +353,7 @@ int fipc_test_stat_print_zhistogram ( int64_t* sample_set, uint64_t sample_size,
 /**
  * This function prints statistics of the sample set to stdout.
  */
+static inline
 int fipc_test_stat_print_stats ( int64_t* sample_set, uint64_t sample_size, stats_t* stat )
 {
 	printf ( "-------------------------------------------------------------------------------\n" );
@@ -414,6 +416,7 @@ int fipc_test_stat_print_stats ( int64_t* sample_set, uint64_t sample_size, stat
 /**
  * This function prints a specified amount of raw data.
  */
+static inline
 int fipc_test_stat_print_raw ( int64_t* sample_set, uint64_t sample_size, uint64_t print_count )
 {
 	if ( print_count > sample_size )
@@ -429,6 +432,7 @@ int fipc_test_stat_print_raw ( int64_t* sample_set, uint64_t sample_size, uint64
 /**
  * This function calculates and prints statistics of the given sample set.
  */
+static inline
 int fipc_test_stat_get_and_print_stats ( int64_t* sample_set, uint64_t sample_size )
 {
 	int error_code = 0;
