@@ -35,7 +35,7 @@
 
 #define PAGES_NEEDED(x) \
 				((1UL << (x)) < PAGE_SIZE ? 1 : (1UL << (x)) / PAGE_SIZE)
-
+#include <stdio.h>
 #include <stdlib.h>
 #include <sched.h>
 #include <unistd.h>

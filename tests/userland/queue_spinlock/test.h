@@ -36,4 +36,7 @@ static uint64_t ready_producers     = 0;
 static uint64_t test_ready          = 0;
 static uint64_t test_finished       = 0;
 
+pthread_mutex_t producer_mutex;
+pthread_mutex_t consumer_mutex;
+
 #endif
