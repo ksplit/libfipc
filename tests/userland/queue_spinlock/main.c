@@ -4,7 +4,6 @@
 */
 
 #include "test.h"
-#include <stdlib.h>
 
 int __attribute__ ((noinline)) null_invocation(void)
 {
@@ -30,7 +29,7 @@ void* producer(void* data)
 
 	// Begin test
 	// fipc_test_thread_take_control_of_CPU();
-	pthread_mutex_lock(&producer_mutex[0]);
+	pthread_mutex_lock(&producer_mutex);
 	// Wait for everyone to be ready
 
 	fipc_test_FAI(ready_producers);
@@ -53,10 +52,10 @@ void* producer(void* data)
 	end = RDTSCP();
 
 	// End test
-	printf("Producer completed in %lld and the average was %lld", end-start, (end-start)/transactions);
+	printf("Producer completed in %llu and the average was %llu\n", end-start, (end-start)/transactions);
 	
 	//fipc_test_thread_release_control_of_CPU();
-	pthread_mutex_unlock(&producer_mutex[0]);
+	pthread_mutex_unlock(&producer_mutex);
 
 	fipc_test_FAI(completed_producers);
 
@@ -73,7 +72,7 @@ void* consumer(void* data)
 
 	// Begin test
 	// fipc_test_thread_take_control_of_CPU();
-	pthread_mutex_lock(&consumer_mutex[0]);
+	pthread_mutex_lock(&consumer_mutex);
 	// Wait for everyone to be ready
 
 	fipc_test_FAI(ready_consumers);
@@ -106,13 +105,13 @@ void* consumer(void* data)
 	fipc_test_mfence();
 	perror("CONSUMER FINISHING\n");
 	//fipc_test_thread_release_control_of_CPU();
-	pthread_mutex_unlock(&consumer_mutex[0]);
+	pthread_mutex_unlock(&consumer_mutex);
 	fipc_test_FAI(completed_consumers);
 	return NULL;
 }
 
 
-void controller(void* data)
+void* controller(void* data)
 {
 	int i;
 
@@ -122,7 +121,7 @@ void controller(void* data)
 	// Node Table Allocation
 	request_t** node_table = (request_t**) malloc( producer_count*sizeof(request_t*) );
 
-	for ( i = 0; i < producer_count; ++i )
+	for (i = 0; i < producer_count; ++i )
 		node_table[i] = (request_t*) malloc( transactions*sizeof(request_t) );
 
 	request_t* haltMsg = (request_t*) malloc( consumer_count*sizeof(request_t) );
@@ -131,21 +130,21 @@ void controller(void* data)
 	pthread_t** cons_threads = (pthread_t**) malloc( consumer_count*sizeof(pthread_t*) );
 	pthread_t** prod_threads = (pthread_t**) malloc( producer_count*sizeof(pthread_t*) );
 
-	for(i = 0; i < producer_count; i++) {
-		pthread_mutex_init( &producer_mutex[i], NULL );
+	for (i = 0; i < producer_count; ++i) {
+		pthread_mutex_init( &producer_mutex[i] , NULL );
 		pthread_mutex_lock( &producer_mutex[i] );
 	}
 
-	for(i = 0; i < consumer_count; i++){
+	for (i = 0; i < consumer_count; ++i){
 		pthread_mutex_init( &consumer_mutex[i], NULL );
-		pthread_mutex_lock( &consumer_mutex[i]);
+		pthread_mutex_lock( &consumer_mutex[i] );
 	}
 
 	// Spawn Threads
 	for (i = 0; i < producer_count; ++i)
 	{
 		prod_threads[i] = fipc_test_thread_spawn_on_CPU(producer, node_table[i], producer_cpus[i]);
-
+		printf("a\n");		
 		if (prod_threads[i] == NULL)
 		{
 			perror("Error while creating thread");
@@ -156,7 +155,7 @@ void controller(void* data)
 	for (i = 0; i < consumer_count; ++i)
 	{
 		cons_threads[i] = fipc_test_thread_spawn_on_CPU(consumer, &queue, consumer_cpus[i]);
-
+		printf("b\n");
 		if (cons_threads[i] == NULL)
 		{
 			perror("Error while creating thread");
@@ -166,20 +165,20 @@ void controller(void* data)
 
 	for(i = 0; i < producer_count; ++i) 
 	{
-		pthread_mutex_unlock( &producer_mutex[i]);
+		printf("c\n");
+		pthread_mutex_unlock(&producer_mutex[i]);
 	}
 
 	for(i = 0; i < consumer_count; ++i)
 	{
-		pthread_mutex_unlock( &consumer_mutex[i]);
+		printf("d\n");
+		pthread_mutex_unlock(&consumer_mutex[i]);
 	}
 
 	//fipc_test_mfence();
 
 	// Begin Test
 	test_ready = 1;
-
-
 
 	// Tell consumers to halt
 	for (i = 0; i < consumer_count; ++i)
@@ -203,6 +202,7 @@ void controller(void* data)
 
 	for (i = 0; i < producer_count; ++i)
 		free(node_table[i]);
+/*
 
 	if (prod_threads != NULL)
 		free(prod_threads);
@@ -211,9 +211,9 @@ void controller(void* data)
 	free(node_table);
 	free(haltMsg);
 	free_queue(&queue);
-
+*/
 	// End Experiment
-	fipc_test_mfence();
+	//fipc_test_mfence();
 	test_finished = 1;
 	return NULL;
 }
@@ -223,7 +223,7 @@ int main(void)
 	//pthread_t* controller_thread = NULL;
 
 
-    controller();
+    controller(NULL);
 
 #if 0
 	// Create Threads
