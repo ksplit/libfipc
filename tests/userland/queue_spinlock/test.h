@@ -40,7 +40,7 @@ static uint64_t test_finished       = 0;
 static uint64_t mutex_num_producer = 0;
 static uint64_t mutex_num_consumer = 0;
 
-pthread_mutex_t producer_mutexes[4];
-pthread_mutex_t consumer_mutexes[4];
+pthread_mutex_t producer_mutex[4];
+pthread_mutex_t consumer_mutex[4];
 
 #endif

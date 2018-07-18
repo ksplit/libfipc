@@ -21,6 +21,8 @@ void* producer(void* data)
 	register uint64_t transaction_id;
 	register uint64_t start;
 	register uint64_t end;
+	
+	int temp = 0;
 
 	// Touching data
 	for (transaction_id = 0; transaction_id < transactions; transaction_id++)
@@ -32,17 +34,18 @@ void* producer(void* data)
 	// Begin test
 	// fipc_test_thread_take_control_of_CPU();
 	pthread_mutex_lock(&producer_mutex[mutex_num_producer]);
+	temp = mutex_num_producer;
 	// Wait for everyone to be ready
 
-	fipc_test_FAI(ready_producers);
+	// fipc_test_FAI(ready_producers);
 	fipc_test_FAI(mutex_num_producer);
 
-	//>>
+	/*
 	while (!test_ready)
 		fipc_test_pause();
-
+	
 	fipc_test_mfence();
-
+	*/
 	start = RDTSC_START();
 
 	for (transaction_id = 0; transaction_id < transactions; transaction_id++)
@@ -53,14 +56,13 @@ void* producer(void* data)
 	}
 
 	end = RDTSCP();
-
 	// End test
-	printf("Producer completed in %llu and the average was %llu\n", end-start, (end-start)/transactions);
+	printf("Producer Mutex Number is  %d,  Producer completed in %llu and the average was %llu\n", temp, end-start, (end-start)/transactions);
 	
 	//fipc_test_thread_release_control_of_CPU();
 	pthread_mutex_unlock(&producer_mutex[mutex_num_producer]);
 
-	fipc_test_FAI(completed_producers);
+	// fipc_test_FAI(completed_producers);
 
 	return NULL;
 }
@@ -72,20 +74,22 @@ void* consumer(void* data)
 	uint64_t request;
 
 	int halt = 0;
-
+	int temp = 0;
 	// Begin test
 	// fipc_test_thread_take_control_of_CPU();
 	pthread_mutex_lock(&consumer_mutex[mutex_num_consumer]);
-	// Wait for everyone to be ready
+	temp = mutex_num_consumer;
 
-	fipc_test_FAI(ready_consumers);
+	// Wait for everyone to be ready
+	// fipc_test_FAI(ready_consumers);
 	fipc_test_FAI(mutex_num_consumer);
 
+	/*
 	while (!test_ready)
 		fipc_test_pause();
 	
 	fipc_test_mfence();
-	
+	*/
 	// Consume
 	while (!halt)
 	{
@@ -106,11 +110,12 @@ void* consumer(void* data)
 		}
 	}
 	// End test
-	fipc_test_mfence();
-	perror("CONSUMER FINISHING\n");
+	// fipc_test_mfence();
+	printf("Consumer Mutex Number is %d, CONSUMER FINISHING\n", temp);
+	
 	//fipc_test_thread_release_control_of_CPU();
 	pthread_mutex_unlock(&consumer_mutex[mutex_num_consumer]);
-	fipc_test_FAI(completed_consumers);
+	// fipc_test_FAI(completed_consumers);
 	return NULL;
 }
 
@@ -154,7 +159,7 @@ void* controller(void* data)
 		if ( prod_threads[i] == NULL )
 		{
 			fprintf( stderr, "%s\n", "Error while creating thread" );
-			return -1;
+			return NULL;
 		}
 	}
 
@@ -165,7 +170,7 @@ void* controller(void* data)
 		if ( cons_threads[i] == NULL )
 		{
 			fprintf( stderr, "%s\n", "Error while creating thread" );
-			return -1;
+			return NULL;
 		}
 	}
 
@@ -202,8 +207,8 @@ void* controller(void* data)
 	for ( i = 0; i < consumer_count; ++i )
 		fipc_test_thread_free_thread( cons_threads[i] );
 
-	for ( i = 0; i < producer_count; ++i )
-		free( node_table[i] );
+//	for ( i = 0; i < producer_count; ++i )
+//		free( node_table[i] );
 /*
 
 	if (prod_threads != NULL)
