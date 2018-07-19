@@ -49,10 +49,10 @@ producer ( void* data )
 
 	pr_err( "Producer %lu starting...\n", rank );
 	// Touching data
-	for ( transaction_id = 0; transaction_id < mem_pool_size; transaction_id++ )
-	{
-		t[transaction_id].field = 0;
-	}
+	//for ( transaction_id = 0; transaction_id < mem_pool_size; transaction_id++ )
+	//{
+	//	t[transaction_id].field = 0;
+	//}
 
 	// Begin test
 	//fipc_test_thread_take_control_of_CPU();
@@ -74,7 +74,8 @@ producer ( void* data )
 
 		node->field = transaction_id;
 		//prod_sum += t[transaction_id].field;
-		//pr_err("Sending, trid:%llu\n", (unsigned long long) transaction_id);
+		//pr_err("Sending, tid:%lu, mask%lu, mod:%lu\n", 
+		//		transaction_id, obj_id_mask, transaction_id & obj_id_mask);
 
 		if ( enqueue( q[cons_id], node ) != SUCCESS )
 		{
@@ -167,7 +168,7 @@ void * controller ( void* data )
 	uint64_t i;
 	uint64_t j;
 
-	mem_pool_size = 1 << (mem_pool_order - 1);
+	mem_pool_size = 1 << mem_pool_order;
 
 	// Queue Allocation
 	queue_t* queues = (queue_t*) vmalloc( producer_count*consumer_count*sizeof(queue_t) );
