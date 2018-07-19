@@ -68,7 +68,7 @@ producer ( void* data )
 	start = RDTSC_START();
 
 	
-	for ( transaction_id = 0; transaction_id < transactions; transaction_id++)
+	for ( transaction_id = 0; transaction_id < consumer_count * transactions; transaction_id++)
 	{
 		node_t *node = &t[transaction_id & obj_id_mask]; 
 
@@ -95,7 +95,7 @@ producer ( void* data )
 	// End test
 	pr_err( "Producer %llu finished. Cycles per message %llu\n", 
 			(unsigned long long) rank, 
-			(unsigned long long)(end - start) / transactions);
+			(unsigned long long)(end - start) / (consumer_count * transactions));
 
 	fipc_test_thread_release_control_of_CPU();
 	fipc_test_FAI(completed_producers);
@@ -133,7 +133,7 @@ consumer ( void* data )
 
 	start = RDTSC_START();
 
-	for ( transaction_id = 0; transaction_id < transactions; transaction_id++)
+	for ( transaction_id = 0; transaction_id < producer_count * transactions; transaction_id++)
 	{
 		//pr_err("Receiving, trid:%llu\n", (unsigned long long)transaction_id);
 		// Receive and unmarshall 
@@ -154,7 +154,7 @@ consumer ( void* data )
 	fipc_test_mfence();
 	pr_err( "Consumer %llu finished. Cycles per message %llu (%s)\n", 
 			(unsigned long long) rank, 
-			(unsigned long long) (end - start) / transactions, 
+			(unsigned long long) (end - start) / (producer_count * transactions), 
 			prod_sum == cons_sum ? "PASSED" : "FAILED");
 
 	fipc_test_thread_release_control_of_CPU();
@@ -198,11 +198,11 @@ void * controller ( void* data )
 	// Node Table Allocation
 	node_tables = (node_t**) vmalloc( producer_count*sizeof(node_t*) );
 
-	pr_err("Allocating %lu bytes for the pool of %lu objects (pool order:%lu)\n", 
+	for ( i = 0; i < producer_count; ++i ) {
+		pr_err("Allocating %lu bytes for the pool of %lu objects (pool order:%lu)\n", 
 			mem_pool_size*sizeof(node_t), mem_pool_size, mem_pool_order);
-
-	for ( i = 0; i < producer_count; ++i )
 		node_tables[i] = (node_t*) vmalloc( mem_pool_size*sizeof(node_t) );
+	}
 
 	node_t* haltMsg = (node_t*) vmalloc( consumer_count*sizeof(node_t) );
 
@@ -342,13 +342,21 @@ int init_module(void)
 #ifndef __KERNEL__
 	if (argc == 2) {
 		transactions = (uint64_t) strtoul(argv[1], NULL, 10);
-		printf("Starting tests with %lu transactions\n", transactions);
+		printf("Starting test with %lu transactions\n", transactions);
 
 	} else if (argc == 3) {
 		producer_count = strtoul(argv[1], NULL, 10);
 		consumer_count = strtoul(argv[2], NULL, 10);
-		printf("%s, prod count %d | cons count %d\n", __func__, producer_count, consumer_count);
+		printf("Starting test with prod count %d, cons count %d\n",
+				producer_count, consumer_count);
+	} else if (argc == 4) {
+		producer_count = strtoul(argv[1], NULL, 10);
+		consumer_count = strtoul(argv[2], NULL, 10);
+		transactions = (uint64_t) strtoul(argv[3], NULL, 10);
+		printf("Starting test with prod count %d, cons count %d, and %lu transactions\n", 
+				producer_count, consumer_count, transactions);
 	}
+
 #endif
 	kthread_t* controller_thread = fipc_test_thread_spawn_on_CPU ( controller, NULL, producer_cpus[producer_count-1] );
 
