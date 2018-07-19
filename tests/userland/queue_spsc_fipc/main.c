@@ -37,7 +37,11 @@ producer ( void* data )
 	uint64_t transaction_id;
 	uint64_t start;
 	uint64_t end;
-	uint64_t i = 0;
+	uint64_t cons_id = 0;
+
+	// We have a fixed size object pool, we pick one object 
+	// from that pool as transaction_id mod pool_size
+	uint64_t obj_id_mask = ((1UL << mem_pool_order) - 1);
 
 	uint64_t rank = *(uint64_t*)data;
 	node_t*   t = node_tables[rank];
@@ -45,7 +49,7 @@ producer ( void* data )
 
 	pr_err( "Producer %lu starting...\n", rank );
 	// Touching data
-	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
+	for ( transaction_id = 0; transaction_id < mem_pool_size; transaction_id++ )
 	{
 		t[transaction_id].field = 0;
 	}
@@ -63,19 +67,26 @@ producer ( void* data )
 
 	start = RDTSC_START();
 
+	
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++)
 	{
-		t[transaction_id].field = transaction_id;
+		node_t *node = &t[transaction_id & obj_id_mask]; 
+
+		node->field = transaction_id;
 		//prod_sum += t[transaction_id].field;
 		//pr_err("Sending, trid:%llu\n", (unsigned long long) transaction_id);
 
-		if ( enqueue( q[i], &t[transaction_id] ) != SUCCESS )
+		if ( enqueue( q[cons_id], node ) != SUCCESS )
 		{
-			pr_err("Failed to enqueue tid:%llu\n", (unsigned long long)transaction_id);
+			pr_err("Failed to enqueue tid:%llu\n", 
+				(unsigned long long)transaction_id);
 			break;
 		}
 
-		++i; if (i >= consumer_count) i = 0;
+		++cons_id;
+
+		if (cons_id >= consumer_count) 
+			cons_id = 0;
 	}
 
 	end = RDTSCP();
@@ -99,7 +110,7 @@ consumer ( void* data )
 {
 	uint64_t start;
 	uint64_t end;
-	uint64_t i    = 0;
+	uint64_t prod_id = 0;
 	uint64_t transaction_id;
 	node_t   *node;
 
@@ -125,7 +136,7 @@ consumer ( void* data )
 	{
 		//pr_err("Receiving, trid:%llu\n", (unsigned long long)transaction_id);
 		// Receive and unmarshall 
-		if ( dequeue( q[i], &node ) != SUCCESS ) {
+		if ( dequeue( q[prod_id], &node ) != SUCCESS ) {
 			pr_err("Failed to enqueue tid:%llu\n", 
 				(unsigned long long) transaction_id);
 			break;
@@ -133,7 +144,7 @@ consumer ( void* data )
 		}
 		//cons_sum += node->field; 
 
-		++i; if ( i >= producer_count ) i = 0;
+		++prod_id; if ( prod_id >= producer_count ) prod_id = 0;
 	}
 
 	end = RDTSCP();
@@ -155,6 +166,8 @@ void * controller ( void* data )
 {
 	uint64_t i;
 	uint64_t j;
+
+	mem_pool_size = 1 << (mem_pool_order - 1);
 
 	// Queue Allocation
 	queue_t* queues = (queue_t*) vmalloc( producer_count*consumer_count*sizeof(queue_t) );
@@ -184,8 +197,11 @@ void * controller ( void* data )
 	// Node Table Allocation
 	node_tables = (node_t**) vmalloc( producer_count*sizeof(node_t*) );
 
+	pr_err("Allocating %lu bytes for the pool of %lu objects (pool order:%lu)\n", 
+			mem_pool_size*sizeof(node_t), mem_pool_size, mem_pool_order);
+
 	for ( i = 0; i < producer_count; ++i )
-		node_tables[i] = (node_t*) vmalloc( transactions*sizeof(node_t) );
+		node_tables[i] = (node_t*) vmalloc( mem_pool_size*sizeof(node_t) );
 
 	node_t* haltMsg = (node_t*) vmalloc( consumer_count*sizeof(node_t) );
 

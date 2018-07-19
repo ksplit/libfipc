@@ -35,16 +35,22 @@ int fipc_test_thread_pin_process_to_CPU ( pid_t pid, size_t cpu_pin )
 static inline
 int fipc_test_thread_pin_thread_to_CPU ( pthread_t thread, size_t cpu_pin )
 {
-	if ( cpu_pin >= NUM_CORES )
+	printf("Pinning thread to cpu:%zu\n", cpu_pin); 
+
+	if ( cpu_pin >= NUM_CORES ) {
+		printf("%s:Error: cpu:%zu id exeeds number of cores %lu\n", 
+			__func__, cpu_pin, NUM_CORES); 
+
 		return -EINVAL;
+	}
 
 	cpu_set_t cpu_mask;
 	CPU_ZERO( &cpu_mask );
 	CPU_SET( cpu_pin, &cpu_mask );
 
 	return pthread_setaffinity_np( thread,
-								   sizeof(cpu_set_t),
-								   &cpu_mask );
+					   sizeof(cpu_set_t),
+					   &cpu_mask );
 }
 
 /**
@@ -113,6 +119,7 @@ pthread_t* fipc_test_thread_spawn_on_CPU ( void* (*threadfn)(void* data),
 		free( thread );
 		return NULL;
 	}
+
 
 	if ( fipc_test_thread_pin_thread_to_CPU( *thread, cpu_pin ) )
 	{

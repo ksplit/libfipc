@@ -31,12 +31,12 @@ int free_queue ( queue_t* q )
 
 // Enqueue
 
-int enqueue ( queue_t* q, node_t* r )
+int enqueue ( queue_t* q, node_t* node )
 {
 	message_t* msg;
 
 	fipc_test_blocking_send_start(q->head, &msg );
-	msg->regs[0] = 0; //(uint64_t)r;
+	msg->regs[0] = 0; //(uint64_t)node;
 	fipc_send_msg_end ( q->head, msg );
 
 	return SUCCESS;

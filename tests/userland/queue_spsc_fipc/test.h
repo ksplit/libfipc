@@ -16,6 +16,11 @@ static uint64_t transactions = 100000000;
 static uint8_t producer_count = 1;
 static uint8_t consumer_count = 1;
 
+uint64_t mem_pool_order = 22;
+uint64_t mem_pool_size;
+
+
+
 #ifdef __KERNEL__
 module_param( producer_count, byte, 0 );
 module_param( consumer_count, byte, 0 );
