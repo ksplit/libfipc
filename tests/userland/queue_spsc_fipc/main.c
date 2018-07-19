@@ -318,12 +318,18 @@ int main(int argc, char *argv[])
 int init_module(void)
 #endif
 {
-	if (argc == 3) {
+
+#ifndef __KERNEL__
+	if (argc == 2) {
+		transactions = (uint64_t) strtoul(argv[1], NULL, 10);
+		printf("Starting tests with %lu transactions\n", transactions);
+
+	} else if (argc == 3) {
 		producer_count = strtoul(argv[1], NULL, 10);
 		consumer_count = strtoul(argv[2], NULL, 10);
 		printf("%s, prod count %d | cons count %d\n", __func__, producer_count, consumer_count);
 	}
-
+#endif
 	kthread_t* controller_thread = fipc_test_thread_spawn_on_CPU ( controller, NULL, producer_cpus[producer_count-1] );
 
 	if ( controller_thread == NULL )
