@@ -38,6 +38,7 @@ producer ( void* data )
 	uint64_t start;
 	uint64_t end;
 	uint64_t cons_id = 0;
+	int i; 
 
 	// We have a fixed size object pool, we pick one object 
 	// from that pool as transaction_id mod pool_size
@@ -70,19 +71,22 @@ producer ( void* data )
 	
 	for ( transaction_id = 0; transaction_id < consumer_count * transactions; transaction_id++)
 	{
-		node_t *node = &t[transaction_id & obj_id_mask]; 
+		for(i = 0; i < batch_size; i++) {
+			node_t *node = &t[transaction_id & obj_id_mask]; 
 
-		node->field = transaction_id;
-		//prod_sum += t[transaction_id].field;
-		//pr_err("Sending, tid:%lu, mask%lu, mod:%lu\n", 
-		//		transaction_id, obj_id_mask, transaction_id & obj_id_mask);
+			node->field = transaction_id;
+			//prod_sum += t[transaction_id].field;
+			//pr_err("Sending, tid:%lu, mask%lu, mod:%lu\n", 
+			//		transaction_id, obj_id_mask, transaction_id & obj_id_mask);
 
-		if ( enqueue( q[cons_id], node ) != SUCCESS )
-		{
-			pr_err("Failed to enqueue tid:%llu\n", 
-				(unsigned long long)transaction_id);
-			break;
-		}
+			if ( enqueue( q[cons_id], node ) != SUCCESS )
+			{
+				pr_err("Failed to enqueue tid:%llu\n", 
+					(unsigned long long)transaction_id);
+				break;
+			}
+			transaction_id ++;
+		};
 
 		++cons_id;
 
@@ -114,6 +118,7 @@ consumer ( void* data )
 	uint64_t prod_id = 0;
 	uint64_t transaction_id;
 	node_t   *node;
+	int i;
 
 	uint64_t rank = *(uint64_t*)data;
 	queue_t** q = cons_queues[rank];
@@ -135,15 +140,22 @@ consumer ( void* data )
 
 	for ( transaction_id = 0; transaction_id < producer_count * transactions; transaction_id++)
 	{
-		//pr_err("Receiving, trid:%llu\n", (unsigned long long)transaction_id);
-		// Receive and unmarshall 
-		if ( dequeue( q[prod_id], &node ) != SUCCESS ) {
-			pr_err("Failed to enqueue tid:%llu\n", 
-				(unsigned long long) transaction_id);
-			break;
+
+		for(i = 0; i < batch_size; i++) {
+
+			//pr_err("Receiving, trid:%llu\n", (unsigned long long)transaction_id);
+			// Receive and unmarshall 
+			if ( dequeue( q[prod_id], &node ) != SUCCESS ) {
+				pr_err("Failed to enqueue tid:%llu\n", 
+					(unsigned long long) transaction_id);
+				break;
+
+			}
+
+			//cons_sum += node->field; 
+			transaction_id ++;
 
 		}
-		//cons_sum += node->field; 
 
 		++prod_id; if ( prod_id >= producer_count ) prod_id = 0;
 	}
@@ -349,12 +361,14 @@ int init_module(void)
 		consumer_count = strtoul(argv[2], NULL, 10);
 		printf("Starting test with prod count %d, cons count %d\n",
 				producer_count, consumer_count);
-	} else if (argc == 4) {
+	} else if (argc == 5) {
 		producer_count = strtoul(argv[1], NULL, 10);
 		consumer_count = strtoul(argv[2], NULL, 10);
 		transactions = (uint64_t) strtoul(argv[3], NULL, 10);
-		printf("Starting test with prod count %d, cons count %d, and %lu transactions\n", 
-				producer_count, consumer_count, transactions);
+		batch_size = (uint64_t) strtoul(argv[4], NULL, 10);
+
+		printf("Starting test with prod count %d, cons count %d, %lu transactions, and batch size %lu\n", 
+				producer_count, consumer_count, transactions, batch_size);
 	}
 
 #endif
