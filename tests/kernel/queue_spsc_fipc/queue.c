@@ -47,9 +47,9 @@ int dequeue ( queue_t* q, node_t** n )
 {
 	message_t* msg;
 
-	fipc_test_blocking_recv_start(q->head, &msg);
+	fipc_test_blocking_recv_start(q->tail, &msg);
 	*n = (node_t*)msg->regs[0];
-	fipc_recv_msg_end( q->head, msg );
+	fipc_recv_msg_end( q->tail, msg );
 	
 	return SUCCESS;
 }
