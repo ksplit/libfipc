@@ -33,12 +33,10 @@ int free_queue ( queue_t* q )
 
 int enqueue ( queue_t* q, node_t* r )
 {
-	node_t* msg;
+	message_t* msg;
 
-	if (fipc_send_msg_start( q->head, &msg ) != 0)
-		return NO_MEMORY;
-
-	msg->regs[0] = r->regs[0];
+	fipc_test_blocking_send_start(q->head, &msg );
+	msg->regs[0] = (uint64_t)r;
 	fipc_send_msg_end ( q->head, msg );
 
 	return SUCCESS;
@@ -46,15 +44,13 @@ int enqueue ( queue_t* q, node_t* r )
 
 // Dequeue
 
-int dequeue ( queue_t* q, data_t* data )
+int dequeue ( queue_t* q, node_t** n )
 {
-	node_t* msg;
+	message_t* msg;
 
-	if (fipc_recv_msg_start( q->tail, &msg) != 0)
-		return EMPTY_COLLECTION;
-
-	*data = msg->regs[0];
-	fipc_recv_msg_end( q->tail, msg );
+	fipc_test_blocking_recv_start(q->tail, &msg);
+	*n = (node_t*)msg->regs[0];
+	fipc_recv_msg_end( q->head, msg );
 	
 	return SUCCESS;
 }

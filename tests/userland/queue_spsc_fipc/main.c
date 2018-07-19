@@ -15,6 +15,9 @@
 #define pr_err printf
 #endif
 
+uint64_t prod_sum = 0;
+uint64_t cons_sum = 0;
+
 int null_invocation ( void )
 {
 	asm volatile ("nop");
@@ -22,9 +25,9 @@ int null_invocation ( void )
 }
 
 #ifdef __KERNEL__
-int
+void *
 #else
-void
+void *
 #endif
 producer ( void* data )
 {
@@ -37,14 +40,15 @@ producer ( void* data )
 	node_t*   t = node_tables[rank];
 	queue_t** q = prod_queues[rank];
 
+	pr_err( "Producer %llu starting...\n", (unsigned long long)rank );
 	// Touching data
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 	{
-		t[transaction_id].regs[0] = 0;
+		t[transaction_id].field = 0;
 	}
 
 	// Begin test
-	fipc_test_thread_take_control_of_CPU();
+	//fipc_test_thread_take_control_of_CPU();
 
 	// Wait for everyone to be ready
 	fipc_test_FAI(ready_producers);
@@ -56,13 +60,16 @@ producer ( void* data )
 
 	start = RDTSC_START();
 
-	for ( transaction_id = 0; transaction_id < transactions; )
+	for ( transaction_id = 0; transaction_id < transactions; transaction_id++)
 	{
-		t[transaction_id].regs[0] = NULL_INVOCATION;
+		t[transaction_id].field = transaction_id;
+		prod_sum += t[transaction_id].field;
+		//pr_err("Sending, trid:%llu\n", (unsigned long long) transaction_id);
 
-		if ( enqueue( q[i], &t[transaction_id] ) == SUCCESS )
+		if ( enqueue( q[i], &t[transaction_id] ) != SUCCESS )
 		{
-			transaction_id++;
+			pr_err("Failed to enqueue tid:%llu\n", (unsigned long long)transaction_id);
+			break;
 		}
 
 		++i; if (i >= consumer_count) i = 0;
@@ -71,30 +78,35 @@ producer ( void* data )
 	end = RDTSCP();
 
 	// End test
-	pr_err( "Producer %llu finished. Cycles per message %llu\n", rank, (end - start) / transactions );
+	pr_err( "Producer %llu finished. Cycles per message %llu\n", 
+			(unsigned long long) rank, 
+			(unsigned long long)(end - start) / transactions);
+
 	fipc_test_thread_release_control_of_CPU();
 	fipc_test_FAI(completed_producers);
 	return 0;
 }
 
 #ifdef __KERNEL__
-int
+void *
 #else
-void
+void *
 #endif
 consumer ( void* data )
 {
 	uint64_t start;
 	uint64_t end;
-	uint64_t i    = 0;
-	uint64_t halt = 0;
-	data_t   d;
+	uint64_t i    = 0;\
+	uint64_t transaction_id;
+	node_t   *node;
 
 	uint64_t rank = *(uint64_t*)data;
 	queue_t** q = cons_queues[rank];
 
+	pr_err( "Consumer %llu starting\n", (unsigned long long)rank );
+
 	// Begin test
-	fipc_test_thread_take_control_of_CPU();
+	// fipc_test_thread_take_control_of_CPU();
 
 	// Wait for everyone to be ready
 	fipc_test_FAI( ready_consumers );
@@ -106,23 +118,17 @@ consumer ( void* data )
 
 	start = RDTSC_START();
 
-	while ( !halt )
+	for ( transaction_id = 0; transaction_id < transactions; transaction_id++)
 	{
-		// Receive and unmarshall d
-		if ( dequeue( q[i], &d ) == SUCCESS )
-		{
-			// Process Request
-			switch ( d )
-			{
-				case NULL_INVOCATION:
-					null_invocation();
-					break;
+		//pr_err("Receiving, trid:%llu\n", (unsigned long long)transaction_id);
+		// Receive and unmarshall 
+		if ( dequeue( q[i], &node ) != SUCCESS ) {
+			pr_err("Failed to enqueue tid:%llu\n", 
+				(unsigned long long) transaction_id);
+			break;
 
-				case HALT:
-					halt = 1;
-					break;
-			}
 		}
+		cons_sum += node->field; 
 
 		++i; if ( i >= producer_count ) i = 0;
 	}
@@ -131,14 +137,18 @@ consumer ( void* data )
 
 	// End test
 	fipc_test_mfence();
-	pr_err( "Consumer %llu finished. Cycles per message %llu\n", rank, (end - start) / transactions );
+	pr_err( "Consumer %llu finished. Cycles per message %llu (%s)\n", 
+			(unsigned long long) rank, 
+			(unsigned long long) (end - start) / transactions, 
+			prod_sum == cons_sum ? "PASSED" : "FAILED");
+
 	fipc_test_thread_release_control_of_CPU();
 	fipc_test_FAI( completed_consumers );
 	return 0;
 }
 
 
-int controller ( void* data )
+void * controller ( void* data )
 {
 	uint64_t i;
 	uint64_t j;
@@ -182,7 +192,9 @@ int controller ( void* data )
 	kthread_t** cons_threads = (kthread_t**) vmalloc( consumer_count*sizeof(kthread_t*) );
 	kthread_t** prod_threads = NULL;
 
-	if ( producer_count >= 2 )
+	// In case there is only one producer, the controller thread becomes 
+	// that producer
+	if ( producer_count > 1 )
 		prod_threads = (kthread_t**) vmalloc( (producer_count-1)*sizeof(kthread_t*) );
 
 	uint64_t* p_rank = (uint64_t*) vmalloc( producer_count*sizeof(uint64_t) );
@@ -197,7 +209,7 @@ int controller ( void* data )
 		if ( prod_threads[i] == NULL )
 		{
 			pr_err( "%s\n", "Error while creating thread" );
-			return -1;
+			return NULL;
 		}
 	}
 
@@ -209,7 +221,7 @@ int controller ( void* data )
 		if ( cons_threads[i] == NULL )
 		{
 			pr_err( "%s\n", "Error while creating thread" );
-			return -1;
+			return NULL;
 		}
 	}
 #ifdef __KERNEL__
@@ -245,12 +257,12 @@ int controller ( void* data )
 	fipc_test_mfence();
 
 	// Tell consumers to halt
-	for ( i = 0; i < consumer_count; ++i )
-	{
-		haltMsg[i].regs[0] = HALT;
-
-		enqueue( prod_queues[producer_count-1][i], &haltMsg[i] );
-	}
+	//for ( i = 0; i < consumer_count; ++i )
+	//{
+	//	haltMsg[i].regs[0] = HALT;
+	//
+	//	enqueue( prod_queues[producer_count-1][i], &haltMsg[i] );
+	//}
 
 	// Wait for consumers to complete
 	while ( completed_consumers < consumer_count )

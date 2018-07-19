@@ -100,7 +100,7 @@ int fipc_test_thread_release_control_of_CPU ( void )
  */
 static inline
 pthread_t* fipc_test_thread_spawn_on_CPU ( void* (*threadfn)(void* data),
-											void* data, size_t cpu_pin )
+	void* data, size_t cpu_pin )
 {
 	pthread_t* thread = malloc( sizeof( pthread_t ) );
 
