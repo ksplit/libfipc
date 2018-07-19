@@ -9,10 +9,13 @@
 #include "test.h"
 
 #ifndef __KERNEL__
+#include <sched.h>
+
 #define kthread_t pthread_t
 #define vmalloc malloc
 #define vfree free
 #define pr_err printf
+
 #endif
 
 uint64_t CACHE_ALIGNED prod_sum = 0;
@@ -266,7 +269,7 @@ void * controller ( void* data )
 
 	// Wait for consumers to complete
 	while ( completed_consumers < consumer_count )
-		fipc_test_pause();
+		sched_yield();
 
 	fipc_test_mfence();
 
