@@ -15,8 +15,8 @@
 #define pr_err printf
 #endif
 
-uint64_t prod_sum = 0;
-uint64_t cons_sum = 0;
+uint64_t CACHE_ALIGNED prod_sum = 0;
+uint64_t CACHE_ALIGNED cons_sum = 0;
 
 int null_invocation ( void )
 {
@@ -40,7 +40,7 @@ producer ( void* data )
 	node_t*   t = node_tables[rank];
 	queue_t** q = prod_queues[rank];
 
-	pr_err( "Producer %llu starting...\n", (unsigned long long)rank );
+	pr_err( "Producer %lu starting...\n", rank );
 	// Touching data
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 	{
@@ -63,7 +63,7 @@ producer ( void* data )
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++)
 	{
 		t[transaction_id].field = transaction_id;
-		prod_sum += t[transaction_id].field;
+		//prod_sum += t[transaction_id].field;
 		//pr_err("Sending, trid:%llu\n", (unsigned long long) transaction_id);
 
 		if ( enqueue( q[i], &t[transaction_id] ) != SUCCESS )
@@ -96,7 +96,7 @@ consumer ( void* data )
 {
 	uint64_t start;
 	uint64_t end;
-	uint64_t i    = 0;\
+	uint64_t i    = 0;
 	uint64_t transaction_id;
 	node_t   *node;
 
@@ -128,7 +128,7 @@ consumer ( void* data )
 			break;
 
 		}
-		cons_sum += node->field; 
+		//cons_sum += node->field; 
 
 		++i; if ( i >= producer_count ) i = 0;
 	}

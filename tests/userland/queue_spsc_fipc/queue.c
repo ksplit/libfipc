@@ -36,7 +36,7 @@ int enqueue ( queue_t* q, node_t* r )
 	message_t* msg;
 
 	fipc_test_blocking_send_start(q->head, &msg );
-	msg->regs[0] = (uint64_t)r;
+	msg->regs[0] = 0; //(uint64_t)r;
 	fipc_send_msg_end ( q->head, msg );
 
 	return SUCCESS;

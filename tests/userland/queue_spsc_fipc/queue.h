@@ -19,13 +19,13 @@
 typedef uint64_t data_t;
 
 typedef struct node {
-	uint64_t field;	
+	uint64_t CACHE_ALIGNED field;	
 } node_t;
 
 typedef struct queue_t
 {
-	header_t* head;
-	header_t* tail;
+	header_t* CACHE_ALIGNED head;
+	header_t* CACHE_ALIGNED tail;
 
 } queue_t;
 
