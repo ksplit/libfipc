@@ -37,15 +37,9 @@ void* producer(void* data)
 	temp = mutex_num_producer;
 	// Wait for everyone to be ready
 
-	// fipc_test_FAI(ready_producers);
 	fipc_test_FAI(mutex_num_producer);
 
-	/*
-	while (!test_ready)
-		fipc_test_pause();
-	
-	fipc_test_mfence();
-	*/
+	//fipc_test_mfence();
 	start = RDTSC_START();
 
 	for (transaction_id = 0; transaction_id < transactions; transaction_id++)
@@ -61,8 +55,6 @@ void* producer(void* data)
 	
 	//fipc_test_thread_release_control_of_CPU();
 	pthread_mutex_unlock(&producer_mutex[mutex_num_producer]);
-
-	// fipc_test_FAI(completed_producers);
 
 	return NULL;
 }
@@ -81,15 +73,10 @@ void* consumer(void* data)
 	temp = mutex_num_consumer;
 
 	// Wait for everyone to be ready
-	// fipc_test_FAI(ready_consumers);
 	fipc_test_FAI(mutex_num_consumer);
 
-	/*
-	while (!test_ready)
-		fipc_test_pause();
+	//fipc_test_mfence();
 	
-	fipc_test_mfence();
-	*/
 	// Consume
 	while (!halt)
 	{
@@ -115,7 +102,6 @@ void* consumer(void* data)
 	
 	//fipc_test_thread_release_control_of_CPU();
 	pthread_mutex_unlock(&consumer_mutex[mutex_num_consumer]);
-	// fipc_test_FAI(completed_consumers);
 	return NULL;
 }
 
@@ -173,6 +159,7 @@ void* controller(void* data)
 			return NULL;
 		}
 	}
+	//Begin test
 
 	for ( i = 0; i < producer_count; ++i )
 	{
@@ -183,12 +170,7 @@ void* controller(void* data)
 	{
 		pthread_mutex_unlock( &consumer_mutex[i] );
 	}
-
-	//fipc_test_mfence();
-
-	// Begin Test
-	test_ready = 1;
-
+	
 	// Tell consumers to halt
 	for (i = 0; i < consumer_count; ++i)
 	{
@@ -221,41 +203,12 @@ void* controller(void* data)
 */
 	// End Experiment
 	//fipc_test_mfence();
-	test_finished = 1;
 	return 0;
 }
 
 int main ( void )
 {
-	//pthread_t* controller_thread = NULL;
-
-    controller(NULL);
-
-#if 0
-	// Create Threads
-	controller_thread = fipc_test_thread_spawn_on_CPU(controller, NULL, producer_cpus[producer_count - 1]);
-	if (controller_thread == NULL)
-	{
-		fprintf(stderr, "%s\n", "Error while creating thread");
-		return -1;
-	}
-
-
-	// Start threads
-	test_ready = 1;
-
-	// Wait for thread completion
-//	fipc_test_thread_wait_for_thread( controller_thread );/
-
-	
-	while (!test_finished)
-		fipc_test_pause();
-
-	fipc_test_mfence();
-
-	// Clean up
-	fipc_test_thread_free_thread(controller_thread);
-#endif
+	controller(NULL);
 	pthread_exit( NULL );
 	return 0;
 }
