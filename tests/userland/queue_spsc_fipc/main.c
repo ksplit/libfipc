@@ -286,7 +286,7 @@ void * controller ( void* data )
 
 	// Wait for consumers to complete
 	while ( completed_consumers < consumer_count )
-		sched_yield();
+		fipc_test_pause();
 
 	fipc_test_mfence();
 
@@ -360,8 +360,8 @@ int init_module(void)
 #ifdef __KERNEL__
 	wake_up_process( controller_thread );
 #endif
-	while ( !test_finished )
-		usleep(1000);
+
+	fipc_test_thread_wait_for_thread(controller_thread); 
 
 	fipc_test_mfence();
 	fipc_test_thread_free_thread( controller_thread );
