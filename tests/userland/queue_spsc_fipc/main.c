@@ -361,7 +361,7 @@ int init_module(void)
 	wake_up_process( controller_thread );
 #endif
 	while ( !test_finished )
-		fipc_test_pause();
+		usleep(1000);
 
 	fipc_test_mfence();
 	fipc_test_thread_free_thread( controller_thread );
