@@ -51,10 +51,11 @@ void* producer(void* data)
 
 	end = RDTSCP();
 	// End test
-	printf("Producer Mutex Number is  %d,  Producer completed in %llu and the average was %llu\n", temp, end-start, (end-start)/transactions);
+	printf("Producer Mutex Number is %d,  Producer completed in %llu and the average was %llu\n", temp, end-start, (end-start)/transactions);
 	
 	//fipc_test_thread_release_control_of_CPU();
-	pthread_mutex_unlock(&producer_mutex[mutex_num_producer]);
+	pthread_mutex_unlock(&producer_mutex[temp]);
+	//pthread_mutex_unlock(&producer_mutex[mutex_num_producer]);
 
 	return NULL;
 }
@@ -101,7 +102,8 @@ void* consumer(void* data)
 	printf("Consumer Mutex Number is %d, CONSUMER FINISHING\n", temp);
 	
 	//fipc_test_thread_release_control_of_CPU();
-	pthread_mutex_unlock(&consumer_mutex[mutex_num_consumer]);
+	pthread_mutex_unlock(&consumer_mutex[temp]);
+	//pthread_mutex_unlock(&consumer_mutex[mutex_num_consumer]);
 	return NULL;
 }
 
@@ -121,7 +123,7 @@ void* controller(void* data)
 
 	request_t* haltMsg = (request_t*) malloc( consumer_count*sizeof(request_t) );
 	
-	// Thread Allocation€
+	// Thread Allocation
 	pthread_t** cons_threads = (pthread_t**) malloc( consumer_count*sizeof(pthread_t*) );
 	pthread_t** prod_threads = (pthread_t**) malloc( producer_count*sizeof(pthread_t*) );
 
@@ -159,8 +161,8 @@ void* controller(void* data)
 			return NULL;
 		}
 	}
-	//Begin test
 
+	//Begin test
 	for ( i = 0; i < producer_count; ++i )
 	{
 		pthread_mutex_unlock( &producer_mutex[i] );
@@ -181,6 +183,13 @@ void* controller(void* data)
 	}
 
 	//fipc_test_mfence();
+
+	// Wait for thread completion
+	for ( i = 0; i < producer_count; ++i )
+		fipc_test_thread_wait_for_thread( prod_threads[i] );
+
+	for ( i = 0; i < consumer_count; ++i )
+		fipc_test_thread_wait_for_thread( cons_threads[i] );
 
 	// Clean up
 	for ( i = 0; i < producer_count; ++i )
@@ -209,6 +218,6 @@ void* controller(void* data)
 int main ( void )
 {
 	controller(NULL);
-	pthread_exit( NULL );
+	//pthread_exit( NULL );
 	return 0;
 }
