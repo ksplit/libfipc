@@ -29,9 +29,12 @@ typedef struct queue_t
 
 } queue_t;
 
-int init_queue ( queue_t* q );
-int free_queue ( queue_t* q );
-int enqueue    ( queue_t* q, node_t* n );
-int dequeue    ( queue_t* q, node_t** n );
+int init_queue(queue_t* q);
+int free_queue(queue_t* q);
+int enqueue(queue_t* q, node_t* node);
+int dequeue(queue_t* q, node_t** node);
+int enqueue_blk(queue_t* q, node_t* node);
+int dequeue_blk(queue_t* q, node_t** node);
+
 
 #endif

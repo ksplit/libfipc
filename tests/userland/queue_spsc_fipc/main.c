@@ -20,6 +20,7 @@
 
 uint64_t CACHE_ALIGNED prod_sum = 0;
 uint64_t CACHE_ALIGNED cons_sum = 0;
+int * halt;
 
 int null_invocation ( void )
 {
@@ -81,8 +82,8 @@ producer ( void* data )
 
 			if ( enqueue( q[cons_id], node ) != SUCCESS )
 			{
-				pr_err("Failed to enqueue tid:%llu\n", 
-					(unsigned long long)transaction_id);
+				//pr_err("Failed to enqueue tid:%llu\n", 
+				//	(unsigned long long)transaction_id);
 				break;
 			}
 			transaction_id ++;
@@ -117,7 +118,7 @@ consumer ( void* data )
 	uint64_t start;
 	uint64_t end;
 	uint64_t prod_id = 0;
-	uint64_t transaction_id;
+	uint64_t transaction_id = 0;
 	node_t   *node;
 	int i;
 
@@ -139,7 +140,7 @@ consumer ( void* data )
 
 	start = RDTSC_START();
 
-	for ( transaction_id = 0; transaction_id < producer_count * transactions; )
+	while(!halt[rank])
 	{
 	
 		for(i = 0; i < batch_size; i++) {
@@ -190,11 +191,15 @@ void * controller ( void* data )
 	prod_queues = (queue_t***) vmalloc( producer_count*sizeof(queue_t**) );
 	cons_queues = (queue_t***) vmalloc( consumer_count*sizeof(queue_t**) );
 
+	halt = (int*) vmalloc( consumer_count*sizeof(*halt) );
+
 	for ( i = 0; i < producer_count; ++i )
 		prod_queues[i] = (queue_t**) vmalloc( consumer_count*sizeof(queue_t*) );
 
-	for ( i = 0; i < consumer_count; ++i )
+	for ( i = 0; i < consumer_count; ++i ) {
 		cons_queues[i] = (queue_t**) vmalloc( producer_count*sizeof(queue_t*) );
+		halt[i] = 0;
+	}
 
 	// Queue Linking
 	for ( i = 0; i < producer_count; ++i )
@@ -215,7 +220,6 @@ void * controller ( void* data )
 		node_tables[i] = (node_t*) vmalloc( mem_pool_size*sizeof(node_t) );
 	}
 
-	node_t* haltMsg = (node_t*) vmalloc( consumer_count*sizeof(node_t) );
 
 	fipc_test_mfence();
 
@@ -288,12 +292,10 @@ void * controller ( void* data )
 	fipc_test_mfence();
 
 	// Tell consumers to halt
-	//for ( i = 0; i < consumer_count; ++i )
-	//{
-	//	haltMsg[i].regs[0] = HALT;
-	//
-	//	enqueue( prod_queues[producer_count-1][i], &haltMsg[i] );
-	//}
+	for ( i = 0; i < consumer_count; ++i ) {
+
+		halt[i] = 1;
+	}
 
 	// Wait for consumers to complete
 	while ( completed_consumers < consumer_count )
@@ -316,7 +318,7 @@ void * controller ( void* data )
 	if ( prod_threads != NULL )
 		vfree( prod_threads );
 
-	vfree( haltMsg );
+	vfree( halt );
 
 	for ( i = 0; i < producer_count; ++i )
 		vfree( node_tables[i] );

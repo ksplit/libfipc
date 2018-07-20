@@ -39,8 +39,8 @@ static queue_t*** cons_queues = NULL;
 static node_t**   node_tables = NULL;
 
 // Request Types
-#define HALT            0
-#define NULL_INVOCATION 1
+#define MSG_ENQUEUE         1
+#define MSG_HALT            2
 
 // Thread Locks
 static uint64_t completed_producers = 0;
