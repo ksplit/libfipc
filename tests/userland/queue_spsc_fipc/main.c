@@ -69,7 +69,7 @@ producer ( void* data )
 	start = RDTSC_START();
 
 	
-	for ( transaction_id = 0; transaction_id < consumer_count * transactions; transaction_id++)
+	for ( transaction_id = 0; transaction_id < consumer_count * transactions; )
 	{
 		for(i = 0; i < batch_size; i++) {
 			node_t *node = &t[transaction_id & obj_id_mask]; 
@@ -97,9 +97,10 @@ producer ( void* data )
 	end = RDTSCP();
 
 	// End test
-	pr_err( "Producer %llu finished. Cycles per message %llu\n", 
-			(unsigned long long) rank, 
-			(unsigned long long)(end - start) / (consumer_count * transactions));
+	pr_err( "Producer %lu finished, sending %lu messages (cycles per message %lu)\n", 
+			rank,
+			transaction_id, 
+			(end - start) / transaction_id);
 
 	fipc_test_thread_release_control_of_CPU();
 	fipc_test_FAI(completed_producers);
@@ -138,16 +139,13 @@ consumer ( void* data )
 
 	start = RDTSC_START();
 
-	for ( transaction_id = 0; transaction_id < producer_count * transactions; transaction_id++)
+	for ( transaction_id = 0; transaction_id < producer_count * transactions; )
 	{
-
+	
 		for(i = 0; i < batch_size; i++) {
 
-			//pr_err("Receiving, trid:%llu\n", (unsigned long long)transaction_id);
 			// Receive and unmarshall 
 			if ( dequeue( q[prod_id], &node ) != SUCCESS ) {
-				pr_err("Failed to enqueue tid:%llu\n", 
-					(unsigned long long) transaction_id);
 				break;
 
 			}
@@ -164,9 +162,10 @@ consumer ( void* data )
 
 	// End test
 	fipc_test_mfence();
-	pr_err( "Consumer %llu finished. Cycles per message %llu (%s)\n", 
-			(unsigned long long) rank, 
-			(unsigned long long) (end - start) / (producer_count * transactions), 
+	pr_err( "Consumer %lu finished, receiving %lu messages (cycles per message %lu) (%s)\n", 
+			rank,
+			transaction_id, 
+			(end - start) / transaction_id, 
 			prod_sum == cons_sum ? "PASSED" : "FAILED");
 
 	fipc_test_thread_release_control_of_CPU();
