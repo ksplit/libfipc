@@ -28,9 +28,17 @@ module_param( producer_count, byte, 0 );
 module_param( consumer_count, byte, 0 );
 #endif
 
-//d820 Numa node 0: 0,4,8,12,16,20,24,28
-static uint8_t producer_cpus[32] = {  8, 0, 16, 24 };
-static uint8_t consumer_cpus[32] = { 12, 4, 20, 28 };
+//d820 Numa nodes
+//NUMA node0 CPU(s):     0,4,8,12,16,20,24,28
+//NUMA node1 CPU(s):     1,5,9,13,17,21,25,29
+//NUMA node2 CPU(s):     2,6,10,14,18,22,26,30
+//NUMA node3 CPU(s):     3,7,11,15,19,23,27,31
+
+static uint8_t producer_cpus[32] = {  0,  4,  8, 12,      1,  5,  9, 13,    2,  6, 10, 14,     3,  7, 11, 15,  
+	                              16, 20, 24, 28,    17, 21, 25, 29,   18, 22, 26, 30,    19, 23, 27, 31 };
+
+static uint8_t consumer_cpus[32] = { 16, 20, 24, 28,     17, 21, 25, 29,   18, 22, 26, 30,    19, 23, 27, 31,  
+	                              0,  4,  8, 12,      1,  5,  9, 13,    2,  6, 10, 14,     3,  7, 11, 15 };
 #define pr_err printf
 
 // Queue Variables
