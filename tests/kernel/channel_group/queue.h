@@ -18,9 +18,7 @@
 // Types
 typedef uint64_t data_t;
 
-typedef struct node {
-	uint64_t field;	
-} node_t;
+typedef message_t node_t;
 
 typedef struct queue_t
 {
@@ -29,9 +27,11 @@ typedef struct queue_t
 
 } queue_t;
 
-int init_queue ( queue_t* q );
-int free_queue ( queue_t* q );
-int enqueue    ( queue_t* q, node_t* n );
-int dequeue    ( queue_t* q, node_t** n );
+int init_queue   ( queue_t* q );
+int free_queue   ( queue_t* q );
+int enqueue_forw ( queue_t* q, node_t* n );
+int dequeue_forw ( queue_t* q, data_t* d );
+int enqueue_back ( queue_t* q, node_t* n );
+int dequeue_back ( queue_t* q, data_t* d );
 
 #endif

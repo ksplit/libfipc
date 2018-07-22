@@ -8,7 +8,7 @@
 
 #include "../libfipc_test.h"
 
-#define CHANNEL_ORDER ilog2(sizeof(message_t)) + 13
+#define CHANNEL_ORDER ilog2(sizeof(message_t)) + 16
 
 // Error Values
 #define SUCCESS              0
@@ -19,19 +19,22 @@
 typedef uint64_t data_t;
 
 typedef struct node {
-	uint64_t field;	
+	uint64_t CACHE_ALIGNED field;	
 } node_t;
 
 typedef struct queue_t
 {
-	header_t* head;
-	header_t* tail;
+	header_t* CACHE_ALIGNED head;
+	header_t* CACHE_ALIGNED tail;
 
 } queue_t;
 
-int init_queue ( queue_t* q );
-int free_queue ( queue_t* q );
-int enqueue    ( queue_t* q, node_t* n );
-int dequeue    ( queue_t* q, node_t** n );
+int init_queue(queue_t* q);
+int free_queue(queue_t* q);
+int enqueue(queue_t* q, node_t* node);
+int dequeue(queue_t* q, node_t** node);
+int enqueue_blk(queue_t* q, node_t* node);
+int dequeue_blk(queue_t* q, node_t** node);
+
 
 #endif

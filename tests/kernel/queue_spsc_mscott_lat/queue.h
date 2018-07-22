@@ -8,8 +8,6 @@
 
 #include "../libfipc_test.h"
 
-#define CHANNEL_ORDER ilog2(sizeof(message_t)) + 13
-
 // Error Values
 #define SUCCESS              0
 #define NO_MEMORY            1
@@ -18,20 +16,31 @@
 // Types
 typedef uint64_t data_t;
 
-typedef struct node {
-	uint64_t field;	
+typedef struct linked_node_t
+{
+	data_t a;
+	data_t b;
+	data_t c;
+	data_t d;
+	data_t e;
+	data_t f;
+	data_t g;
+	struct linked_node_t* next;
+
 } node_t;
 
 typedef struct queue_t
 {
-	header_t* head;
-	header_t* tail;
+	node_t* head;
+	node_t* tail;
+
+	node_t header;
 
 } queue_t;
 
 int init_queue ( queue_t* q );
 int free_queue ( queue_t* q );
 int enqueue    ( queue_t* q, node_t* n );
-int dequeue    ( queue_t* q, node_t** n );
+int dequeue    ( queue_t* q, data_t* a, data_t* b, data_t* c, data_t* d, data_t* e, data_t* f, data_t* g );
 
 #endif

@@ -12,28 +12,41 @@ int noinline null_invocation ( void )
 	return 0;
 }
 
+int noinline add_6_nums ( uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, uint64_t f )
+{
+	asm volatile ("");
+	return a + b + c + d + e + f;
+}
+
 int producer ( void* data )
 {
 	uint64_t transaction_id;
 	uint64_t start;
 	uint64_t end;
 	uint64_t i = 0;
-	uint64_t total_sum = 0;
 
-	uint64_t rank = *(uint64_t*)data;
-	node_t*   t = node_tables[rank];
-	queue_t** q = prod_queues[rank];
+	uint64_t  rank = *(uint64_t*)data;
+	queue_t** qf   = prod_queues_forw[rank];
+	queue_t** qb   = prod_queues_back[rank];
+	node_t*   t    = node_tables[rank];
 
-        pr_err( "Producer %llu starting...\n", rank );
+	// Message Data
+	uint64_t a;
+	uint64_t b;
+	uint64_t c;
+	uint64_t d;
+	uint64_t e;
+	uint64_t f;
+	uint64_t g;
 
 	// Touching data
 	for ( transaction_id = 0; transaction_id < transactions; transaction_id++ )
 	{
-		t[transaction_id].field = 0;
+		t[transaction_id].next = NULL;
 	}
 
 	// Begin test
-	//fipc_test_thread_take_control_of_CPU();
+	fipc_test_thread_take_control_of_CPU();
 
 	// Wait for everyone to be ready
 	fipc_test_FAI(ready_producers);
@@ -45,15 +58,22 @@ int producer ( void* data )
 
 	start = RDTSC_START();
 
-	for ( transaction_id = 0; transaction_id < transactions; transaction_id++)
+	for ( transaction_id = 0; transaction_id < transactions; )
 	{
-		t[transaction_id].field = transaction_id;
-		total_sum += t[transaction_id].field;
+		t[transaction_id].a = ADD_6_NUMS;
+		t[transaction_id].b = 1;
+		t[transaction_id].c = 2;
+		t[transaction_id].d = 3;
+		t[transaction_id].e = 4;
+		t[transaction_id].f = 5;
+		t[transaction_id].g = 6;
 
-		if ( enqueue( q[i], &t[transaction_id] ) != SUCCESS )
+		if ( enqueue( qf[i], &t[transaction_id] ) == SUCCESS )
 		{
-			pr_err("Failed to enqueue tid:%llu\n", transaction_id);
-			break;
+			transaction_id++;
+
+			while ( dequeue( qb[i], &a, &b, &c, &d, &e, &f, &g ) != SUCCESS )
+				fipc_test_pause();
 		}
 
 		++i; if (i >= consumer_count) i = 0;
@@ -61,30 +81,35 @@ int producer ( void* data )
 
 	end = RDTSCP();
 
+	test_results[rank] = ((end - start) / transactions) / 2;
+	fipc_test_mfence();
+
 	// End test
-	pr_err( "Producer %llu finished. Cycles per message %llu (total sum:%llu)\n", 
-			rank, (end - start) / transactions, total_sum);
-	fipc_test_thread_release_control_of_CPU();
+	pr_err( "Producer %llu finished.\n", rank );
 	fipc_test_FAI(completed_producers);
 	return 0;
 }
 
 int consumer ( void* data )
 {
-	uint64_t start;
-	uint64_t end;
 	uint64_t i    = 0;
-	uint64_t transaction_id;
-	node_t   *node;
-	uint64_t total_sum = 0;
+	uint64_t halt = 0;
 
-	uint64_t rank = *(uint64_t*)data;
-	queue_t** q = cons_queues[rank];
+	uint64_t  rank = *(uint64_t*)data;
+	queue_t** qf   = cons_queues_forw[rank];
+	queue_t** qb   = prod_queues_back[rank];
 
-	pr_err( "Consumer %llu starting\n", rank );
+	// Message Data
+	uint64_t a;
+	uint64_t b;
+	uint64_t c;
+	uint64_t d;
+	uint64_t e;
+	uint64_t f;
+	uint64_t g;
 
 	// Begin test
-	// fipc_test_thread_take_control_of_CPU();
+	fipc_test_thread_take_control_of_CPU();
 
 	// Wait for everyone to be ready
 	fipc_test_FAI( ready_consumers );
@@ -94,27 +119,47 @@ int consumer ( void* data )
 
 	fipc_test_mfence();
 
-	start = RDTSC_START();
-
-	for ( transaction_id = 0; transaction_id < transactions; transaction_id++)
+	while ( !halt )
 	{
 		// Receive and unmarshall d
-		if ( dequeue( q[i], &node ) != SUCCESS ) {
-			pr_err("Failed to enqueue tid:%llu\n", transaction_id);
-			break;
+		if ( dequeue( qf[i], &a, &b, &c, &d, &e, &f, &g ) == SUCCESS )
+		{
+			// Process Request
+			switch ( a )
+			{
+				case ADD_6_NUMS:
+					b = add_6_nums( b, c, d, e, f, g );
+					c = add_6_nums( b, c, d, e, f, g );
+					break;
 
+				case NULL_INVOCATION:
+					null_invocation();
+					null_invocation();
+					break;
+
+				case HALT:
+					halt = 1;
+					break;
+			}
+
+			node_t* node = (node_t*) g;
+			node->a = a;
+			node->b = b;
+			node->c = c;
+			node->d = d;
+			node->e = e;
+			node->f = f;
+			node->next = NULL;
+			while ( enqueue( qb[i], node ) != SUCCESS )
+				fipc_test_pause();
 		}
-		total_sum += node->field; 
 
 		++i; if ( i >= producer_count ) i = 0;
 	}
 
-	end = RDTSCP();
-
 	// End test
 	fipc_test_mfence();
-	pr_err( "Consumer %llu finished. Cycles per message %llu (total sum:%llu)\n", 
-			rank, (end - start) / transactions, total_sum );
+	pr_err( "Consumer %llu finished.\n", rank );
 	fipc_test_thread_release_control_of_CPU();
 	fipc_test_FAI( completed_consumers );
 	return 0;
@@ -127,27 +172,49 @@ int controller ( void* data )
 	uint64_t j;
 
 	// Queue Allocation
-	queue_t* queues = (queue_t*) vmalloc( producer_count*consumer_count*sizeof(queue_t) );
+	queue_t* queues_forw = (queue_t*) vmalloc( producer_count*consumer_count*sizeof(queue_t) );
+	queue_t* queues_back = (queue_t*) vmalloc( producer_count*consumer_count*sizeof(queue_t) );
 
 	for ( i = 0; i < producer_count*consumer_count; ++i )
-		init_queue ( &queues[i] );
+	{
+		init_queue ( &queues_forw[i] );
+		init_queue ( &queues_back[i] );
+	}
 
-	prod_queues = (queue_t***) vmalloc( producer_count*sizeof(queue_t**) );
-	cons_queues = (queue_t***) vmalloc( consumer_count*sizeof(queue_t**) );
+	prod_queues_forw = (queue_t***) vmalloc( producer_count*sizeof(queue_t**) );
+	cons_queues_forw = (queue_t***) vmalloc( consumer_count*sizeof(queue_t**) );
+
+	prod_queues_back = (queue_t***) vmalloc( consumer_count*sizeof(queue_t**) );
+	cons_queues_back = (queue_t***) vmalloc( consumer_count*sizeof(queue_t**) );
 
 	for ( i = 0; i < producer_count; ++i )
-		prod_queues[i] = (queue_t**) vmalloc( consumer_count*sizeof(queue_t*) );
+		prod_queues_forw[i] = (queue_t**) vmalloc( consumer_count*sizeof(queue_t*) );
 
 	for ( i = 0; i < consumer_count; ++i )
-		cons_queues[i] = (queue_t**) vmalloc( producer_count*sizeof(queue_t*) );
+		cons_queues_forw[i] = (queue_t**) vmalloc( producer_count*sizeof(queue_t*) );
+
+	for ( i = 0; i < producer_count; ++i )
+		prod_queues_back[i] = (queue_t**) vmalloc( consumer_count*sizeof(queue_t*) );
+
+	for ( i = 0; i < consumer_count; ++i )
+		cons_queues_back[i] = (queue_t**) vmalloc( producer_count*sizeof(queue_t*) );
 
 	// Queue Linking
 	for ( i = 0; i < producer_count; ++i )
 	{
 		for ( j = 0; j < consumer_count; ++j )
 		{
-			prod_queues[i][j] = &queues[i*producer_count + j];
-			cons_queues[j][i] = &queues[i*producer_count + j];
+			prod_queues_forw[i][j] = &queues_forw[i*producer_count + j];
+			cons_queues_forw[j][i] = &queues_forw[i*producer_count + j];
+		}
+	}
+
+	for ( i = 0; i < producer_count; ++i )
+	{
+		for ( j = 0; j < consumer_count; ++j )
+		{
+			prod_queues_back[i][j] = &queues_back[i*producer_count + j];
+			cons_queues_back[j][i] = &queues_back[i*producer_count + j];
 		}
 	}
 
@@ -161,13 +228,15 @@ int controller ( void* data )
 
 	fipc_test_mfence();
 
+	// Test Data Allocation
+
+	test_results = (uint64_t*) vmalloc( producer_count*sizeof(uint64_t) );
+
 	// Thread Allocation
 	kthread_t** cons_threads = (kthread_t**) vmalloc( consumer_count*sizeof(kthread_t*) );
 	kthread_t** prod_threads = NULL;
 
-	// In case there is only one producer, the controller thread becomes 
-	// that producer
-	if ( producer_count > 1 )
+	if ( producer_count >= 2 )
 		prod_threads = (kthread_t**) vmalloc( (producer_count-1)*sizeof(kthread_t*) );
 
 	uint64_t* p_rank = (uint64_t*) vmalloc( producer_count*sizeof(uint64_t) );
@@ -230,12 +299,12 @@ int controller ( void* data )
 	fipc_test_mfence();
 
 	// Tell consumers to halt
-	//for ( i = 0; i < consumer_count; ++i )
-	//{
-	//	haltMsg[i].regs[0] = HALT;
-	//
-	//	enqueue( prod_queues[producer_count-1][i], &haltMsg[i] );
-	//}
+	for ( i = 0; i < consumer_count; ++i )
+	{
+		haltMsg[i].a = HALT;
+
+		enqueue( prod_queues_forw[producer_count-1][i], &haltMsg[i] );
+	}
 
 	// Wait for consumers to complete
 	while ( completed_consumers < consumer_count )
@@ -243,9 +312,18 @@ int controller ( void* data )
 
 	fipc_test_mfence();
 
+	uint64_t sum = 0;
+	for ( i = 0; i < producer_count; ++i )
+	{
+		sum += test_results[i];
+	}
+
+	pr_err("Latency: %llu cycles per message", sum / producer_count);
+
 	// Clean up
 	vfree( c_rank );
 	vfree( p_rank );
+	vfree( test_results );
 
 	for ( i = 0; i < consumer_count; ++i )
 		fipc_test_thread_free_thread( cons_threads[i] );
@@ -266,18 +344,31 @@ int controller ( void* data )
 	vfree( node_tables );
 
 	for ( i = 0; i < consumer_count; ++i )
-		vfree( cons_queues[i] );
+		vfree( cons_queues_forw[i] );
 
 	for ( i = 0; i < producer_count; ++i )
-		vfree( prod_queues[i] );
+		vfree( prod_queues_forw[i] );
 
-	vfree( cons_queues );
-	vfree( prod_queues );
+	for ( i = 0; i < consumer_count; ++i )
+		vfree( cons_queues_back[i] );
+
+	for ( i = 0; i < producer_count; ++i )
+		vfree( prod_queues_back[i] );
+
+	vfree( cons_queues_forw );
+	vfree( prod_queues_forw );
+
+	vfree( cons_queues_back );
+	vfree( prod_queues_back );
 
 	for ( i = 0; i < producer_count*consumer_count; ++i )
-		free_queue( &queues[i] );
+		free_queue( &queues_forw[i] );
 
-	vfree( queues );
+	for ( i = 0; i < producer_count*consumer_count; ++i )
+		free_queue( &queues_back[i] );
+
+	vfree( queues_forw );
+	vfree( queues_back );
 
 	// End Experiment
 	fipc_test_mfence();
@@ -297,9 +388,8 @@ int init_module(void)
 
 	wake_up_process( controller_thread );
 
-	while ( !test_finished ) {
-		cond_resched();
-	}
+	while ( !test_finished )
+		fipc_test_pause();
 
 	fipc_test_mfence();
 	fipc_test_thread_free_thread( controller_thread );
