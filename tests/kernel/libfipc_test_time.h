@@ -72,21 +72,11 @@ uint64_t fipc_test_time_get_correction ( void )
 static inline
 uint64_t fipc_test_time_get_timestamp ( void )
 {
-	uint64_t stamp;
-	uint32_t msw, lsw;
-	
-	asm volatile
-	(
-		"rdtsc\n\t"
-	    "movl %%edx, %0\n\t"
-	    "movl %%eax, %1\n\t"
-	    : "=r" (msw), "=r"(lsw)
-		:
-		: "%edx", "%eax"
-	);
+	unsigned int low, high;
 
-	stamp = ((uint64_t) msw << 32) | lsw;
-	return stamp;
+	asm volatile("rdtsc" : "=a" (low), "=d" (high));
+
+	return low | ((uint64_t)high) << 32;	
 }
 
 /**
@@ -95,23 +85,9 @@ uint64_t fipc_test_time_get_timestamp ( void )
 static inline
 uint64_t fipc_test_time_get_timestamp_lf ( void )
 {
-	uint64_t stamp;
-	uint32_t msw, lsw;
 	
 	fipc_test_lfence();
-	
-	asm volatile
-	(
-		"rdtsc\n\t"
-	    "movl %%edx, %0\n\t"
-	    "movl %%eax, %1\n\t"
-	    : "=r" (msw), "=r"(lsw)
-		:
-		: "%edx", "%eax"
-	);
-
-	stamp = ((uint64_t) msw << 32) | lsw;
-	return stamp;
+	return fipc_test_time_get_timestamp();
 }
 
 /**
@@ -120,23 +96,9 @@ uint64_t fipc_test_time_get_timestamp_lf ( void )
 static inline
 uint64_t fipc_test_time_get_timestamp_sf ( void )
 {
-	uint64_t stamp;
-	uint32_t msw, lsw;
-
 	fipc_test_sfence();
 	
-	asm volatile
-	(
-		"rdtsc\n\t"
-	    "movl %%edx, %0\n\t"
-	    "movl %%eax, %1\n\t"
-	    : "=r" (msw), "=r"(lsw)
-		:
-		: "%edx", "%eax"
-	);
-
-	stamp = ((uint64_t) msw << 32) | lsw;
-	return stamp;
+	return fipc_test_time_get_timestamp();
 }
 
 /**
@@ -145,28 +107,12 @@ uint64_t fipc_test_time_get_timestamp_sf ( void )
 static inline
 uint64_t fipc_test_time_get_timestamp_mf ( void )
 {
-	uint64_t stamp;
-	uint32_t msw, lsw;
-	
 	fipc_test_mfence();
-	
-	asm volatile
-	(
-		"rdtsc\n\t"
-	    "movl %%edx, %0\n\t"
-	    "movl %%eax, %1\n\t"
-	    : "=r" (msw), "=r"(lsw)
-		:
-		: "%edx", "%eax"
-	);
-
-	stamp = ((uint64_t) msw << 32) | lsw;
-	return stamp;
+	return fipc_test_time_get_timestamp();
 }
 
 /**
  * This function waits for atleast ticks clock cycles.
- * CITE: https://github.com/olibre/B-Queue/blob/master
  */
 static inline
 void fipc_test_time_wait_ticks ( uint64_t ticks )
