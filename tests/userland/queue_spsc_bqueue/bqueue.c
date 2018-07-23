@@ -22,11 +22,6 @@
  *
  */
 
-#define ADAPTIVE 1
-#define BACKTRACKING 1
-#define PROD_BATCH 1
-#define CONS_BATCH 1
-
 #include "bqueue.h"
 
 static data_t ELEMENT_ZERO = 0x0UL;
