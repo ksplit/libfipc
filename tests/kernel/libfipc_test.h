@@ -67,7 +67,7 @@ typedef struct task_struct kthread_t;
 typedef struct fipc_message cache_line_t;
 typedef CACHE_ALIGNED unsigned long long cache_aligned_ull_int_t;
 
-#include "libfipc_test_time.h"
+#include "../libfipc_test_time.h"
 #include "libfipc_test_thread.h"
 #include "libfipc_test_stat.h"
 
