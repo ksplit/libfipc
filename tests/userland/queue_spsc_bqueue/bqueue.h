@@ -29,8 +29,8 @@
 typedef uint64_t data_t;
 
 typedef struct node {
-	uint64_t field;	
-} node_t;
+	uint64_t CACHE_ALIGNED field;	
+} CACHE_ALIGNED node_t;
 
 #define ADAPTIVE 1
 #define BACKTRACKING 1

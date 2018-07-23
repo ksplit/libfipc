@@ -76,7 +76,7 @@ producer ( void* data )
 			node_t *node = &t[transaction_id & obj_id_mask]; 
 
 			node->field = transaction_id;
-			//prod_sum += t[transaction_id].field;
+			//prod_sum += transaction_id; /* node->field; */
 			//pr_err("Sending, tid:%lu, mask%lu, mod:%lu\n", 
 			//		transaction_id, obj_id_mask, transaction_id & obj_id_mask);
 
@@ -98,10 +98,10 @@ producer ( void* data )
 	end = RDTSCP();
 
 	// End test
-	pr_err( "Producer %lu finished, sending %lu messages (cycles per message %lu)\n", 
+	pr_err( "Producer %lu finished, sending %lu messages (cycles per message %lu) (prod_sum:%lu)\n", 
 			rank,
 			transaction_id, 
-			(end - start) / transaction_id);
+			(end - start) / transaction_id, prod_sum);
 
 	fipc_test_thread_release_control_of_CPU();
 	fipc_test_FAI(completed_producers);
@@ -151,7 +151,9 @@ consumer ( void* data )
 
 			}
 
-			//cons_sum += node->field; 
+#ifdef TOUCH_VALUE
+			cons_sum += node->field; 
+#endif
 			transaction_id ++;
 
 		}
@@ -163,11 +165,11 @@ consumer ( void* data )
 
 	// End test
 	fipc_test_mfence();
-	pr_err( "Consumer %lu finished, receiving %lu messages (cycles per message %lu) (%s)\n", 
+	pr_err( "Consumer %lu finished, receiving %lu messages (cycles per message %lu) (cons sum:%lu)\n", 
 			rank,
 			transaction_id, 
 			(end - start) / transaction_id, 
-			prod_sum == cons_sum ? "PASSED" : "FAILED");
+			cons_sum);
 
 	fipc_test_thread_release_control_of_CPU();
 	fipc_test_FAI( completed_consumers );
