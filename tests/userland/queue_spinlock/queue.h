@@ -7,6 +7,7 @@
 #define LIBFIPC_TEST_QUEUE
 
 #include "../libfipc_test.h"
+#include "spinlock.h"
 
 #define CHANNEL_ORDER ilog2(sizeof(message_t)) + 16
 
@@ -26,6 +27,9 @@ typedef struct queue_t
 {
 	header_t* CACHE_ALIGNED head;
 	header_t* CACHE_ALIGNED tail;
+
+	struct thread_spinlock H_lock;	
+	struct thread_spinlock T_lock;
 
 } queue_t;
 
