@@ -158,6 +158,8 @@ consumer ( void* data )
 #endif
 
 #ifdef PREFETCH_VALUE
+			/* rw flag (0 -- read, 1 -- write), 
+			 * temporal locality (0..3, 0 -- no locality) */
 			__builtin_prefetch (node, 0, 0);
 #endif
 			transaction_id ++;

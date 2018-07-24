@@ -29,7 +29,7 @@
 typedef uint64_t data_t;
 
 typedef struct node {
-	uint64_t CACHE_ALIGNED field;	
+	uint64_t field;	
 } CACHE_ALIGNED node_t;
 
 #define ADAPTIVE 1
