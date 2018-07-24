@@ -8,6 +8,7 @@
 
 #include <pthread.h>
 #include "spinlock.h"
+#include "../libfipc_test_spin.h"
 
 // Error Values
 #define SUCCESS              0
