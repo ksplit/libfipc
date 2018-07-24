@@ -16,6 +16,8 @@
 #define vfree free
 #define pr_err printf
 
+#include <malloc.h>
+
 #endif
 
 uint64_t CACHE_ALIGNED prod_sum = 0;
@@ -219,7 +221,14 @@ void * controller ( void* data )
 	for ( i = 0; i < producer_count; ++i ) {
 		pr_err("Allocating %lu bytes for the pool of %lu objects (pool order:%lu)\n", 
 			mem_pool_size*sizeof(node_t), mem_pool_size, mem_pool_order);
-		node_tables[i] = (node_t*) vmalloc( mem_pool_size*sizeof(node_t) );
+		node_tables[i] = (node_t*) memalign( 64, mem_pool_size*sizeof(node_t) );
+		if(!node_tables[i]) {
+			pr_err("Failed to allocate nodes\n");
+			return NULL;
+		}
+		pr_err("Check nodes are mem aligned: (%p):%s\n", 
+			node_tables[i], ((uint64_t)node_tables[i] & (64 - 1)) ? "not aligned" : "aligned");
+
 	}
 
 
@@ -323,7 +332,7 @@ void * controller ( void* data )
 	vfree( halt );
 
 	for ( i = 0; i < producer_count; ++i )
-		vfree( node_tables[i] );
+		free( node_tables[i] );
 
 	vfree( node_tables );
 

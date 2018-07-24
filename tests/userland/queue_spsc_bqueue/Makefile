@@ -4,7 +4,7 @@ INCLUDE_DIRS:=-I../../../include -I../../../include/userland
 TARGET:=$(notdir $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))))
 DEP:=main.c ../../../src/ipc.c bqueue.c
 
-#CFLAGS+=-DTOUCH_VALUE
+CFLAGS+=-DTOUCH_VALUE
 
 PERF_CACHE:='cache-misses,cache-references,alignment-faults,major-faults, \
 				minor-faults,L1-dcache-load-misses,L1-dcache-loads, \
