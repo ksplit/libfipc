@@ -2,21 +2,15 @@
  * @File     : main.c
  * @Author   : Abdullah Younis
  */
-#ifdef __KERNEL__
-#include <linux/module.h>
-#endif
 
 #include "test.h"
 
-#ifndef __KERNEL__
 #include <sched.h>
 
 #define kthread_t pthread_t
 #define vmalloc malloc
 #define vfree free
 #define pr_err printf
-
-#endif
 
 uint64_t CACHE_ALIGNED prod_sum = 0;
 uint64_t CACHE_ALIGNED cons_sum = 0;
@@ -27,11 +21,8 @@ int null_invocation ( void )
 	return 0;
 }
 
-#ifdef __KERNEL__
+
 void *
-#else
-void *
-#endif
 producer ( void* data )
 {
 	uint64_t transaction_id;
@@ -101,11 +92,7 @@ producer ( void* data )
 	return 0;
 }
 
-#ifdef __KERNEL__
 void *
-#else
-void *
-#endif
 consumer ( void* data )
 {
 	uint64_t start;
@@ -243,14 +230,7 @@ void * controller ( void* data )
 			return NULL;
 		}
 	}
-#ifdef __KERNEL__
-	// Start threads
-	for ( i = 0; i < (producer_count-1); ++i )
-		wake_up_process( prod_threads[i] );
 
-	for ( i = 0; i < consumer_count; ++i )
-		wake_up_process( cons_threads[i] );
-#endif
 	// Wait for threads to be ready for test
 	while ( ready_consumers < consumer_count )
 		fipc_test_pause();
