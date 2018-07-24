@@ -122,7 +122,7 @@ consumer ( void* data )
 	uint64_t prod_id = 0;
 	uint64_t transaction_id = 0;
 	node_t   *node;
-	int i;
+	int i, j;
 
 	uint64_t rank = *(uint64_t*)data;
 	queue_t** q = cons_queues[rank];
@@ -156,9 +156,19 @@ consumer ( void* data )
 #ifdef TOUCH_VALUE
 			cons_sum += node->field; 
 #endif
+
+#ifdef PREFETCH_VALUE
+			__builtin_prefetch (node, 0, 0);
+#endif
 			transaction_id ++;
 
 		}
+
+#ifdef PREFETCH_VALUE
+		for(j = 0; j < i; j++) {
+			cons_sum += node->field; 
+		}
+#endif
 
 		++prod_id; if ( prod_id >= producer_count ) prod_id = 0;
 	}
