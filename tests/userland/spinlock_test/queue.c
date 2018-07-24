@@ -1,87 +1,73 @@
 /**
- * @File     : queue.c
- * @Author   : Abdullah Younis
- */
+* @File     : queue.c
+* @Author   : Abdullah Younis
+*/
 
 #include "queue.h"
 
-#define pr_err printf
 // Constructor
 
-int init_queue ( queue_t* q )
+int init_queue(queue_t* q)
 {
-	fipc_test_create_channel( CHANNEL_ORDER, &q->head, &q->tail );
+	q->header.next = NULL;
 
-	if ( q->head == NULL || q->tail == NULL )
-	{
-		pr_err( "%s\n", "Error while creating channel" );
-		return -1;
-	}
+	q->head = &(q->header);
+	q->tail = &(q->header);
 
+	thread_spin_init(&(q->H_lock));
+	thread_spin_init(&(q->T_lock));
 	return SUCCESS;
 }
 
 // Destructor
 
-int free_queue ( queue_t* q )
+int free_queue(queue_t* q)
 {
-	fipc_test_free_channel( CHANNEL_ORDER, q->head, q->tail );
+	// STUB
 	return SUCCESS;
 }
-
 
 // Enqueue
 
-int enqueue_blk ( queue_t* q, node_t* node )
+int enqueue(queue_t* q, request_t* r)
 {
-	message_t* msg;
+	r->next = NULL;
 
-	fipc_test_blocking_send_start(q->head, &msg );
-	msg->regs[0] = (uint64_t)node;
-	fipc_send_msg_end ( q->head, msg );
+	// Acquire Lock, Enter Critical Section
+	thread_spin_lock(&(q->T_lock));
 
+	q->tail->next = r;
+	q->tail = r;
+
+	// Release Lock, Exit Critical Section
+	thread_spin_unlock(&(q->T_lock));
 	return SUCCESS;
 }
 
 // Dequeue
 
-int dequeue_blk ( queue_t* q, node_t** n )
+int dequeue(queue_t* q, uint64_t* data)
 {
-	message_t* msg;
+	request_t* temp;
+	request_t* new_head;
 
-	fipc_test_blocking_recv_start(q->tail, &msg);
-	*n = (node_t*)msg->regs[0];
-	fipc_recv_msg_end( q->tail, msg );
-	
-	return SUCCESS;
-}
+	// Acquire Lock, Enter Critical Section
+	thread_spin_lock(&(q->H_lock));
 
-int enqueue ( queue_t* q, node_t* node )
-{
-	message_t* msg;
+	temp = q->head;
+	new_head = q->head->next;
 
-	if (fipc_send_msg_start( q->head, &msg ) != 0)
-		return NO_MEMORY;
-
-	msg->regs[0] = (uint64_t)node;
-	fipc_send_msg_end ( q->head, msg );
-
-	return SUCCESS;
-}
-
-// Dequeue
-
-int dequeue ( queue_t* q, node_t** node )
-{
-	message_t* msg;
-
-	if (fipc_recv_msg_start( q->tail, &msg) != 0)
+	if (new_head == NULL)
+	{
+		thread_spin_unlock(&(q->H_lock));
 		return EMPTY_COLLECTION;
+	}
 
-	*node = (node_t*)msg->regs[0];
-	fipc_recv_msg_end( q->tail, msg );
+	*data = new_head->data;
+	q->head = new_head;
+
+	// Release Lock, Exit Critical Section
+	thread_spin_unlock(&(q->H_lock));
 
 	return SUCCESS;
 }
-
-
