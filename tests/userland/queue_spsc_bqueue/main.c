@@ -187,21 +187,21 @@ void * controller ( void* data )
 	mem_pool_size = 1 << mem_pool_order;
 
 	// Queue Allocation
-	queue_t* queues = (queue_t*) vmalloc( producer_count*consumer_count*sizeof(queue_t) );
+	queue_t* queues = (queue_t*) memalign( FIPC_CACHE_LINE_SIZE, producer_count*consumer_count*sizeof(queue_t) );
 
 	for ( i = 0; i < producer_count*consumer_count; ++i )
 		init_queue ( &queues[i] );
 
-	prod_queues = (queue_t***) vmalloc( producer_count*sizeof(queue_t**) );
-	cons_queues = (queue_t***) vmalloc( consumer_count*sizeof(queue_t**) );
+	prod_queues = (queue_t***) memalign( FIPC_CACHE_LINE_SIZE, producer_count*sizeof(queue_t**) );
+	cons_queues = (queue_t***) memalign( FIPC_CACHE_LINE_SIZE, consumer_count*sizeof(queue_t**) );
 
 	halt = (int*) vmalloc( consumer_count*sizeof(*halt) );
 
 	for ( i = 0; i < producer_count; ++i )
-		prod_queues[i] = (queue_t**) vmalloc( consumer_count*sizeof(queue_t*) );
+		prod_queues[i] = (queue_t**) memalign( FIPC_CACHE_LINE_SIZE, consumer_count*sizeof(queue_t*) );
 
 	for ( i = 0; i < consumer_count; ++i ) {
-		cons_queues[i] = (queue_t**) vmalloc( producer_count*sizeof(queue_t*) );
+		cons_queues[i] = (queue_t**) memalign( FIPC_CACHE_LINE_SIZE, producer_count*sizeof(queue_t*) );
 		halt[i] = 0;
 	}
 
@@ -221,13 +221,15 @@ void * controller ( void* data )
 	for ( i = 0; i < producer_count; ++i ) {
 		pr_err("Allocating %lu bytes for the pool of %lu objects (pool order:%lu)\n", 
 			mem_pool_size*sizeof(node_t), mem_pool_size, mem_pool_order);
-		node_tables[i] = (node_t*) memalign( 64, mem_pool_size*sizeof(node_t) );
+
+		node_tables[i] = (node_t*) memalign( FIPC_CACHE_LINE_SIZE, mem_pool_size*sizeof(node_t) );
 		if(!node_tables[i]) {
 			pr_err("Failed to allocate nodes\n");
 			return NULL;
 		}
 		pr_err("Check nodes are mem aligned: (%p):%s\n", 
-			node_tables[i], ((uint64_t)node_tables[i] & (64 - 1)) ? "not aligned" : "aligned");
+			node_tables[i],
+			((uint64_t)node_tables[i] & (FIPC_CACHE_LINE_SIZE - 1)) ? "not aligned" : "aligned");
 
 	}
 
@@ -337,18 +339,18 @@ void * controller ( void* data )
 	vfree( node_tables );
 
 	for ( i = 0; i < consumer_count; ++i )
-		vfree( cons_queues[i] );
+		free( cons_queues[i] );
 
 	for ( i = 0; i < producer_count; ++i )
-		vfree( prod_queues[i] );
+		free( prod_queues[i] );
 
-	vfree( cons_queues );
-	vfree( prod_queues );
+	free( cons_queues );
+	free( prod_queues );
 
 	for ( i = 0; i < producer_count*consumer_count; ++i )
 		free_queue( &queues[i] );
 
-	vfree( queues );
+	free( queues );
 
 	// End Experiment
 	fipc_test_mfence();
