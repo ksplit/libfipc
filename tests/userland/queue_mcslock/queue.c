@@ -16,7 +16,8 @@ cmp_and_swap_atomic(mcslock* L, uint64_t cmpval, uint64_t newval)
     uint64_t out;
     __asm__ volatile(
                 "lock; cmpxchgq %2, %1"
-                : "=a" (out), "+m" ((L->v)->locked)
+                //: "=a" (out), "+m" ((L->v)->locked)
+                : "=a" (out), "+m" (L->v)
                 : "q" (newval), "0"(cmpval)
                 : "cc");
     return out == cmpval;
