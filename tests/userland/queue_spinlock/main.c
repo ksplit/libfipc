@@ -73,7 +73,8 @@ producer ( void* data )
 
 	for ( transaction_id = 0; transaction_id < consumer_count * transactions; )
 	{
-		for(i = 0; i < batch_size; i++) {
+		for(i = 0; i < batch_size; i++) 
+		{
 			node_t *node = &t[transaction_id & obj_id_mask]; 
 
 			node->field = transaction_id;
@@ -143,7 +144,8 @@ consumer ( void* data )
 	while(!halt[rank])
 	{
 	
-		for(i = 0; i < batch_size; i++) {
+		for(i = 0; i < batch_size; i++) 
+		{
 
 			// Receive and unmarshall 
 			if ( dequeue( q[rank], &node ) != SUCCESS ) {
@@ -175,7 +177,6 @@ consumer ( void* data )
 void * controller ( void* data )
 {
 	uint64_t i;
-	uint64_t j;
 
 	mem_pool_size = 1 << mem_pool_order;
 
@@ -194,7 +195,6 @@ void * controller ( void* data )
 		full_queues[i] = (queue_t*) vmalloc( sizeof(queue_t) );
 		halt[i] = 0;
 	}
-
 
 	for ( i = 0; i < consumer_count; ++i )
 		full_queues[i] = &queues[i];
