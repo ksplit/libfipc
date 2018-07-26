@@ -50,7 +50,7 @@ producer ( void* data )
 
 	node_t*   t = node_tables[0];
 
-	queue_t* q = queues;
+	queue_t** q = cons_queues;
 
 	pr_err( "Producer %lu starting...\n", rank );
 	// Touching data
@@ -126,7 +126,7 @@ consumer ( void* data )
 	int i;
 
 	uint64_t rank = *(uint64_t*)data;
-	queue_t** q = cons_queues[rank];	
+	queue_t** q = cons_queues;	
 
 	pr_err( "Consumer %llu starting\n", (unsigned long long)rank );
 
@@ -149,7 +149,7 @@ consumer ( void* data )
 		for(i = 0; i < batch_size; i++) {
 
 			// Receive and unmarshall 
-			if ( dequeue( q, &node ) != SUCCESS ) {
+			if ( dequeue( q[rank], &node ) != SUCCESS ) {
 				break;
 
 			}
@@ -188,12 +188,12 @@ void * controller ( void* data )
 	for ( i = 0; i < consumer_count; ++i )
 		init_queue ( &queues[i] );
 
-	cons_queues = (queue_t***) vmalloc( consumer_count*sizeof(queue_t**) );
+	cons_queues = (queue_t**) vmalloc( consumer_count*sizeof(queue_t*) );
 
 	halt = (int*) vmalloc( consumer_count*sizeof(*halt) );
 	
 	for ( i = 0; i < consumer_count; ++i ) {
-		cons_queues[i] = (queue_t**) vmalloc( sizeof(queue_t*) );
+		cons_queues[i] = (queue_t*) vmalloc( sizeof(queue_t) );
 		halt[i] = 0;
 	}
 
