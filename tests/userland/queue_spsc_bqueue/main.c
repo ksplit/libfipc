@@ -24,6 +24,20 @@ uint64_t CACHE_ALIGNED prod_sum = 0;
 uint64_t CACHE_ALIGNED cons_sum = 0;
 int * halt;
 
+// Queue Variables
+//static queue_t*** prod_queues = NULL;
+
+typedef queue_t **array_of_queue_ptrs_t;
+
+// We have producer_count number of queues 
+array_of_queue_ptrs_t *prod_queues;
+array_of_queue_ptrs_t *cons_queues;
+
+
+//static queue_t*** cons_queues = NULL;
+static node_t**   node_tables = NULL;
+
+
 int null_invocation ( void )
 {
 	asm volatile ("nop");
@@ -49,7 +63,7 @@ producer ( void* data )
 
 	uint64_t rank = *(uint64_t*)data;
 	node_t*   t = node_tables[rank];
-	queue_t** q = prod_queues[rank];
+	queue_t **q = prod_queues[rank];
 
 	pr_err( "Producer %lu starting...\n", rank );
 	// Touching data
@@ -200,20 +214,46 @@ void * controller ( void* data )
 
 	// Queue Allocation
 	queue_t* queues = (queue_t*) memalign( FIPC_CACHE_LINE_SIZE, producer_count*consumer_count*sizeof(queue_t) );
+	if(!queues) {
+		pr_err("Failed to allocate queues\n");
+		return 0;
+	}
 
 	for ( i = 0; i < producer_count*consumer_count; ++i )
 		init_queue ( &queues[i] );
 
 	prod_queues = (queue_t***) memalign( FIPC_CACHE_LINE_SIZE, producer_count*sizeof(queue_t**) );
+	if(!prod_queues) {
+		pr_err("Failed to allocate prod_queues\n");
+		return 0;
+	}
 	cons_queues = (queue_t***) memalign( FIPC_CACHE_LINE_SIZE, consumer_count*sizeof(queue_t**) );
+	if(!cons_queues) {
+		pr_err("Failed to allocate cons_queues\n");
+		return 0;
+	}
 
 	halt = (int*) vmalloc( consumer_count*sizeof(*halt) );
+	if(!halt) {
+		pr_err("Failed to allocate halt\n");
+		return 0;
+	}
 
-	for ( i = 0; i < producer_count; ++i )
+	for ( i = 0; i < producer_count; ++i ) {
 		prod_queues[i] = (queue_t**) memalign( FIPC_CACHE_LINE_SIZE, consumer_count*sizeof(queue_t*) );
+		if(!prod_queues[i]) {
+			pr_err("Failed to allocate prod_queues[%lu]\n", i);
+			return 0;
+		}
+	};
 
 	for ( i = 0; i < consumer_count; ++i ) {
 		cons_queues[i] = (queue_t**) memalign( FIPC_CACHE_LINE_SIZE, producer_count*sizeof(queue_t*) );
+		if(!cons_queues[i]) {
+			pr_err("Failed to allocate cons_queues[%lu]\n", i);
+			return 0;
+		}
+
 		halt[i] = 0;
 	}
 
@@ -229,6 +269,11 @@ void * controller ( void* data )
 
 	// Node Table Allocation
 	node_tables = (node_t**) vmalloc( producer_count*sizeof(node_t*) );
+	if(!node_tables) {
+		pr_err("Failed to allocate node_tables\n");
+		return 0;
+	}
+
 
 	for ( i = 0; i < producer_count; ++i ) {
 		pr_err("Allocating %lu bytes for the pool of %lu objects (pool order:%lu)\n", 
@@ -236,7 +281,7 @@ void * controller ( void* data )
 
 		node_tables[i] = (node_t*) memalign( FIPC_CACHE_LINE_SIZE, mem_pool_size*sizeof(node_t) );
 		if(!node_tables[i]) {
-			pr_err("Failed to allocate nodes\n");
+			pr_err("Failed to allocate node_tables[%lu]\n", i);
 			return NULL;
 		}
 		pr_err("Check nodes are mem aligned: (%p):%s\n", 
@@ -258,7 +303,16 @@ void * controller ( void* data )
 		prod_threads = (kthread_t**) vmalloc( (producer_count-1)*sizeof(kthread_t*) );
 
 	uint64_t* p_rank = (uint64_t*) vmalloc( producer_count*sizeof(uint64_t) );
+	if(!p_rank) {
+		pr_err("Failed to allocate p_rank\n");
+		return 0;
+	}
+
 	uint64_t* c_rank = (uint64_t*) vmalloc( consumer_count*sizeof(uint64_t) );
+	if(!c_rank) {
+		pr_err("Failed to allocate c_rank\n");
+		return 0;
+	}
 
 	// Spawn Threads
 	for ( i = 0; i < (producer_count-1); ++i )
