@@ -18,8 +18,16 @@ static uint8_t consumer_count = 1;
 
 uint64_t batch_size = 1;
 
-uint64_t mem_pool_order = 20;
+uint64_t mem_pool_order = 16;
 uint64_t mem_pool_size;
+
+
+#define pr_err printf
+#define pr_info printf
+//#define pr_dbg printf
+
+//#define pr_info(...) do{}while(0);
+#define pr_dbg(...) do{}while(0);
 
 
 
@@ -40,11 +48,6 @@ static uint8_t producer_cpus[32] = {  0,  4,  8, 12,      1,  5,  9, 13,    2,  
 static uint8_t consumer_cpus[32] = { 16, 20, 24, 28,     17, 21, 25, 29,   18, 22, 26, 30,    19, 23, 27, 31,  
 	                              0,  4,  8, 12,      1,  5,  9, 13,    2,  6, 10, 14,     3,  7, 11, 15 };
 #define pr_err printf
-
-// Queue Variables
-static queue_t*** prod_queues = NULL;
-static queue_t*** cons_queues = NULL;
-static node_t**   node_tables = NULL;
 
 // Request Types
 #define MSG_ENQUEUE         1

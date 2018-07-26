@@ -8,7 +8,7 @@ TARGET:=$(notdir $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))))
 DEP:=main.c ../../../src/ipc.c bqueue.c
 
 #CFLAGS+=-DTOUCH_VALUE
-#CFLAGS+=-DPREFETCH_VALUE
+CFLAGS+=-DPREFETCH_VALUE
 
 
 
