@@ -5,15 +5,41 @@
  */
 
 #include "queue.h"
-volatile struct qnode I[MAX_MCS_LOCKS];
 
-static __inline__ uint64_t
-cmp_and_swap_atomic(struct mcslock* L, uint64_t cmpval, uint64_t newval)
+#ifndef __KERNEL__
+#define pr_err printf
+#endif
+
+static inline uint64_t
+cmp_and_swap_atomic(mcslock* L, uint64_t cmpval, uint64_t newval)
 {
     uint64_t out;
     __asm__ volatile(
                 "lock; cmpxchgq %2, %1"
                 : "=a" (out), "+m" ((L->v)->locked)
+                : "q" (newval), "0"(cmpval)
+                : "cc");
+    return out == cmpval;
+}
+
+static inline uint64_t
+fetch_and_store(mcslock *L, uint64_t val) 
+{
+    __asm__ volatile(
+                "lock; xchgq %0, %1\n\t"
+                : "+m" (L->v), "+r" (val)
+                : 
+                : "memory", "cc");
+    return val;
+}
+
+static inline uint64_t
+cmp_and_swap(mcslock *L, uint64_t cmpval, uint64_t newval)
+{
+    uint64_t out;
+    __asm__ volatile(
+                "lock; cmpxchgq %2, %1"
+                : "=a" (out), "+m" (L->v)
                 : "q" (newval), "0"(cmpval)
                 : "cc");
     return out == cmpval;
@@ -25,7 +51,7 @@ void mcs_init ( mcslock *L )
     for (int i = 0; i < MAX_MCS_LOCKS; i++)
         if ( !lock_used[i].v )
         {
-            if (cmp_and_swap_atomic(&lock_used[i], 0, 1) )
+            if (cmp_and_swap_atomic( &lock_used[i], 0, 1) )
             {
                 L->lock_idx = i;
                 return;
@@ -44,7 +70,7 @@ void mcs_lock ( mcslock *L )
         predecessor->next = mynode;
         while (mynode->locked)
         {
-            nop_pause();
+            //nop_pause();
         }
     }
 }
@@ -58,7 +84,7 @@ void mcs_unlock ( mcslock *L )
         }
         while ( !mynode->next )
         {
-            nop_pause();
+            //nop_pause();
         }
     }
     ((struct qnode *)mynode->next)->locked = 0;
