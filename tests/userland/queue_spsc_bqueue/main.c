@@ -25,16 +25,8 @@ uint64_t CACHE_ALIGNED cons_sum = 0;
 int * halt;
 
 // Queue Variables
-//static queue_t*** prod_queues = NULL;
-
-typedef queue_t **array_of_queue_ptrs_t;
-
-// We have producer_count number of queues 
-array_of_queue_ptrs_t *prod_queues;
-array_of_queue_ptrs_t *cons_queues;
-
-
-//static queue_t*** cons_queues = NULL;
+static queue_t*** prod_queues = NULL;
+static queue_t*** cons_queues = NULL;
 static node_t**   node_tables = NULL;
 
 
@@ -93,8 +85,8 @@ producer ( void* data )
 
 			node->field = transaction_id;
 			//prod_sum += transaction_id; /* node->field; */
-			//pr_err("Sending, tid:%lu, mask%lu, mod:%lu\n", 
-			//		transaction_id, obj_id_mask, transaction_id & obj_id_mask);
+			pr_err("Sending, tid:%lu, mask%lu, mod:%lu\n", 
+					transaction_id, obj_id_mask, transaction_id & obj_id_mask);
 
 			if ( enqueue( q[cons_id], (data_t)node ) != SUCCESS )
 			{
@@ -166,6 +158,7 @@ consumer ( void* data )
 				break;
 
 			}
+			pr_err("Receiving %lu from prod %lu\n", node->field, prod_id);
 
 #ifdef TOUCH_VALUE
 			cons_sum += node->field; 
@@ -213,6 +206,9 @@ void * controller ( void* data )
 	mem_pool_size = 1 << mem_pool_order;
 
 	// Queue Allocation
+	pr_err("Allocating %lu bytes for queue_t of size %lu\n",
+			producer_count*consumer_count*sizeof(queue_t), sizeof(queue_t));
+
 	queue_t* queues = (queue_t*) memalign( FIPC_CACHE_LINE_SIZE, producer_count*consumer_count*sizeof(queue_t) );
 	if(!queues) {
 		pr_err("Failed to allocate queues\n");
@@ -262,8 +258,10 @@ void * controller ( void* data )
 	{
 		for ( j = 0; j < consumer_count; ++j )
 		{
-			prod_queues[i][j] = &queues[i*producer_count + j];
-			cons_queues[j][i] = &queues[i*producer_count + j];
+			printf("%s:associate %p with prod %lu, cons %lu\n",
+					__func__, &queues[i*consumer_count + j], i, j);
+			prod_queues[i][j] = &queues[i*consumer_count + j];
+			cons_queues[j][i] = &queues[i*consumer_count + j];
 		}
 	}
 

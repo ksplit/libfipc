@@ -40,17 +40,13 @@ int free_queue(queue_t *q)
 	return 0;
 }
 
-#if defined(PROD_BATCH) || defined(CONS_BATCH)
-inline int leqthan(volatile data_t point, volatile data_t batch_point)
-{
-	return (point == batch_point);
-}
-#endif
-
 #if defined(PROD_BATCH)
 int enqueue(queue_t * q, data_t value)
 {
 	uint32_t tmp_head;
+
+	printf("%s:equeue to %p\n", __func__, q);
+
 	if( q->head == q->batch_head ) {
 		tmp_head = q->head + PROD_BATCH_SIZE;
 		if ( tmp_head >= QUEUE_SIZE )
@@ -141,6 +137,7 @@ static inline int backtracking(queue_t * q)
 
 int dequeue(queue_t * q, data_t * value)
 {
+	printf("%s:dequeue from %p\n", __func__, q);
 	if( q->tail == q->batch_tail ) {
 		if ( backtracking(q) != 0 )
 			return BUFFER_EMPTY;
