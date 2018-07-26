@@ -7,7 +7,7 @@
 #endif
 
 #include "test.h"
-
+#include "numa_helper.h"
 #ifndef __KERNEL__
 #include <sched.h>
 
@@ -19,6 +19,8 @@
 #include <malloc.h>
 
 #endif
+
+//struct numa_node *get_numa_config(void);
 
 uint64_t CACHE_ALIGNED prod_sum = 0;
 uint64_t CACHE_ALIGNED cons_sum = 0;
@@ -195,7 +197,12 @@ void * controller ( void* data )
 {
 	uint64_t i;
 	uint64_t j;
+	struct numa_node *_nodes = get_numa_config();
 
+	if (!_nodes)
+		printf("%s, nodes is null\n", __func__);
+	else
+		printf("%s, nodes %p\n", __func__, _nodes);
 	mem_pool_size = 1 << mem_pool_order;
 
 	// Queue Allocation
@@ -261,10 +268,12 @@ void * controller ( void* data )
 	uint64_t* c_rank = (uint64_t*) vmalloc( consumer_count*sizeof(uint64_t) );
 
 	// Spawn Threads
-	for ( i = 0; i < (producer_count-1); ++i )
+	for ( i = 0; i < (producer_count-0); ++i )
 	{
 		p_rank[i] = i;
-		prod_threads[i] = fipc_test_thread_spawn_on_CPU ( producer, &p_rank[i], producer_cpus[i] );
+		//prod_threads[i] = fipc_test_thread_spawn_on_CPU ( producer, &p_rank[i], producer_cpus[i] );
+		printf("producer %d : queued on %d\n", i, _nodes[0].cpu_list[i*2]);
+		prod_threads[i] = fipc_test_thread_spawn_on_CPU ( producer, &p_rank[i], _nodes[0].cpu_list[i*2] );
 
 		if ( prod_threads[i] == NULL )
 		{
@@ -276,7 +285,8 @@ void * controller ( void* data )
 	for ( i = 0; i < consumer_count; ++i )
 	{
 		c_rank[i] = i;
-		cons_threads[i] = fipc_test_thread_spawn_on_CPU ( consumer, &c_rank[i], consumer_cpus[i] );
+		//cons_threads[i] = fipc_test_thread_spawn_on_CPU ( consumer, &c_rank[i], consumer_cpus[i] );
+		cons_threads[i] = fipc_test_thread_spawn_on_CPU ( consumer, &c_rank[i], _nodes[0].cpu_list[(i*2)+1] );
 
 		if ( cons_threads[i] == NULL )
 		{
@@ -286,7 +296,7 @@ void * controller ( void* data )
 	}
 #ifdef __KERNEL__
 	// Start threads
-	for ( i = 0; i < (producer_count-1); ++i )
+	for ( i = 0; i < (producer_count-0); ++i )
 		wake_up_process( prod_threads[i] );
 
 	for ( i = 0; i < consumer_count; ++i )
@@ -296,7 +306,7 @@ void * controller ( void* data )
 	while ( ready_consumers < consumer_count )
 		fipc_test_pause();
 
-	while ( ready_producers < (producer_count-1) )
+	while ( ready_producers < (producer_count-0) )
 		fipc_test_pause();
 
 	fipc_test_mfence();
@@ -307,8 +317,8 @@ void * controller ( void* data )
 	fipc_test_mfence();
 
 	// This thread is also a producer
-	p_rank[producer_count-1] = producer_count-1;
-	producer( &p_rank[producer_count-1] );
+	//p_rank[producer_count-1] = producer_count-1;
+	//producer( &p_rank[producer_count-1] );
 
 	// Wait for producers to complete
 	while ( completed_producers < producer_count )
@@ -335,7 +345,7 @@ void * controller ( void* data )
 	for ( i = 0; i < consumer_count; ++i )
 		fipc_test_thread_free_thread( cons_threads[i] );
 
-	for ( i = 0; i < (producer_count-1); ++i )
+	for ( i = 0; i < (producer_count-0); ++i )
 		fipc_test_thread_free_thread( prod_threads[i] );
 
 	vfree( cons_threads );
@@ -398,7 +408,7 @@ int init_module(void)
 	}
 
 #endif
-	kthread_t* controller_thread = fipc_test_thread_spawn_on_CPU ( controller, NULL, producer_cpus[producer_count-1] );
+	kthread_t* controller_thread = fipc_test_thread_spawn_on_CPU ( controller, NULL, producer_cpus[producer_count-0] );
 
 	if ( controller_thread == NULL )
 	{
