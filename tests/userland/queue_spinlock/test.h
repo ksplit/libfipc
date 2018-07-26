@@ -42,7 +42,7 @@ static uint8_t consumer_cpus[32] = { 16, 20, 24, 28,     17, 21, 25, 29,   18, 2
 #define pr_err printf
 
 // Queue Variables
-static queue_t** cons_queues = NULL;
+static queue_t** full_queues = NULL;
 static node_t**   node_tables = NULL;
 static queue_t* queues = NULL;
 

@@ -20,8 +20,7 @@
 
 uint64_t CACHE_ALIGNED prod_sum = 0;
 uint64_t CACHE_ALIGNED cons_sum = 0;
-//int * halt;
-int halt;
+int * halt;
 
 int null_invocation ( void )
 {
@@ -50,7 +49,7 @@ producer ( void* data )
 
 	node_t*   t = node_tables[0];
 
-	queue_t** q = cons_queues;
+	queue_t** q = full_queues;
 
 	pr_err( "Producer %lu starting...\n", rank );
 	// Touching data
@@ -120,13 +119,12 @@ consumer ( void* data )
 {
 	uint64_t start;
 	uint64_t end;
-	uint64_t prod_id = 0;
 	uint64_t transaction_id = 0;
 	node_t   *node;
 	int i;
 
 	uint64_t rank = *(uint64_t*)data;
-	queue_t** q = cons_queues;	
+	queue_t** q = full_queues;	
 
 	pr_err( "Consumer %llu starting\n", (unsigned long long)rank );
 
@@ -188,18 +186,19 @@ void * controller ( void* data )
 	for ( i = 0; i < consumer_count; ++i )
 		init_queue ( &queues[i] );
 
-	cons_queues = (queue_t**) vmalloc( consumer_count*sizeof(queue_t*) );
+	full_queues = (queue_t**) vmalloc( consumer_count*sizeof(queue_t*) );
 
 	halt = (int*) vmalloc( consumer_count*sizeof(*halt) );
 	
 	for ( i = 0; i < consumer_count; ++i ) {
-		cons_queues[i] = (queue_t*) vmalloc( sizeof(queue_t) );
+		full_queues[i] = (queue_t*) vmalloc( sizeof(queue_t) );
 		halt[i] = 0;
 	}
 
 	// Node Table Allocation
 	node_tables = (node_t**) vmalloc( sizeof(node_t*) );
 
+	for ( i = 0; i < 1; ++i ) {
 	pr_err("Allocating %lu bytes for the pool of %lu objects (pool order:%lu)\n", 
 		mem_pool_size*sizeof(node_t), mem_pool_size, mem_pool_order);
 		node_tables[0] = (node_t*) vmalloc( mem_pool_size*sizeof(node_t) );
@@ -309,9 +308,9 @@ void * controller ( void* data )
 	vfree( node_tables );
 
 	for ( i = 0; i < consumer_count; ++i )
-		vfree( cons_queues[i] );
+		vfree( full_queues[i] );
 
-	vfree( cons_queues );
+	vfree( full_queues );
 
 	for ( i = 0; i < consumer_count; ++i )
 		free_queue( &queues[i] );
@@ -321,7 +320,7 @@ void * controller ( void* data )
 	for ( i = 0; i < producer_count; ++i )
 		vfree( prod_queues[i] );
 
-	vfree( cons_queues );
+	vfree( full_queues );
 	vfree( prod_queues );
 
 	for ( i = 0; i < producer_count*consumer_count; ++i )
