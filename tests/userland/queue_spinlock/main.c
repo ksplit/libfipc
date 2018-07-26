@@ -47,7 +47,7 @@ producer ( void* data )
 
 	uint64_t rank = *(uint64_t*)data;
 
-	node_t*   t = node_tables[0];
+	node_t*   t = node_tables[rank];
 
 	queue_t** q = full_queues;
 
@@ -71,7 +71,6 @@ producer ( void* data )
 
 	start = RDTSC_START();
 
-	
 	for ( transaction_id = 0; transaction_id < consumer_count * transactions; )
 	{
 		for(i = 0; i < batch_size; i++) {
@@ -79,12 +78,12 @@ producer ( void* data )
 
 			node->field = transaction_id;
 			//prod_sum += t[transaction_id].field;
+
 			//pr_err("Sending, tid:%lu, mask%lu, mod:%lu\n", 
 			//		transaction_id, obj_id_mask, transaction_id & obj_id_mask);
-
 			if ( enqueue( q[cons_id], node ) != SUCCESS )
 			{
-				//pr_err("Failed to enqueue tid:%llu\n", 
+
 				//	(unsigned long long)transaction_id);
 				break;
 			}
@@ -140,7 +139,7 @@ consumer ( void* data )
 	fipc_test_mfence();
 
 	start = RDTSC_START();
-
+printf("consumer\n");
 	while(!halt[rank])
 	{
 	
@@ -198,7 +197,6 @@ void * controller ( void* data )
 	// Node Table Allocation
 	node_tables = (node_t**) vmalloc( sizeof(node_t*) );
 
-	for ( i = 0; i < 1; ++i ) {
 	pr_err("Allocating %lu bytes for the pool of %lu objects (pool order:%lu)\n", 
 		mem_pool_size*sizeof(node_t), mem_pool_size, mem_pool_order);
 		node_tables[0] = (node_t*) vmalloc( mem_pool_size*sizeof(node_t) );

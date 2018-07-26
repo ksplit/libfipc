@@ -18,7 +18,6 @@ int init_queue ( queue_t* q )
 		return -1;
 	}
         thread_spin_init(&(q->H_lock));
-	thread_spin_init(&(q->T_lock));
 	return SUCCESS;
 }
 
@@ -61,12 +60,12 @@ int enqueue ( queue_t* q, node_t* node )
 {
 	message_t* msg;
 	thread_spin_lock( &(q->T_lock) );
-
+	
 	if (fipc_send_msg_start( q->head, &msg ) != 0){
 		thread_spin_unlock( &(q->T_lock) );
 		return NO_MEMORY;
 	}
-
+	
 	msg->regs[0] = (uint64_t)node;
 	fipc_send_msg_end ( q->head, msg );
 	thread_spin_unlock( &(q->T_lock) );
