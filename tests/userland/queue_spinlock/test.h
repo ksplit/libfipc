@@ -22,7 +22,6 @@ uint64_t mem_pool_order = 20;
 uint64_t mem_pool_size;
 
 
-
 #ifdef __KERNEL__
 module_param( producer_count, byte, 0 );
 module_param( consumer_count, byte, 0 );
@@ -42,8 +41,7 @@ static uint8_t consumer_cpus[32] = { 16, 20, 24, 28,     17, 21, 25, 29,   18, 2
 #define pr_err printf
 
 // Queue Variables
-static queue_t*** prod_queues = NULL;
-static queue_t*** cons_queues = NULL;
+static queue_t** full_queues = NULL;
 static node_t**   node_tables = NULL;
 
 // Request Types
