@@ -22,6 +22,14 @@ uint64_t mem_pool_order = 16;
 uint64_t mem_pool_size;
 
 
+#define pr_err printf
+#define pr_info printf
+//#define pr_dbg printf
+
+//#define pr_info(...) do{}while(0);
+#define pr_dbg(...) do{}while(0);
+
+
 
 #ifdef __KERNEL__
 module_param( producer_count, byte, 0 );

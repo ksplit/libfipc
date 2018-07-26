@@ -1,7 +1,7 @@
 CC:=gcc
 CFLAGS:=-Wall -D_GNU_SOURCE -pthread -lm -O2 -g
 
-CFLAGS+=-fsanitize=address
+#CFLAGS+=-fsanitize=address
 
 INCLUDE_DIRS:=-I../../../include -I../../../include/userland
 TARGET:=$(notdir $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))))

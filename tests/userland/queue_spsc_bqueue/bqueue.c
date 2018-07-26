@@ -45,7 +45,6 @@ int enqueue(queue_t * q, data_t value)
 {
 	uint32_t tmp_head;
 
-	printf("%s:equeue to %p\n", __func__, q);
 
 	if( q->head == q->batch_head ) {
 		tmp_head = q->head + PROD_BATCH_SIZE;
@@ -137,7 +136,6 @@ static inline int backtracking(queue_t * q)
 
 int dequeue(queue_t * q, data_t * value)
 {
-	printf("%s:dequeue from %p\n", __func__, q);
 	if( q->tail == q->batch_tail ) {
 		if ( backtracking(q) != 0 )
 			return BUFFER_EMPTY;

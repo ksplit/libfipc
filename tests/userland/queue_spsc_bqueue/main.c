@@ -14,7 +14,6 @@
 #define kthread_t pthread_t
 #define vmalloc malloc
 #define vfree free
-#define pr_err printf
 
 #include <malloc.h>
 
@@ -85,7 +84,7 @@ producer ( void* data )
 
 			node->field = transaction_id;
 			//prod_sum += transaction_id; /* node->field; */
-			pr_err("Sending, tid:%lu, mask%lu, mod:%lu\n", 
+			pr_dbg("Sending, tid:%lu, mask%lu, mod:%lu\n", 
 					transaction_id, obj_id_mask, transaction_id & obj_id_mask);
 
 			if ( enqueue( q[cons_id], (data_t)node ) != SUCCESS )
@@ -133,7 +132,7 @@ consumer ( void* data )
 	uint64_t rank = *(uint64_t*)data;
 	queue_t** q = cons_queues[rank];
 
-	pr_err( "Consumer %llu starting\n", (unsigned long long)rank );
+	pr_info( "Consumer %llu starting\n", (unsigned long long)rank );
 
 	// Begin test
 	// fipc_test_thread_take_control_of_CPU();
@@ -158,7 +157,7 @@ consumer ( void* data )
 				break;
 
 			}
-			pr_err("Receiving %lu from prod %lu\n", node->field, prod_id);
+			pr_dbg("Receiving %lu from prod %lu\n", node->field, prod_id);
 
 #ifdef TOUCH_VALUE
 			cons_sum += node->field; 
@@ -188,13 +187,13 @@ consumer ( void* data )
 	fipc_test_mfence();
 	
 	if(transaction_id) {
-		pr_err( "Consumer %lu finished, receiving %lu messages (cycles per message %lu) (cons sum:%lu)\n", 
+		pr_info( "Consumer %lu finished, receiving %lu messages (cycles per message %lu) (cons sum:%lu)\n", 
 			rank,
 			transaction_id, 
 			(end - start) / transaction_id, 
 			cons_sum);
 	} else {
-		pr_err( "Consumer %lu finished, receiving %lu messages (cons sum:%lu)\n", 
+		pr_info( "Consumer %lu finished, receiving %lu messages (cons sum:%lu)\n", 
 			rank,
 			transaction_id, 
 			cons_sum);
@@ -215,7 +214,7 @@ void * controller ( void* data )
 	mem_pool_size = 1 << mem_pool_order;
 
 	// Queue Allocation
-	pr_err("Allocating %lu bytes for queue_t of size %lu\n",
+	pr_dbg("Allocating %lu bytes for queue_t of size %lu\n",
 			producer_count*consumer_count*sizeof(queue_t), sizeof(queue_t));
 
 	queue_t* queues = (queue_t*) memalign( FIPC_CACHE_LINE_SIZE, producer_count*consumer_count*sizeof(queue_t) );
@@ -267,7 +266,7 @@ void * controller ( void* data )
 	{
 		for ( j = 0; j < consumer_count; ++j )
 		{
-			printf("%s:associate %p with prod %lu, cons %lu\n",
+			pr_dbg("%s:associate %p with prod %lu, cons %lu\n",
 					__func__, &queues[i*consumer_count + j], i, j);
 			prod_queues[i][j] = &queues[i*consumer_count + j];
 			cons_queues[j][i] = &queues[i*consumer_count + j];
@@ -283,7 +282,7 @@ void * controller ( void* data )
 
 
 	for ( i = 0; i < producer_count; ++i ) {
-		pr_err("Allocating %lu bytes for the pool of %lu objects (pool order:%lu)\n", 
+		pr_dbg("Allocating %lu bytes for the pool of %lu objects (pool order:%lu)\n", 
 			mem_pool_size*sizeof(node_t), mem_pool_size, mem_pool_order);
 
 		node_tables[i] = (node_t*) memalign( FIPC_CACHE_LINE_SIZE, mem_pool_size*sizeof(node_t) );
@@ -291,7 +290,7 @@ void * controller ( void* data )
 			pr_err("Failed to allocate node_tables[%lu]\n", i);
 			return NULL;
 		}
-		pr_err("Check nodes are mem aligned: (%p):%s\n", 
+		pr_dbg("Check nodes are mem aligned: (%p):%s\n", 
 			node_tables[i],
 			((uint64_t)node_tables[i] & (FIPC_CACHE_LINE_SIZE - 1)) ? "not aligned" : "aligned");
 
@@ -474,7 +473,7 @@ int init_module(void)
 
 	fipc_test_mfence();
 	fipc_test_thread_free_thread( controller_thread );
-	pr_err("Test finished\n");
+	printf("Test finished\n");
 
 	return 0;
 }
