@@ -1,12 +1,69 @@
 /**
  * @File     : queue.c
  * @Author   : Abdullah Younis
+ * @Author   : Jeonghoon Lee
  */
 
 #include "queue.h"
+volatile struct qnode I[MAX_MCS_LOCKS];
 
-#define pr_err printf
-// Constructor
+static __inline__ uint64_t
+cmp_and_swap_atomic(struct mcslock* L, uint64_t cmpval, uint64_t newval)
+{
+    uint64_t out;
+    __asm__ volatile(
+                "lock; cmpxchgq %2, %1"
+                : "=a" (out), "+m" ((L->v)->locked)
+                : "q" (newval), "0"(cmpval)
+                : "cc");
+    return out == cmpval;
+}
+
+void mcs_init ( mcslock *L )
+{
+    L->v = NULL;
+    for (int i = 0; i < MAX_MCS_LOCKS; i++)
+        if ( !lock_used[i].v )
+        {
+            if (cmp_and_swap_atomic(&lock_used[i], 0, 1) )
+            {
+                L->lock_idx = i;
+                return;
+            }
+        }
+    pr_err("mcs init: Oops");
+}
+
+void mcs_lock ( mcslock *L )
+{
+    volatile struct qnode *mynode = &I[L->lock_idx];
+    mynode->next = NULL;
+    struct qnode *predecessor = (struct qnode *)fetch_and_store(L, (uint64_t)mynode);
+    if (predecessor) {
+        mynode->locked = 1;
+        predecessor->next = mynode;
+        while (mynode->locked)
+        {
+            nop_pause();
+        }
+    }
+}
+
+void mcs_unlock ( mcslock *L )
+{
+    volatile struct qnode *mynode = &I[L->lock_idx];
+    if (!mynode->next) {
+        if ( cmp_and_swap(L, (uint64_t)mynode, 0) ) {
+            return;
+        }
+        while ( !mynode->next )
+        {
+            nop_pause();
+        }
+    }
+    ((struct qnode *)mynode->next)->locked = 0;
+}
+
 
 int init_queue ( queue_t* q )
 {
@@ -19,9 +76,8 @@ int init_queue ( queue_t* q )
 	}
 
 	return SUCCESS;
-}
 
-// Destructor
+}
 
 int free_queue ( queue_t* q )
 {
@@ -29,32 +85,7 @@ int free_queue ( queue_t* q )
 	return SUCCESS;
 }
 
-
 // Enqueue
-
-int enqueue_blk ( queue_t* q, node_t* node )
-{
-	message_t* msg;
-
-	fipc_test_blocking_send_start(q->head, &msg );
-	msg->regs[0] = (uint64_t)node;
-	fipc_send_msg_end ( q->head, msg );
-
-	return SUCCESS;
-}
-
-// Dequeue
-
-int dequeue_blk ( queue_t* q, node_t** n )
-{
-	message_t* msg;
-
-	fipc_test_blocking_recv_start(q->tail, &msg);
-	*n = (node_t*)msg->regs[0];
-	fipc_recv_msg_end( q->tail, msg );
-	
-	return SUCCESS;
-}
 
 int enqueue ( queue_t* q, node_t* node )
 {
@@ -68,6 +99,7 @@ int enqueue ( queue_t* q, node_t* node )
 
 	return SUCCESS;
 }
+
 
 // Dequeue
 
@@ -83,5 +115,3 @@ int dequeue ( queue_t* q, node_t** node )
 
 	return SUCCESS;
 }
-
-
