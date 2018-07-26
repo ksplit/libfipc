@@ -18,6 +18,7 @@ int init_queue ( queue_t* q )
 		return -1;
 	}
         thread_spin_init(&(q->H_lock));
+	thread_spin_init(&(q->T_lock));
 	return SUCCESS;
 }
 
@@ -60,12 +61,12 @@ int enqueue ( queue_t* q, node_t* node )
 {
 	message_t* msg;
 	thread_spin_lock( &(q->T_lock) );
-	
+
 	if (fipc_send_msg_start( q->head, &msg ) != 0){
 		thread_spin_unlock( &(q->T_lock) );
 		return NO_MEMORY;
 	}
-	
+
 	msg->regs[0] = (uint64_t)node;
 	fipc_send_msg_end ( q->head, msg );
 	thread_spin_unlock( &(q->T_lock) );
@@ -78,13 +79,16 @@ int enqueue ( queue_t* q, node_t* node )
 int dequeue ( queue_t* q, node_t** node )
 {
 	message_t* msg;
+//	thread_spin_lock( &(q->H_lock) );
 
 	if (fipc_recv_msg_start( q->tail, &msg) != 0){
+//		thread_spin_unlock( &(q->H_lock) );
 		return EMPTY_COLLECTION;
 	}
 
 	*node = (node_t*)msg->regs[0];
 	fipc_recv_msg_end( q->tail, msg );
+//	thread_spin_unlock( &(q->H_lock) );
 
 	return SUCCESS;
 }

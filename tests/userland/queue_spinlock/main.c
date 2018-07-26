@@ -47,7 +47,7 @@ producer ( void* data )
 
 	uint64_t rank = *(uint64_t*)data;
 
-	node_t*   t = node_tables[rank];
+	node_t*   t = node_tables[0];
 
 	queue_t** q = full_queues;
 
@@ -81,9 +81,9 @@ producer ( void* data )
 
 			//pr_err("Sending, tid:%lu, mask%lu, mod:%lu\n", 
 			//		transaction_id, obj_id_mask, transaction_id & obj_id_mask);
+			
 			if ( enqueue( q[cons_id], node ) != SUCCESS )
 			{
-
 				//	(unsigned long long)transaction_id);
 				break;
 			}
@@ -124,7 +124,7 @@ consumer ( void* data )
 
 	uint64_t rank = *(uint64_t*)data;
 	queue_t** q = full_queues;	
-
+	
 	pr_err( "Consumer %llu starting\n", (unsigned long long)rank );
 
 	// Begin test
@@ -139,7 +139,7 @@ consumer ( void* data )
 	fipc_test_mfence();
 
 	start = RDTSC_START();
-printf("consumer\n");
+	
 	while(!halt[rank])
 	{
 	
@@ -189,10 +189,16 @@ void * controller ( void* data )
 
 	halt = (int*) vmalloc( consumer_count*sizeof(*halt) );
 	
-	for ( i = 0; i < consumer_count; ++i ) {
+	for ( i = 0; i < consumer_count; ++i ) 
+	{
 		full_queues[i] = (queue_t*) vmalloc( sizeof(queue_t) );
 		halt[i] = 0;
 	}
+
+
+	for ( i = 0; i < consumer_count; ++i )
+		full_queues[i] = &queues[i];
+
 
 	// Node Table Allocation
 	node_tables = (node_t**) vmalloc( sizeof(node_t*) );
@@ -302,30 +308,14 @@ void * controller ( void* data )
 	vfree( halt );
 	
 	vfree( node_tables[0] );
-
 	vfree( node_tables );
 
-	for ( i = 0; i < consumer_count; ++i )
-		vfree( full_queues[i] );
-
 	vfree( full_queues );
 
 	for ( i = 0; i < consumer_count; ++i )
 		free_queue( &queues[i] );
 
 	vfree( queues );
-/*
-	for ( i = 0; i < producer_count; ++i )
-		vfree( prod_queues[i] );
-
-	vfree( full_queues );
-	vfree( prod_queues );
-
-	for ( i = 0; i < producer_count*consumer_count; ++i )
-		free_queue( &queues[i] );
-
-	vfree( queues );
-*/
 
 	// End Experiment
 	fipc_test_mfence();
