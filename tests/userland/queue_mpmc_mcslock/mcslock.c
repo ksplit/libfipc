@@ -5,49 +5,45 @@
 
 #include "mcslock.h"
 
-void mcs_init ( mcslock *L )
+void mcs_init_global ( mcslock* L )
 {
-    L->v = NULL;
-    for (int i = 0; i < MAX_MCS_LOCKS; i++)
-        if ( !lock_used[i].v )
-        {
-            if (cmp_and_swap_atomic( &lock_used[i], 0, 1) )
-            {
-                L->lock_idx = i;
-                return;
-            }
-        }
-    pr_err("mcs init: Oops");
+    L = NULL;
+	//pr_err("mcs init\n");
 }
 
-void mcs_lock ( mcslock *L )
+void mcs_init_local	( qnode* I )
 {
-    volatile struct qnode *mynode = &I[L->lock_idx];
-    mynode->next = NULL;
-    struct qnode *predecessor = (struct qnode *)fetch_and_store(L, (uint64_t)mynode);
-    if (predecessor) {
-        mynode->locked = 1;
-        predecessor->next = mynode;
-        while (mynode->locked)
-        {
-            //nop_pause();
-        }
-    }
+	I->next = NULL;
+	I->waiting = 0;
 }
 
-void mcs_unlock ( mcslock *L )
+void mcs_lock ( mcslock* L, qnode* I )
 {
-    volatile struct qnode *mynode = &I[L->lock_idx];
-    if (!mynode->next) {
-        if ( cmp_and_swap(L, (uint64_t)mynode, 0) ) {
-            return;
-        }
-        while ( !mynode->next )
-        {
-            //nop_pause();
-        }
-    }
-    ((struct qnode *)mynode->next)->locked = 0;
+	I->next = NULL;
+
+	mcslock *pred = (mcslock *) fetch_and_store(L, (uint64_t)I);
+
+	if ( pred == NULL)
+		return;
+	I->waiting = 1;
+	pred->next = I;
+
+	while ( I->waiting != 0)
+		;
 }
 
+void mcs_unlock ( mcslock* L, qnode* I )
+{
+	mcslock *succ;
+	if ( !(succ = I->next) )
+	{
+		if ( cmp_and_swap( L, (uint64_t)I, NULL) )
+			return;
+		do
+		{
+			succ = I->next;
+		} while ( !succ );
+	}
+	succ->waiting = 0;
+}
 
