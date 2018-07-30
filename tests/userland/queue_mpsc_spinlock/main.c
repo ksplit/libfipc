@@ -120,7 +120,9 @@ consumer ( void* data )
 	uint64_t start;
 	uint64_t end;
 	uint64_t transaction_id = 0;
-	node_t   *node;
+	//node_t   *node;
+	uint64_t request;
+
 	int i;
 
 	uint64_t rank = *(uint64_t*)data;
@@ -147,10 +149,20 @@ consumer ( void* data )
 		for(i = 0; i < batch_size; i++) 
 		{
 
-			// Receive and unmarshall 
-			if ( dequeue( q[rank], &node ) != SUCCESS ) {
-				break;
+			// Receive and unmarshall request
+			if (dequeue(q, &request) == SUCCESS)
+			{
+				// Process Request
+				switch (request)
+				{
+				case NULL_INVOCATION:
+					null_invocation();
+					break;
 
+				case HALT:
+					halt[rank] = 1;
+					break;
+				}
 			}
 
 			//cons_sum += node->field; 
