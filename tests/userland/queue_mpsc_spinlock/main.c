@@ -18,8 +18,8 @@
 
 #endif
 
-uint64_t CACHE_ALIGNED prod_sum = 0;
-uint64_t CACHE_ALIGNED cons_sum = 0;
+uint64_t prod_sum = 0;
+uint64_t cons_sum = 0;
 int * halt;
 
 int null_invocation ( void )
@@ -35,31 +35,21 @@ void *
 #endif
 producer ( void* data )
 {
+	queue_t** 	 q = full_queues;
+	request_t*   t = (request_t*) data;
+	uint64_t rank = *(uint64_t*)data;
+
 	uint64_t transaction_id;
 	uint64_t start;
 	uint64_t end;
 	uint64_t cons_id = 0;
-	int i; 
+	int i = 0; 
 
 	// We have a fixed size object pool, we pick one object 
 	// from that pool as transaction_id mod pool_size
-	uint64_t obj_id_mask = ((1UL << mem_pool_order) - 1);
-
-	uint64_t rank = *(uint64_t*)data;
-
-	node_t*   t = node_tables[0];
-
-	queue_t** q = full_queues;
+	uint64_t obj_id_mask = ((1UL << mem_pool_order) - 1);	
 
 	pr_err( "Producer %lu starting...\n", rank );
-	// Touching data
-	//for ( transaction_id = 0; transaction_id < mem_pool_size; transaction_id++ )
-	//{
-	//	t[transaction_id].field = 0;
-	//}
-
-	// Begin test
-	//fipc_test_thread_take_control_of_CPU();
 
 	// Wait for everyone to be ready
 	fipc_test_FAI( ready_producers );
@@ -75,17 +65,12 @@ producer ( void* data )
 	{
 		for(i = 0; i < batch_size; i++) 
 		{
-			node_t *node = &t[transaction_id & obj_id_mask]; 
+			request_t *node = &t[transaction_id & obj_id_mask]; 
 
-			node->field = transaction_id;
-			//prod_sum += t[transaction_id].field;
-
-			//pr_err("Sending, tid:%lu, mask%lu, mod:%lu\n", 
-			//		transaction_id, obj_id_mask, transaction_id & obj_id_mask);
+			node->data = NULL_INVOCATION;
 			
 			if ( enqueue( q[cons_id], node ) != SUCCESS )
 			{
-				//	(unsigned long long)transaction_id);
 				break;
 			}
 			transaction_id ++;
@@ -117,14 +102,14 @@ void *
 #endif
 consumer ( void* data )
 {
+	queue_t** q = full_queues;
+
 	uint64_t start;
 	uint64_t end;
-	uint64_t transaction_id = 0;
-	node_t   *node;
-	int i;
+	uint64_t request;
+	int i;	
 
-	uint64_t rank = *(uint64_t*)data;
-	queue_t** q = full_queues;	
+	uint64_t rank = *(uint64_t*)data;		
 	
 	pr_err( "Consumer %llu starting\n", (unsigned long long)rank );
 
@@ -142,17 +127,25 @@ consumer ( void* data )
 	start = RDTSC_START();
 	
 	while(!halt[rank])
-	{
-	
+	{	
 		for(i = 0; i < batch_size; i++) 
 		{
-
 			// Receive and unmarshall 
-			if ( dequeue( q[rank], &node ) != SUCCESS ) {
-				break;
+			if ( dequeue( q[rank], &request ) == SUCCESS ) 
+			{
+				// Process Request
+				switch ( request )
+				{
+					case NULL_INVOCATION:
+						null_invocation();
+						break;
+		
+					case HALT:
+						halt[rank] = 1;
+						break;
+				}
 
 			}
-
 			//cons_sum += node->field; 
 			transaction_id ++;
 		}
@@ -183,6 +176,7 @@ void * controller ( void* data )
 	// Queue Allocation
 	queue_t* queues = (queue_t*) vmalloc( consumer_count*sizeof(queue_t) );
 	
+	// Queue Init
 	for ( i = 0; i < consumer_count; ++i )
 		init_queue ( &queues[i] );
 
@@ -199,13 +193,12 @@ void * controller ( void* data )
 	for ( i = 0; i < consumer_count; ++i )
 		full_queues[i] = &queues[i];
 
-
 	// Node Table Allocation
-	node_tables = (node_t**) vmalloc( sizeof(node_t*) );
+	node_tables = (request_t**) vmalloc( sizeof(request_t*) );
 
 	pr_err("Allocating %lu bytes for the pool of %lu objects (pool order:%lu)\n", 
-		mem_pool_size*sizeof(node_t), mem_pool_size, mem_pool_order);
-		node_tables[0] = (node_t*) vmalloc( mem_pool_size*sizeof(node_t) );
+		mem_pool_size*sizeof(request_t), mem_pool_size, mem_pool_order);
+		node_tables[0] = (request_t*) vmalloc( mem_pool_size*sizeof(request_t) );
 
 	fipc_test_mfence();
 
@@ -277,8 +270,7 @@ void * controller ( void* data )
 
 	fipc_test_mfence();
 
-	// Tell consumers to halt
-	
+	// Tell consumers to halt	
 	for ( i = 0; i < consumer_count; ++i ) {
 
 		halt[i] = 1;
@@ -300,22 +292,20 @@ void * controller ( void* data )
 	for ( i = 0; i < (producer_count-1); ++i )
 		fipc_test_thread_free_thread( prod_threads[i] );
 
-	vfree( cons_threads );
-
+	vfree( node_tables[0] );	
+	
 	if ( prod_threads != NULL )
 		vfree( prod_threads );
 
+	vfree( cons_threads );
+	vfree( node_tables );
 	vfree( halt );
 	
-	vfree( node_tables[0] );
-	vfree( node_tables );
-
-	vfree( full_queues );
-
 	for ( i = 0; i < consumer_count; ++i )
 		free_queue( &queues[i] );
-
+	
 	vfree( queues );
+	vfree( full_queues );
 
 	// End Experiment
 	fipc_test_mfence();
