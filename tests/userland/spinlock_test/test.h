@@ -14,10 +14,10 @@
 static queue_t queue;
 
 // Test Variables
-static uint32_t transactions = 1000000;
+static uint32_t transactions = 100000000;
 
-static uint8_t producer_count = 4;
-static uint8_t consumer_count = 4;
+static uint8_t producer_count = 1;
+static uint8_t consumer_count = 1;
 
 static uint8_t producer_cpus[32] = { 0, 4, 8, 12 };
 static uint8_t consumer_cpus[32] = { 16, 20, 24, 28 }; static uint64_t transactions = 100000000;
@@ -52,8 +52,10 @@ static uint8_t consumer_cpus[32] = { 16, 20, 24, 28,     17, 21, 25, 29,   18, 2
 #define pr_err printf
 
 // Queue Variables
-static queue_t*** prod_queues = NULL;
-static queue_t*** cons_queues = NULL;
+static queue_t** full_queues = NULL;
+
+//static queue_t*** prod_queues = NULL;
+//static queue_t*** cons_queues = NULL;
 static node_t**   node_tables = NULL;
 
 // Request Types
