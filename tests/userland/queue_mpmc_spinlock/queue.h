@@ -21,6 +21,7 @@ typedef uint64_t data_t;
 
 typedef struct node {
 	uint64_t CACHE_ALIGNED field;	
+	struct node* next;
 } node_t;
 
 typedef struct queue_t
