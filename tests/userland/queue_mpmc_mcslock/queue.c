@@ -4,9 +4,8 @@
  * @Author   : Jeonghoon Lee
  */
 
+
 #include "queue.h"
-#ifndef MCSLOCK_H
-#define MCSLOCK_H
 
 int init_queue ( queue_t* q )
 {
@@ -70,5 +69,3 @@ int dequeue ( queue_t* q, node_t** node )
 
 	return SUCCESS;
 }
-
-#endif

@@ -7,7 +7,10 @@
 #ifndef LIBFIPC_TEST_QUEUE
 #define LIBFIPC_TEST_QUEUE
 
+#ifndef LIBFIPC_TEST
 #include "../libfipc_test.h"
+#endif
+
 #include "mcslock.h"
 
 #define CHANNEL_ORDER ilog2(sizeof(message_t)) + 13
