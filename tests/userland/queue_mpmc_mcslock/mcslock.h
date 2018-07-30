@@ -55,7 +55,7 @@ fetch_and_store ( mcslock* L, qnode* val )
 {
     __asm__ volatile(
                 "lock; xchgq %0, %1\n\t"
-                : "+m" (L->v), "+r" (val)
+                : "+m" (L), "+r" (val)
                 : 
                 : "memory", "cc");
     return val;
@@ -67,7 +67,7 @@ cmp_and_swap ( mcslock *L, uint64_t cmpval, uint64_t newval )
     uint64_t out;
     __asm__ volatile(
                 "lock; cmpxchgq %2, %1"
-                : "=a" (out), "+m" (L->v)
+                : "=a" (out), "+m" (L)
                 : "q" (newval), "0"(cmpval)
                 : "cc");
     return out == cmpval;
