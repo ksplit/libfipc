@@ -79,16 +79,14 @@ int dequeue ( queue_t* q )
 	thread_spin_lock( &(q->H_lock) );
 
 	qnode_t* temp = q->head;
-	qnode_t* new_head = q->head->next;
+	qnode_t* new_head = NULL;
 
-	if ( !new_head )
+	if ( !temp )
 	{
-		free(q->head);
-		q->head = NULL;
-		
 		thread_spin_unlock( &(q->H_lock) );
-		return SUCCESS;
+		return EMPTY_COLLECTION;
 	}
+	new_head = q->head->next;
 	q->head = new_head;
 	free(temp);
 
