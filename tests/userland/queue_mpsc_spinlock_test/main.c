@@ -75,7 +75,7 @@ producer ( void* data )
 		for(i = 0; i < batch_size; i++) {
 			node_t *node = &t[transaction_id & obj_id_mask]; 
 
-			node->field = transaction_id;
+			node->data = transaction_id;
 			//prod_sum += t[transaction_id].field;
 			//pr_err("Sending, tid:%lu, mask%lu, mod:%lu\n", 
 			//		transaction_id, obj_id_mask, transaction_id & obj_id_mask);
