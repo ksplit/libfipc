@@ -25,13 +25,23 @@ typedef uint64_t data_t;
 
 typedef struct queue_t
 {
-	header_t* CACHE_ALIGNED head;
-	header_t* CACHE_ALIGNED tail;
+	//header_t* CACHE_ALIGNED head;
+	//header_t* CACHE_ALIGNED tail;
+	qnode_t* CACHE_ALIGNED head;
+	qnode_t* CACHE_ALIGNED tail;
 
 	mcslock H_lock;
 	mcslock T_lock;
 
 } queue_t;
+
+// node struct for queue
+typedef struct qnode_t
+{
+	node_t node;
+	qnode_t* next;
+
+} qnode_t;
 
 volatile struct qnode I[MAX_MCS_LOCKS];
 
