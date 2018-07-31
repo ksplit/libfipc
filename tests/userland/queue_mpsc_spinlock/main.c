@@ -36,7 +36,7 @@ void *
 producer ( void* data )
 {
 	queue_t** 	 q = full_queues;
-	request_t*   t = (request_t*) data;
+	request_t*   t = node_tables;
 	uint64_t rank = *(uint64_t*)data;
 
 	uint64_t transaction_id;
@@ -61,7 +61,7 @@ producer ( void* data )
 
 	start = RDTSC_START();
 
-	for ( transaction_id = 0; transaction_id < consumer_count * transactions; )
+	for ( transaction_id = 0; transaction_id < transactions; )
 	{
 		for(i = 0; i < batch_size; i++) 
 		{
@@ -112,6 +112,8 @@ consumer ( void* data )
 	uint64_t rank = *(uint64_t*)data;		
 	
 	pr_err( "Consumer %llu starting\n", (unsigned long long)rank );
+
+	halt[rank] = 0;
 
 	// Begin test
 	// fipc_test_thread_take_control_of_CPU();
@@ -182,23 +184,23 @@ void * controller ( void* data )
 
 	full_queues = (queue_t**) vmalloc( consumer_count*sizeof(queue_t*) );
 
-	halt = (int*) vmalloc( consumer_count*sizeof(*halt) );
+	haltMsg = (request_t*) vmalloc( consumer_count*sizeof(request_t) );
 	
 	for ( i = 0; i < consumer_count; ++i ) 
 	{
 		full_queues[i] = (queue_t*) vmalloc( sizeof(queue_t) );
-		halt[i] = 0;
+		haltMsg[i].data = 0;
 	}
 
 	for ( i = 0; i < consumer_count; ++i )
 		full_queues[i] = &queues[i];
 
 	// Node Table Allocation
-	node_tables = (request_t**) vmalloc( sizeof(request_t*) );
+	node_tables = (request_t*) vmalloc( producer_count * mem_pool_size * sizeof(request_t) );
 
 	pr_err("Allocating %lu bytes for the pool of %lu objects (pool order:%lu)\n", 
 		mem_pool_size*sizeof(request_t), mem_pool_size, mem_pool_order);
-		node_tables[0] = (request_t*) vmalloc( mem_pool_size*sizeof(request_t) );
+		//node_tables[0] = (request_t*) vmalloc( mem_pool_size*sizeof(request_t) );
 
 	fipc_test_mfence();
 
@@ -270,10 +272,13 @@ void * controller ( void* data )
 
 	fipc_test_mfence();
 
-	// Tell consumers to halt	
-	for ( i = 0; i < consumer_count; ++i ) {
+	// Tell consumers to halt
+	for ( i = 0; i < consumer_count; ++i )
+	{
+		haltMsg[i].next = 0;
+		haltMsg[i].data = HALT;
 
-		halt[i] = 1;
+		enqueue( &full_queues[i], &haltMsg[i] );
 	}
 
 	// Wait for consumers to complete

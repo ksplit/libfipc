@@ -60,8 +60,13 @@ int enqueue ( queue_t* q, request_t* r )
 	r->next = NULL;
 	thread_spin_lock( &(q->T_lock) );
 
-	q->tail->next = r;
-	q->tail       = r;
+	if(q->tail) {
+        q->tail->next = r;
+        q->tail = r;
+    } else {
+        q->head = r;
+        q->tail = r;
+    };
 
 	thread_spin_unlock( &(q->T_lock) );
 	
