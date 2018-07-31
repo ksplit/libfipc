@@ -41,9 +41,11 @@ static uint8_t consumer_cpus[32] = { 16, 20, 24, 28,     17, 21, 25, 29,   18, 2
 	                              0,  4,  8, 12,      1,  5,  9, 13,    2,  6, 10, 14,     3,  7, 11, 15 };
 #define pr_err printf
 
-// Queue Variables
+// Queue Variable
+static queue_t queue;
+static queue_t*** prod_queues = NULL;
+static queue_t*** cons_queues = NULL;
 static node_t**   node_tables = NULL;
-static queue_t*   queues = NULL;
 
 // Request Types
 #define MSG_ENQUEUE         1
