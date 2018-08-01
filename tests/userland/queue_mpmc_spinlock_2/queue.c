@@ -43,7 +43,7 @@ int enqueue ( queue_t* q, node_t* node )
 	if ( q->tail )
 	{
 		q->tail->next = new;
-		q->tail->next = new;
+		q->tail = new;
 	}
 	else
 	{
@@ -77,20 +77,41 @@ int enqueue ( queue_t* q, node_t* node )
 int dequeue ( queue_t* q )
 {
 	thread_spin_lock( &(q->H_lock) );
+	
+	qnode_t* temp = NULL;
 
-	qnode_t* temp = q->head;
+	if ( q->head )
+	{
+		temp = q->head;
+		if ( !(q->head->next) )
+			q->tail = NULL;
+		q->head = q->head->next;
+		free(temp);
+		thread_spin_unlock( &(q->H_lock) );
+
+		return SUCCESS;
+	}
+	else
+	{
+		thread_spin_unlock( &(q->H_lock) );
+		return EMPTY_COLLECTION;
+	}
+		
+/*
 	qnode_t* new_head = NULL;
 
 	if ( !temp )
 	{
 		thread_spin_unlock( &(q->H_lock) );
-		return EMPTY_COLLECTION;
+//		return EMPTY_COLLECTION;
+		return SUCCESS;
 	}
 	new_head = q->head->next;
 	q->head = new_head;
 	free(temp);
 
 	thread_spin_unlock( &(q->H_lock) );
+*/
 /*
 	message_t* msg;
 	qnode *I = malloc(sizeof(qnode));
@@ -107,6 +128,6 @@ int dequeue ( queue_t* q )
 	fipc_recv_msg_end( q->tail, msg );
 	mcs_unlock( &(q->H_lock),I );
 */
-	return SUCCESS;
+//	return SUCCESS;
 }
 
