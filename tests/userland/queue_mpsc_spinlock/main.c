@@ -20,7 +20,7 @@
 
 uint64_t prod_sum = 0;
 uint64_t cons_sum = 0;
-int * halt;
+int* halt;
 
 int null_invocation ( void )
 {
@@ -60,8 +60,8 @@ producer ( void* data )
 	fipc_test_mfence();
 
 	start = RDTSC_START();
-
-	for ( transaction_id = 0; transaction_id < transactions; )
+	
+	for ( transaction_id = 0; transaction_id < consumer_count * transactions; )
 	{
 		for(i = 0; i < batch_size; i++) 
 		{
@@ -74,7 +74,10 @@ producer ( void* data )
 				break;
 			}
 			transaction_id ++;
-		};
+		
+		if(transaction_id % 10000000 == 0)
+			printf("Producer transaction_id : %lu\n", transaction_id);
+		}
 		
 		++cons_id;
 
@@ -108,12 +111,10 @@ consumer ( void* data )
 	uint64_t end;
 	uint64_t request;
 	int i;	
-
+	uint64_t transaction_id = 0;
 	uint64_t rank = *(uint64_t*)data;		
 	
 	pr_err( "Consumer %llu starting\n", (unsigned long long)rank );
-
-	halt[rank] = 0;
 
 	// Begin test
 	// fipc_test_thread_take_control_of_CPU();
@@ -127,6 +128,7 @@ consumer ( void* data )
 	fipc_test_mfence();
 
 	start = RDTSC_START();
+	halt[rank] = 0;	
 	
 	while(!halt[rank])
 	{	
@@ -141,15 +143,23 @@ consumer ( void* data )
 					case NULL_INVOCATION:
 						null_invocation();
 						break;
-		
 					case HALT:
 						halt[rank] = 1;
 						break;
 				}
+			}			
 
-			}
+//			if ( dequeue( q[rank], &request ) != SUCCESS ) 
+	//		else
+	//		{
+	//			break;
+	//		}
+
 			//cons_sum += node->field; 
 			transaction_id ++;
+
+			if(transaction_id > 90000000)
+				printf("Consumer transaction_id : %lu\n", transaction_id);
 		}
 	}
 
@@ -184,12 +194,14 @@ void * controller ( void* data )
 
 	full_queues = (queue_t**) vmalloc( consumer_count*sizeof(queue_t*) );
 
-	haltMsg = (request_t*) vmalloc( consumer_count*sizeof(request_t) );
+request_t* haltMsg = (request_t*) vmalloc( consumer_count*sizeof(request_t) );
+
+	halt = (int*) vmalloc( consumer_count*sizeof(*halt) );
 	
 	for ( i = 0; i < consumer_count; ++i ) 
 	{
 		full_queues[i] = (queue_t*) vmalloc( sizeof(queue_t) );
-		haltMsg[i].data = 0;
+		halt[i] = 0;
 	}
 
 	for ( i = 0; i < consumer_count; ++i )
@@ -200,7 +212,6 @@ void * controller ( void* data )
 
 	pr_err("Allocating %lu bytes for the pool of %lu objects (pool order:%lu)\n", 
 		mem_pool_size*sizeof(request_t), mem_pool_size, mem_pool_order);
-		//node_tables[0] = (request_t*) vmalloc( mem_pool_size*sizeof(request_t) );
 
 	fipc_test_mfence();
 
@@ -221,7 +232,7 @@ void * controller ( void* data )
 	{
 		p_rank[i] = i;
 		prod_threads[i] = fipc_test_thread_spawn_on_CPU ( producer, &p_rank[i], producer_cpus[i] );
-
+		
 		if ( prod_threads[i] == NULL )
 		{
 			pr_err( "%s\n", "Error while creating thread" );
@@ -233,13 +244,15 @@ void * controller ( void* data )
 	{
 		c_rank[i] = i;
 		cons_threads[i] = fipc_test_thread_spawn_on_CPU ( consumer, &c_rank[i], consumer_cpus[i] );
-
+		
 		if ( cons_threads[i] == NULL )
 		{
 			pr_err( "%s\n", "Error while creating thread" );
 			return NULL;
 		}
+
 	}
+
 #ifdef __KERNEL__
 	// Start threads
 	for ( i = 0; i < (producer_count-1); ++i )
@@ -248,10 +261,11 @@ void * controller ( void* data )
 	for ( i = 0; i < consumer_count; ++i )
 		wake_up_process( cons_threads[i] );
 #endif
+	
 	// Wait for threads to be ready for test
 	while ( ready_consumers < consumer_count )
 		fipc_test_pause();
-
+	
 	while ( ready_producers < (producer_count-1) )
 		fipc_test_pause();
 
@@ -261,7 +275,7 @@ void * controller ( void* data )
 	test_ready = 1;
 
 	fipc_test_mfence();
-
+	
 	// This thread is also a producer
 	p_rank[producer_count-1] = producer_count-1;
 	producer( &p_rank[producer_count-1] );
@@ -275,10 +289,11 @@ void * controller ( void* data )
 	// Tell consumers to halt
 	for ( i = 0; i < consumer_count; ++i )
 	{
-		haltMsg[i].next = 0;
-		haltMsg[i].data = HALT;
+haltMsg[i].next = 0;
+haltMsg[i].data = HALT;
+enqueue( &full_queues[i], &haltMsg[i] );
 
-		enqueue( &full_queues[i], &haltMsg[i] );
+//		halt[i] = 1;
 	}
 
 	// Wait for consumers to complete
@@ -296,8 +311,6 @@ void * controller ( void* data )
 
 	for ( i = 0; i < (producer_count-1); ++i )
 		fipc_test_thread_free_thread( prod_threads[i] );
-
-	vfree( node_tables[0] );	
 	
 	if ( prod_threads != NULL )
 		vfree( prod_threads );
