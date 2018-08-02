@@ -16,6 +16,7 @@ int init_queue(queue_t* q)
 
 	thread_spin_init(&(q->H_lock));
 	thread_spin_init(&(q->T_lock));
+
 	return SUCCESS;
 }
 
@@ -29,15 +30,22 @@ int free_queue(queue_t* q)
 
 // Enqueue
 
-int enqueue(queue_t* q, request_t* r)
+int enqueue(queue_t* q, node_t* r)
 {
 	r->next = NULL;
 
 	// Acquire Lock, Enter Critical Section
 	thread_spin_lock(&(q->T_lock));
-
-	q->tail->next = r;
-	q->tail = r;
+	if ( q->tail )
+	{	
+		q->tail->next = r;
+		q->tail = r;
+	}
+	else
+	{
+		q->head = r;
+		q->tail = r;
+	}
 
 	// Release Lock, Exit Critical Section
 	thread_spin_unlock(&(q->T_lock));
@@ -48,8 +56,8 @@ int enqueue(queue_t* q, request_t* r)
 
 int dequeue(queue_t* q, uint64_t* data)
 {
-	request_t* temp;
-	request_t* new_head;
+	node_t* temp;
+	node_t* new_head;
 
 	// Acquire Lock, Enter Critical Section
 	thread_spin_lock(&(q->H_lock));

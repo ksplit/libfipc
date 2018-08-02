@@ -44,9 +44,10 @@ producer(void* data)
 	// from that pool as transaction_id mod pool_size
 	uint64_t obj_id_mask = ((1UL << mem_pool_order) - 1);
 
-	queue_t*   q = &queue;
 	uint64_t rank = *(uint64_t*)data;
 	node_t*   t = node_tables[rank];
+	queue_t*   q = &queue;
+
 
 	pr_err("Producer %lu starting...\n", rank);
 	
@@ -60,11 +61,12 @@ producer(void* data)
 	start = RDTSC_START();
 
 
-	for (transaction_id = 0; transaction_id < transactions;)
+	for ( transaction_id = 0; transaction_id < transactions; )
 	{
-		for(i = 0; i < batch_size; i++ )
+		for( i = 0; i < batch_size; i++ )
 		{
 			node_t *node = &t[transaction_id & obj_id_mask];
+
 			node->data = NULL_INVOCATION;
 
 			if( enqueue(q, node) != SUCCESS )
@@ -98,11 +100,11 @@ consumer(void* data)
 	uint64_t start;
 	uint64_t end;
 	uint64_t transaction_id = 0;
+	uint64_t request;
 	int i;
 
 	uint64_t rank = *(uint64_t*)data;
 	queue_t* q = &queue;
-	uint64_t request;
 
 
 	pr_err("Consumer %llu starting\n", (unsigned long long)rank);
@@ -122,7 +124,8 @@ consumer(void* data)
 
 	while (!halt)
 	{
-		for (i = 0; i < batch_size; i++) {
+		for (i = 0; i < batch_size; i++) 
+		{
 
 			// Receive and unmarshall 
 			if (dequeue(q, &request) != SUCCESS) 
@@ -142,7 +145,6 @@ consumer(void* data)
 					halt = 1;
 					break;
 				}
-
 				transaction_id++;
 			}
 		}
@@ -173,18 +175,18 @@ void * controller(void* data)
 	// Queue Init
 	init_queue(&queue);
 
-	request_t* haltMsg = (request_t*)vmalloc(consumer_count * sizeof(request_t));
+	node_t* haltMsg = (node_t*)vmalloc(consumer_count * sizeof(node_t));
 
 
 	// Node Table Allocation
 	node_tables = (node_t**)vmalloc(producer_count * sizeof(node_t*));
 
-	for (i = 0; i < producer_count; ++i) {
+	for (i = 0; i < producer_count; ++i) 
+	{
 		pr_err("Allocating %lu bytes for the pool of %lu objects (pool order:%lu)\n",
 			mem_pool_size * sizeof(node_t), mem_pool_size, mem_pool_order);
 		node_tables[i] = (node_t*)vmalloc(mem_pool_size * sizeof(node_t));
 	}
-
 
 	fipc_test_mfence();
 
@@ -257,7 +259,6 @@ void * controller(void* data)
 	fipc_test_mfence();
 
 
-
 	// Tell consumers to halt
 	for (i = 0; i < consumer_count; ++i)
 	{
@@ -266,7 +267,6 @@ void * controller(void* data)
 
 		enqueue(&queue, &haltMsg[i]);
 	}
-
 
 	// Wait for consumers to complete
 	while (completed_consumers < consumer_count)

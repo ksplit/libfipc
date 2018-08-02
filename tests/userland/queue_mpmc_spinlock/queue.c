@@ -30,7 +30,7 @@ int free_queue(queue_t* q)
 
 // Enqueue
 
-int enqueue(queue_t* q, request_t* r)
+int enqueue(queue_t* q, node_t* r)
 {
 	r->next = NULL;
 
@@ -56,8 +56,8 @@ int enqueue(queue_t* q, request_t* r)
 
 int dequeue(queue_t* q, uint64_t* data)
 {
-	request_t* temp;
-	request_t* new_head;
+	node_t* temp;
+	node_t* new_head;
 
 	// Acquire Lock, Enter Critical Section
 	thread_spin_lock(&(q->H_lock));

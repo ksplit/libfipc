@@ -20,6 +20,7 @@
 
 uint64_t CACHE_ALIGNED prod_sum = 0;
 uint64_t CACHE_ALIGNED cons_sum = 0;
+
 int * halt;
 
 int null_invocation ( void )
@@ -51,15 +52,7 @@ producer ( void* data )
 
 	pr_err( "Producer %lu starting...\n", rank );
 	// Touching data
-	//for ( transaction_id = 0; transaction_id < mem_pool_size; transaction_id++ )
-	//{
-	//	t[transaction_id].field = 0;
-	//}
 
-	// Begin test
-	//fipc_test_thread_take_control_of_CPU();
-
-	// Wait for everyone to be ready
 	fipc_test_FAI(ready_producers);
 
 	while ( !test_ready )
@@ -76,14 +69,9 @@ producer ( void* data )
 			node_t *node = &t[transaction_id & obj_id_mask]; 
 
 			node->data = transaction_id;
-			//prod_sum += t[transaction_id].field;
-			//pr_err("Sending, tid:%lu, mask%lu, mod:%lu\n", 
-			//		transaction_id, obj_id_mask, transaction_id & obj_id_mask);
 
 			if ( enqueue( q[cons_id], node ) != SUCCESS )
 			{
-				//pr_err("Failed to enqueue tid:%llu\n", 
-				//	(unsigned long long)transaction_id);
 				break;
 			}
 			transaction_id ++;
@@ -148,12 +136,25 @@ consumer ( void* data )
 			// Receive and unmarshall 
 			if ( dequeue( q[prod_id], &node ) != SUCCESS ) {
 				break;
+			}
+			else
+			{
+				// Process Request
+				switch (request)
+				{
+				case NULL_INVOCATION:
+					null_invocation();
+					break;
+				case HALT:
+					halt[rank] = 1;
+					break;
+				}
+
+				transaction_id++;
 
 			}
 
-			//cons_sum += node->field; 
 			transaction_id ++;
-
 		}
 
 		++prod_id; if ( prod_id >= producer_count ) prod_id = 0;
