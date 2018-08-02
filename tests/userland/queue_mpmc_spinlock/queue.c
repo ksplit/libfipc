@@ -16,6 +16,7 @@ int init_queue(queue_t* q)
 
 	thread_spin_init(&(q->H_lock));
 	thread_spin_init(&(q->T_lock));
+
 	return SUCCESS;
 }
 
