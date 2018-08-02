@@ -39,7 +39,7 @@ producer ( void* data )
 	uint64_t transaction_id;
 	uint64_t start;
 	uint64_t end;
-	uint64_t cons_id = 0;
+	//uint64_t cons_id = 0;
 	int i; 
 
 	// We have a fixed size object pool, we pick one object 
@@ -78,7 +78,7 @@ producer ( void* data )
 		for(i = 0; i < batch_size; i++) {
 			node_t *node = &t[transaction_id & obj_id_mask]; 
 
-			node->field = transaction_id;
+			//node->field = transaction_id;
 			//prod_sum += t[transaction_id].field;
 			//pr_err("Sending, tid:%lu, mask%lu, mod:%lu\n", 
 			//		transaction_id, obj_id_mask, transaction_id & obj_id_mask);
@@ -121,7 +121,7 @@ consumer ( void* data )
 {
 	uint64_t start;
 	uint64_t end;
-	uint64_t prod_id = 0;
+	//uint64_t prod_id = 0;
 	uint64_t transaction_id = 0;
 	node_t   *node;
 	int i;
@@ -189,7 +189,7 @@ consumer ( void* data )
 void * controller ( void* data )
 {
 	uint64_t i;
-	uint64_t j;
+	//uint64_t j;
 
 	mem_pool_size = 1 << mem_pool_order;
 

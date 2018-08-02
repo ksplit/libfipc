@@ -23,17 +23,7 @@ typedef struct qnode {
     volatile char CACHE_ALIGNED waiting; 
 } qnode; 
 
-/*
-typedef struct {
-    struct qnode* CACHE_ALIGNED v;
-    int CACHE_ALIGNED lock_idx;
-} mcslock;
-*/
 typedef qnode mcslock;
-
-typedef struct node {
-	uint64_t CACHE_ALIGNED field;	
-} node_t;
 
 /*
 static inline uint64_t

@@ -9,16 +9,11 @@
 
 int init_queue ( queue_t* q )
 {
-	q->head = q->tail = NULL;
-/*
-	fipc_test_create_channel( CHANNEL_ORDER, &q->head, &q->tail );
+	q->header.next = NULL;
 
-	if ( q->head == NULL || q->tail == NULL )
-	{
-		pr_err( "%s\n", "Error while creating channel" );
-		return -1;
-	}
-*/
+	q->head = &(q->header);
+	q->tail = &(q->header);
+
 	mcs_init_global( &(q->H_lock) );
 	mcs_init_global( &(q->T_lock) );
 
@@ -27,7 +22,7 @@ int init_queue ( queue_t* q )
 
 int free_queue ( queue_t* q )
 {
-	fipc_test_free_channel( CHANNEL_ORDER, q->head, q->tail );
+//	fipc_test_free_channel( CHANNEL_ORDER, q->head, q->tail );
 	return SUCCESS;
 }
 
