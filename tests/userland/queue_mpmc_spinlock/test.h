@@ -15,10 +15,10 @@
 
 
 // Test Variables
-static uint64_t transactions = 100000000;
+static uint64_t transactions = 10000000;
 
-static uint8_t producer_count = 2;
-static uint8_t consumer_count = 2;
+static uint8_t producer_count = 1;
+static uint8_t consumer_count = 1;
 
 uint64_t batch_size = 1;
 
@@ -46,7 +46,7 @@ static uint8_t consumer_cpus[32] = { 16, 20, 24, 28,     17, 21, 25, 29,   18, 2
 
 // Queue Variable
 static queue_t queue;
-static node_t*   node_tables = NULL;
+static node_t**   node_tables = NULL;
 
 // Request Types
 #define MSG_ENQUEUE         1

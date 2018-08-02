@@ -19,7 +19,7 @@
 // Types
 typedef uint64_t data_t;
 
-typedef struct node {
+typedef struct linked_node_t {
 
 	uint64_t data;
 	struct linked_node_t* next;

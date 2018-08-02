@@ -20,7 +20,7 @@
 
 uint64_t CACHE_ALIGNED prod_sum = 0;
 uint64_t CACHE_ALIGNED cons_sum = 0;
-int * halt;
+int halt = 0;
 
 int null_invocation(void)
 {
@@ -38,6 +38,7 @@ producer(void* data)
 	uint64_t transaction_id;
 	uint64_t start;
 	uint64_t end;
+	int i;
 
 	// We have a fixed size object pool, we pick one object 
 	// from that pool as transaction_id mod pool_size
@@ -47,19 +48,8 @@ producer(void* data)
 	uint64_t rank = *(uint64_t*)data;
 	node_t*   t = node_tables[rank];
 
-
-
 	pr_err("Producer %lu starting...\n", rank);
-	// Touching data
-	//for ( transaction_id = 0; transaction_id < mem_pool_size; transaction_id++ )
-	//{
-	//	t[transaction_id].field = 0;
-	//}
-
-	// Begin test
-	//fipc_test_thread_take_control_of_CPU();
-
-	// Wait for everyone to be ready
+	
 	fipc_test_FAI(ready_producers);
 
 	while (!test_ready)
@@ -70,11 +60,19 @@ producer(void* data)
 	start = RDTSC_START();
 
 
-	for (transaction_id = 0; transaction_id < transactions; transaction_id++)
+	for (transaction_id = 0; transaction_id < transactions;)
 	{
-		t[transaction_id & obj_id_mask].data = NULL_INVOCATION;
+		for(i = 0; i < batch_size; i++ )
+		{
+			node_t *node = &t[transaction_id & obj_id_mask];
+			node->data = NULL_INVOCATION;
 
-		enqueue(q, &t[transaction_id & obj_id_mask]);
+			if( enqueue(q, node) != SUCCESS )
+			{
+				break;
+			}
+			transaction_id++;
+		}
 	}
 
 	end = RDTSCP();
@@ -122,14 +120,17 @@ consumer(void* data)
 
 	start = RDTSC_START();
 
-	while (!halt[rank])
+	while (!halt)
 	{
-
 		for (i = 0; i < batch_size; i++) {
 
 			// Receive and unmarshall 
-			if (dequeue(q, &request) == SUCCESS) {
-			
+			if (dequeue(q, &request) != SUCCESS) 
+			{
+				break;
+			}
+			else
+			{
 				// Process Request
 				switch (request)
 				{
@@ -141,10 +142,9 @@ consumer(void* data)
 					halt = 1;
 					break;
 				}
+
+				transaction_id++;
 			}
-
-			transaction_id++;
-
 		}
 	}
 
@@ -175,13 +175,6 @@ void * controller(void* data)
 
 	request_t* haltMsg = (request_t*)vmalloc(consumer_count * sizeof(request_t));
 
-	halt = (int*)vmalloc(consumer_count * sizeof(*halt));
-
-	// Tell consumers to halt
-	for (i = 0; i < consumer_count; ++i) {
-
-		halt[i] = 1;
-	}
 
 	// Node Table Allocation
 	node_tables = (node_t**)vmalloc(producer_count * sizeof(node_t*));
@@ -295,8 +288,6 @@ void * controller(void* data)
 
 	if (prod_threads != NULL)
 		vfree(prod_threads);
-
-	vfree(halt);
 
 	for (i = 0; i < producer_count; ++i)
 		vfree(node_tables[i]);

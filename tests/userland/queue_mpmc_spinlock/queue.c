@@ -36,9 +36,16 @@ int enqueue(queue_t* q, request_t* r)
 
 	// Acquire Lock, Enter Critical Section
 	thread_spin_lock(&(q->T_lock));
-
-	q->tail->next = r;
-	q->tail = r;
+	if ( q->tail )
+	{	
+		q->tail->next = r;
+		q->tail = r;
+	}
+	else
+	{
+		q->head = r;
+		q->tail = r;
+	}
 
 	// Release Lock, Exit Critical Section
 	thread_spin_unlock(&(q->T_lock));
