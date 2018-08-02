@@ -39,7 +39,7 @@ producer ( void* data )
 	uint64_t transaction_id;
 	uint64_t start;
 	uint64_t end;
-	uint64_t cons_id = 0;
+//	uint64_t cons_id = 0;
 	int i; 
 
 	// We have a fixed size object pool, we pick one object 
@@ -47,8 +47,7 @@ producer ( void* data )
 	uint64_t obj_id_mask = ((1UL << mem_pool_order) - 1);
 
 	uint64_t rank = *(uint64_t*)data;
-	//node_t*   t = node_tables[rank];
-	node_t*   t = node_tables[0];
+	node_t*   t = node_tables[rank];
 	//queue_t** q = prod_queues[rank];
 	queue_t* q = queues;
 
@@ -121,7 +120,7 @@ consumer ( void* data )
 {
 	uint64_t start;
 	uint64_t end;
-	uint64_t prod_id = 0;
+//	uint64_t prod_id = 0;
 	uint64_t transaction_id = 0;
 	uint64_t node;
 	int i;
@@ -336,8 +335,7 @@ void * controller ( void* data )
 
 	//vfree( halt );
 
-	//for ( i = 0; i < producer_count; ++i )
-	for ( i = 0; i < 1; ++i )
+	for ( i = 0; i < producer_count; ++i )
 		vfree( node_tables[i] );
 
 	vfree( node_tables );
