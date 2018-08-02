@@ -123,7 +123,7 @@ consumer ( void* data )
 	uint64_t end;
 	//uint64_t prod_id = 0;
 	uint64_t transaction_id = 0;
-	node_t   *node;
+	uint64_t node;
 	int i;
 
 	uint64_t rank = *(uint64_t*)data;
@@ -153,9 +153,9 @@ consumer ( void* data )
 
 			// Receive and unmarshall 
 			//if ( dequeue( q[prod_id], &node ) != SUCCESS ) {
-			if ( dequeue( q, &node ) != SUCCESS ) {
+			if ( dequeue( q, &node ) != SUCCESS )
+			{
 				break;
-
 			}
 
 			//cons_sum += node->field; 

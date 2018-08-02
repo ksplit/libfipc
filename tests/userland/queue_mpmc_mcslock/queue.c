@@ -28,17 +28,18 @@ int free_queue ( queue_t* q )
 
 // Enqueue
 
-int enqueue ( queue_t* q, node_t* node )
+int enqueue ( queue_t* q, node_t* r )
 {
-	mcs_lock( &(q->T_lock) );
-	qnode_t* new = (qnode_t*) malloc(sizeof(qnode_t));
-	new->node = node;
-	new->next = NULL;
+	qnode *I = malloc( sizeof(qnode) );
+	mcs_init_local( I );
+	
+	r->next = NULL;
+	mcs_lock( &(q->T_lock), I );
 
 	if ( q->tail )
 	{
-		q->tail->new = r;
-		q->tail->new = r;
+		q->tail->next = r;
+		q->tail	= r;
 	}
 	else
 	{
@@ -46,11 +47,12 @@ int enqueue ( queue_t* q, node_t* node )
 		q->tail = r;
 	}
 
-	mcs_unlock( &(q->T_lock) );
+	mcs_unlock( &(q->T_lock), I );
+	free( I );
 /*
 	message_t* msg;
 	qnode *I = malloc(sizeof(qnode));
-	mcs_init_local(I);	
+	mcs_init_local(I);
 	mcs_lock( &(q->T_lock),I );
 
 	if (fipc_send_msg_start( q->head, &msg ) != 0)
@@ -69,25 +71,26 @@ int enqueue ( queue_t* q, node_t* node )
 
 // Dequeue
 
-int dequeue ( queue_t* q )
+int dequeue ( queue_t* q, uint64_t* data )
 {
-	mcs_lock( &(q->H_lock) );
+	qnode *I = malloc( sizeof(qnode) );
+	mcs_init_local( I );
 
-	qnode_t* temp = q->head;
-	qnode_t* new_head = q->head->next;
+	mcs_lock( &(q->H_lock), I );
+
+//	node_t* temp = q->head;
+	node_t* new_head = q->head->next;
 
 	if ( !new_head )
 	{
-		free(q->head);
-		q->head = NULL;
-		
-		mcs_unlock( &(q->H_lock) );
-		return SUCCESS;
+		mcs_unlock( &(q->H_lock), I );
+		return EMPTY_COLLECTION;
 	}
-	q->head = new_head;
-	free(temp);
 
-	mcs_unlock( &(q->H_lock) );
+	*data   = new_head->data;
+	q->head = new_head;
+
+	mcs_unlock( &(q->H_lock), I );
 /*
 	message_t* msg;
 	qnode *I = malloc(sizeof(qnode));
