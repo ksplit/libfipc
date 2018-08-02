@@ -38,23 +38,6 @@ typedef struct queue_t
 
 } queue_t;
 
-/*
-typedef uint64_t data_t;
-
-typedef struct node {
-	uint64_t CACHE_ALIGNED field;	
-} node_t;
-
-typedef struct queue_t
-{
-	header_t* CACHE_ALIGNED head;
-	header_t* CACHE_ALIGNED tail;
-
-	struct thread_spinlock H_lock;	
-	struct thread_spinlock T_lock;
-
-} queue_t;
-*/
 
 int init_queue	( queue_t* q );
 int free_queue	( queue_t* q );

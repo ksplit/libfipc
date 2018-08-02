@@ -31,7 +31,7 @@ int free_queue ( queue_t* q )
 
 // Enqueue
 /*
-int enqueue_blk ( queue_t* q, request_t* r )
+int enqueue_blk ( queue_t* q, node_t* r )
 {
 	message_t* msg;
 
@@ -55,24 +55,26 @@ int dequeue_blk ( queue_t* q, uint64_t* data )
 	return SUCCESS;
 }
 */
-int enqueue ( queue_t* q, request_t* r )
+
+// enqueue
+
+int enqueue ( queue_t* q, node_t* r )
 {
 	r->next = NULL;
 	thread_spin_lock( &(q->T_lock) );
-//	printf("lock :: %d\n", q->T_lock.locked);
-	if(q->tail) 
+
+	if ( q->tail ) 
 	{
-	        q->tail->next = r;
-        	q->tail = r;
-    	}
+	    q->tail->next = r;
+        q->tail = r;
+    }
 	else
 	{
-        	q->head = r;
-        	q->tail = r;
-    	}
+		q->head = r;
+		q->tail = r;
+    }
 
 	thread_spin_unlock( &(q->T_lock) );
-//	printf("unlock :: %d\n", q->T_lock.locked);
 	
 	return SUCCESS;
 }
@@ -81,8 +83,8 @@ int enqueue ( queue_t* q, request_t* r )
 
 int dequeue ( queue_t* q, uint64_t* data )
 {
-	request_t* temp;
-	request_t* new_head;
+	node_t* temp;
+	node_t* new_head;
 
 	// Acquire Lock, Enter Critical Section
 	thread_spin_lock( &(q->H_lock) );
@@ -101,41 +103,7 @@ int dequeue ( queue_t* q, uint64_t* data )
 
 	// Release Lock, Exit Critical Section
 	thread_spin_unlock( &(q->H_lock) );
-/*	
-	temp = q->head;
 
-	if( !temp )
-	{
-		printf("temp == NULL\n");
-		thread_spin_unlock( &(q->H_lock) );
-		return EMPTY_COLLECTION;
-	}
-	if(!temp->data)
-		printf("eng!!!\n");
-		
-	*data = temp->data;
-	new_head = q->head->next;
-	
-	if( q->head->next )
-        {
-		new_head = q->head->next;
-		
-		printf("y?\n");
-	        thread_spin_unlock( &(q->H_lock) );
-                return EMPTY_COLLECTION;
-        
-	}
-	else
-	{
-		new_head = NULL;
-	}
-
-	*data = temp->data;
-	q->head = new_head;
-	
-	// Release Lock, Exit Critical Section
-	thread_spin_unlock( &(q->H_lock) );
-*/
 	return SUCCESS;
 }
 
