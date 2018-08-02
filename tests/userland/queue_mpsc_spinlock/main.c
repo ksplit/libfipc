@@ -75,8 +75,8 @@ producer ( void* data )
 			}
 			transaction_id ++;
 		
-		if(transaction_id % 10000000 == 0)
-			printf("Producer transaction_id : %lu\n", transaction_id);
+		if(transaction_id > 19000000)
+			printf("Producer transaction_id : %lu, consumer_id : %d\n", transaction_id, cons_id);
 		}
 		
 		++cons_id;
@@ -128,14 +128,18 @@ consumer ( void* data )
 	fipc_test_mfence();
 
 	start = RDTSC_START();
-	halt[rank] = 0;	
 	
 	while(!halt[rank])
 	{	
 		for(i = 0; i < batch_size; i++) 
 		{
 			// Receive and unmarshall 
-			if ( dequeue( q[rank], &request ) == SUCCESS ) 
+			if ( dequeue ( q[rank], &request ) != SUCCESS )
+			{
+				break;
+			}
+		//	if ( dequeue( q[rank], &request ) == SUCCESS ) 
+			else
 			{
 				// Process Request
 				switch ( request )
@@ -147,21 +151,33 @@ consumer ( void* data )
 						halt[rank] = 1;
 						break;
 				}
-			}			
+				transaction_id ++;
+				if(halt[rank] == 1)
+					printf("Why here transaction_id? :: %lu\n", transaction_id);
 
-//			if ( dequeue( q[rank], &request ) != SUCCESS ) 
-	//		else
-	//		{
-	//			break;
-	//		}
+				//if(transaction_id % 1000000 == 0){
+				//	printf("Consumer transaction_id : %lu\n", transaction_id);
+				//}
+				
+			}
+
+/*
+			if ( dequeue( q[rank], &request ) != SUCCESS ) 
+			{
+				break;
+			}
 
 			//cons_sum += node->field; 
 			transaction_id ++;
 
-			if(transaction_id > 90000000)
-				printf("Consumer transaction_id : %lu\n", transaction_id);
+			if(transaction_id % 10000000 == 0){
+			//	printf("Consumer transaction_id : %lu\n", transaction_id);
+				printf("halt : %d\n", halt[rank]);
+			}
+*/
 		}
 	}
+	printf("halt finish? : %d\n", halt[rank]);
 
 	end = RDTSCP();
 
@@ -289,9 +305,10 @@ request_t* haltMsg = (request_t*) vmalloc( consumer_count*sizeof(request_t) );
 	// Tell consumers to halt
 	for ( i = 0; i < consumer_count; ++i )
 	{
+
 haltMsg[i].next = 0;
 haltMsg[i].data = HALT;
-enqueue( &full_queues[i], &haltMsg[i] );
+enqueue( full_queues[i], &haltMsg[i] );
 
 //		halt[i] = 1;
 	}
