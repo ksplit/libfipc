@@ -10,17 +10,20 @@
 
 #include "queue.h"
 
+#define HALT		0
+#define NULL_INVOCATION	1
+
+
 // Test Variables
 static uint64_t transactions = 100000000;
 
-static uint8_t producer_count = 1;
-static uint8_t consumer_count = 1;
+static uint8_t producer_count = 2;
+static uint8_t consumer_count = 2;
 
 uint64_t batch_size = 1;
 
 uint64_t mem_pool_order = 20;
 uint64_t mem_pool_size;
-
 
 
 #ifdef __KERNEL__
@@ -43,9 +46,7 @@ static uint8_t consumer_cpus[32] = { 16, 20, 24, 28,     17, 21, 25, 29,   18, 2
 
 // Queue Variable
 static queue_t queue;
-static queue_t*** prod_queues = NULL;
-static queue_t*** cons_queues = NULL;
-static node_t**   node_tables = NULL;
+static node_t*   node_tables = NULL;
 
 // Request Types
 #define MSG_ENQUEUE         1

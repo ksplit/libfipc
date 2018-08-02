@@ -36,8 +36,8 @@ void *
 producer ( void* data )
 {
 	queue_t** 	 q = full_queues;
-	request_t*   t = node_tables;
 	uint64_t rank = *(uint64_t*)data;
+	request_t*   t = node_tables[rank];
 
 	uint64_t transaction_id;
 	uint64_t start;
@@ -73,12 +73,9 @@ producer ( void* data )
 			{
 				break;
 			}
+
 			transaction_id ++;
-		
-		if(transaction_id > 19000000)
-			printf("Producer transaction_id : %lu, consumer_id : %d\n", transaction_id, cons_id);
-		}
-		
+		}	
 		++cons_id;
 
 		if (cons_id >= consumer_count) 
@@ -224,10 +221,18 @@ request_t* haltMsg = (request_t*) vmalloc( consumer_count*sizeof(request_t) );
 		full_queues[i] = &queues[i];
 
 	// Node Table Allocation
-	node_tables = (request_t*) vmalloc( producer_count * mem_pool_size * sizeof(request_t) );
+//	node_tables = (request_t*) vmalloc( producer_count * mem_pool_size * sizeof(request_t) );	
+//	pr_err("Allocating %lu bytes for the pool of %lu objects (pool order:%lu)\n", 
+//		mem_pool_size*sizeof(request_t), mem_pool_size, mem_pool_order);
 
-	pr_err("Allocating %lu bytes for the pool of %lu objects (pool order:%lu)\n", 
-		mem_pool_size*sizeof(request_t), mem_pool_size, mem_pool_order);
+	// Node Table Allocation
+	node_tables = (request_t**) vmalloc( producer_count*sizeof(request_t*) );
+
+	for ( i = 0; i < producer_count; ++i ) {
+		pr_err("Allocating %lu bytes for the pool of %lu objects (pool order:%lu)\n", 
+			mem_pool_size*sizeof(node_t), mem_pool_size, mem_pool_order);
+		node_tables[i] = (request_t*) vmalloc( mem_pool_size*sizeof(request_t) );
+	}
 
 	fipc_test_mfence();
 
@@ -333,6 +338,10 @@ enqueue( full_queues[i], &haltMsg[i] );
 		vfree( prod_threads );
 
 	vfree( cons_threads );
+
+	for ( i = 0; i < producer_count; ++i )
+		vfree( node_tables[i] );
+
 	vfree( node_tables );
 	vfree( halt );
 	
