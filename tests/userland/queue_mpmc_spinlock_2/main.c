@@ -39,7 +39,7 @@ producer ( void* data )
 	uint64_t transaction_id;
 	uint64_t start;
 	uint64_t end;
-	uint64_t cons_id = 0;
+//	uint64_t cons_id = 0;
 	int i; 
 
 	// We have a fixed size object pool, we pick one object 
@@ -47,8 +47,7 @@ producer ( void* data )
 	uint64_t obj_id_mask = ((1UL << mem_pool_order) - 1);
 
 	uint64_t rank = *(uint64_t*)data;
-	//node_t*   t = node_tables[rank];
-	node_t*   t = node_tables[0];
+	node_t*   t = node_tables[rank];
 	//queue_t** q = prod_queues[rank];
 	queue_t* q = queues;
 
@@ -121,10 +120,9 @@ consumer ( void* data )
 {
 	uint64_t start;
 	uint64_t end;
-	uint64_t prod_id = 0;
+//	uint64_t prod_id = 0;
 	uint64_t transaction_id = 0;
-//	node_t   *node;
-	uint64_t *node = NULL;
+	uint64_t node;
 	int i;
 
 	uint64_t rank = *(uint64_t*)data;
@@ -154,7 +152,7 @@ consumer ( void* data )
 
 			// Receive and unmarshall 
 			//if ( dequeue( q[prod_id], &node ) != SUCCESS ) {
-			if ( dequeue( q, node ) != SUCCESS ) {
+			if ( dequeue( q, &node ) != SUCCESS ) {
 				break;
 
 			}
@@ -190,7 +188,6 @@ consumer ( void* data )
 void * controller ( void* data )
 {
 	uint64_t i;
-	uint64_t j;
 
 	mem_pool_size = 1 << mem_pool_order;
 
@@ -201,6 +198,8 @@ void * controller ( void* data )
 	// for ( i = 0; i < producer_count*consumer_count; ++i )
 	//	init_queue ( &queues[i] );
 	init_queue ( queues );
+
+	node_t haltMsg;
 
 	//prod_queues = (queue_t***) vmalloc( producer_count*sizeof(queue_t**) );
 	//cons_queues = (queue_t***) vmalloc( consumer_count*sizeof(queue_t**) );
@@ -228,17 +227,14 @@ void * controller ( void* data )
 	}
 */
 	// Node Table Allocation
-	//node_tables = (node_t**) vmalloc( producer_count*sizeof(node_t*) );
-	node_tables = (node_t**) vmalloc( sizeof(node_t*) );
+	node_tables = (node_t**) vmalloc( producer_count*sizeof(node_t*) );
 	//node_tables = (node_t*) vmalloc( mem_pool_size*sizeof(node_t) );
 
-	//for ( i = 0; i < producer_count; ++i ) {
-	for ( i = 0; i < 1; ++i ) {
+	for ( i = 0; i < producer_count; ++i ) {
 		pr_err("Allocating %lu bytes for the pool of %lu objects (pool order:%lu)\n", 
 			mem_pool_size*sizeof(node_t), mem_pool_size, mem_pool_order);
 		node_tables[i] = (node_t*) vmalloc( mem_pool_size*sizeof(node_t) );
 	}
-
 
 	fipc_test_mfence();
 
@@ -311,12 +307,9 @@ void * controller ( void* data )
 	fipc_test_mfence();
 
 	// Tell consumers to halt
-	/*
-	for ( i = 0; i < consumer_count; ++i ) {
-
-		halt[i] = 1;
-	}
-	*/
+	haltMsg.next = 0;
+	haltMsg.data = HALT;
+	enqueue( queues, &haltMsg );
 	halt = 1;
 
 	// Wait for consumers to complete
@@ -342,8 +335,7 @@ void * controller ( void* data )
 
 	//vfree( halt );
 
-	//for ( i = 0; i < producer_count; ++i )
-	for ( i = 0; i < 1; ++i )
+	for ( i = 0; i < producer_count; ++i )
 		vfree( node_tables[i] );
 
 	vfree( node_tables );
