@@ -37,7 +37,7 @@ producer ( void* data )
 {
 	queue_t** 	 q = full_queues;
 	uint64_t rank = *(uint64_t*)data;
-	request_t*   t = node_tables[rank];
+	node_t*   t = node_tables[rank];
 
 	uint64_t transaction_id;
 	uint64_t start;
@@ -65,7 +65,7 @@ producer ( void* data )
 	{
 		for(i = 0; i < batch_size; i++) 
 		{
-			request_t *node = &t[transaction_id & obj_id_mask]; 
+			node_t *node = &t[transaction_id & obj_id_mask]; 
 
 			node->data = NULL_INVOCATION;
 			
@@ -135,7 +135,6 @@ consumer ( void* data )
 			{
 				break;
 			}
-		//	if ( dequeue( q[rank], &request ) == SUCCESS ) 
 			else
 			{
 				// Process Request
@@ -148,33 +147,13 @@ consumer ( void* data )
 						halt[rank] = 1;
 						break;
 				}
-				transaction_id ++;
-				if(halt[rank] == 1)
-					printf("Why here transaction_id? :: %lu\n", transaction_id);
-
-				//if(transaction_id % 1000000 == 0){
-				//	printf("Consumer transaction_id : %lu\n", transaction_id);
-				//}
+				
+				transaction_id ++;			
 				
 			}
 
-/*
-			if ( dequeue( q[rank], &request ) != SUCCESS ) 
-			{
-				break;
-			}
-
-			//cons_sum += node->field; 
-			transaction_id ++;
-
-			if(transaction_id % 10000000 == 0){
-			//	printf("Consumer transaction_id : %lu\n", transaction_id);
-				printf("halt : %d\n", halt[rank]);
-			}
-*/
 		}
 	}
-	printf("halt finish? : %d\n", halt[rank]);
 
 	end = RDTSCP();
 
@@ -207,7 +186,7 @@ void * controller ( void* data )
 
 	full_queues = (queue_t**) vmalloc( consumer_count*sizeof(queue_t*) );
 
-request_t* haltMsg = (request_t*) vmalloc( consumer_count*sizeof(request_t) );
+	node_t* haltMsg = (node_t*) vmalloc( consumer_count*sizeof(node_t) );
 
 	halt = (int*) vmalloc( consumer_count*sizeof(*halt) );
 	
@@ -221,17 +200,12 @@ request_t* haltMsg = (request_t*) vmalloc( consumer_count*sizeof(request_t) );
 		full_queues[i] = &queues[i];
 
 	// Node Table Allocation
-//	node_tables = (request_t*) vmalloc( producer_count * mem_pool_size * sizeof(request_t) );	
-//	pr_err("Allocating %lu bytes for the pool of %lu objects (pool order:%lu)\n", 
-//		mem_pool_size*sizeof(request_t), mem_pool_size, mem_pool_order);
-
-	// Node Table Allocation
-	node_tables = (request_t**) vmalloc( producer_count*sizeof(request_t*) );
+	node_tables = (node_t**) vmalloc( producer_count*sizeof(node_t*) );
 
 	for ( i = 0; i < producer_count; ++i ) {
 		pr_err("Allocating %lu bytes for the pool of %lu objects (pool order:%lu)\n", 
 			mem_pool_size*sizeof(node_t), mem_pool_size, mem_pool_order);
-		node_tables[i] = (request_t*) vmalloc( mem_pool_size*sizeof(request_t) );
+		node_tables[i] = (node_t*) vmalloc( mem_pool_size*sizeof(node_t) );
 	}
 
 	fipc_test_mfence();
@@ -310,12 +284,9 @@ request_t* haltMsg = (request_t*) vmalloc( consumer_count*sizeof(request_t) );
 	// Tell consumers to halt
 	for ( i = 0; i < consumer_count; ++i )
 	{
-
-haltMsg[i].next = 0;
-haltMsg[i].data = HALT;
-enqueue( full_queues[i], &haltMsg[i] );
-
-//		halt[i] = 1;
+		haltMsg[i].next = 0;
+		haltMsg[i].data = HALT;
+		enqueue( full_queues[i], &haltMsg[i] );
 	}
 
 	// Wait for consumers to complete

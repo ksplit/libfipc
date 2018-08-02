@@ -78,7 +78,7 @@ producer ( void* data )
 		for(i = 0; i < batch_size; i++) {
 			node_t *node = &t[transaction_id & obj_id_mask]; 
 
-			node->field = transaction_id;
+			node->data = transaction_id;
 			//prod_sum += t[transaction_id].field;
 			//pr_err("Sending, tid:%lu, mask%lu, mod:%lu\n", 
 			//		transaction_id, obj_id_mask, transaction_id & obj_id_mask);
@@ -123,7 +123,8 @@ consumer ( void* data )
 	uint64_t end;
 	uint64_t prod_id = 0;
 	uint64_t transaction_id = 0;
-	node_t   *node;
+//	node_t   *node;
+	uint64_t *node = NULL;
 	int i;
 
 	uint64_t rank = *(uint64_t*)data;
@@ -153,7 +154,7 @@ consumer ( void* data )
 
 			// Receive and unmarshall 
 			//if ( dequeue( q[prod_id], &node ) != SUCCESS ) {
-			if ( dequeue( q ) != SUCCESS ) {
+			if ( dequeue( q, node ) != SUCCESS ) {
 				break;
 
 			}

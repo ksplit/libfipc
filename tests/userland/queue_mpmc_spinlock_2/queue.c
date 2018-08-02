@@ -9,16 +9,11 @@
 
 int init_queue ( queue_t* q )
 {
-	q->head = q->tail = NULL;
-/*
-	fipc_test_create_channel( CHANNEL_ORDER, &q->head, &q->tail );
+	q->header.next = NULL;
 
-	if ( q->head == NULL || q->tail == NULL )
-	{
-		pr_err( "%s\n", "Error while creating channel" );
-		return -1;
-	}
-*/
+	q->head = &(q->header);
+	q->tail = &(q->header);
+
 	thread_spin_init( &(q->H_lock) );
 	thread_spin_init( &(q->T_lock) );
 
@@ -27,7 +22,6 @@ int init_queue ( queue_t* q )
 
 int free_queue ( queue_t* q )
 {
-//	fipc_test_free_channel( CHANNEL_ORDER, q->head, q->tail );
 	return SUCCESS;
 }
 
@@ -36,98 +30,51 @@ int free_queue ( queue_t* q )
 int enqueue ( queue_t* q, node_t* node )
 {
 	thread_spin_lock( &(q->T_lock) );
-	qnode_t* new = (qnode_t*) malloc(sizeof(qnode_t));
-	new->node = node;
-	new->next = NULL;
+	node->next = NULL;
 
 	if ( q->tail )
 	{
-		q->tail->next = new;
-		q->tail = new;
+		q->tail->next = node;
+		q->tail = node;
 	}
 	else
 	{
-		q->head = new;
-		q->tail = new;
+		q->head = node;
+		q->tail = node;
 	}
 
 	thread_spin_unlock( &(q->T_lock) );
-/*
-	message_t* msg;
-	qnode *I = malloc(sizeof(qnode));
-	mcs_init_local(I);	
-	mcs_lock( &(q->T_lock),I );
 
-	if (fipc_send_msg_start( q->head, &msg ) != 0)
-	{
-		mcs_unlock( &(q->T_lock),I );
-		return NO_MEMORY;
-	}
-
-	msg->regs[0] = (uint64_t)node;
-	fipc_send_msg_end ( q->head, msg );
-	mcs_unlock( &(q->T_lock),I );
-*/
 	return SUCCESS;
 }
 
 
 // Dequeue
 
-int dequeue ( queue_t* q )
+int dequeue ( queue_t* q, uint64_t* data )
 {
+	node_t* temp;
+	node_t* new_head;
+
+	// Acquire Lock, Enter Critical Section
 	thread_spin_lock( &(q->H_lock) );
 	
-	qnode_t* temp = NULL;
-
-	if ( q->head )
-	{
-		temp = q->head;
-		if ( !(q->head->next) )
-			q->tail = NULL;
-		q->head = q->head->next;
-		free(temp);
-		thread_spin_unlock( &(q->H_lock) );
-
-		return SUCCESS;
-	}
-	else
-	{
-		thread_spin_unlock( &(q->H_lock) );
-		return EMPTY_COLLECTION;
-	}
-		
-/*
-	qnode_t* new_head = NULL;
-
-	if ( !temp )
-	{
-		thread_spin_unlock( &(q->H_lock) );
-//		return EMPTY_COLLECTION;
-		return SUCCESS;
-	}
+	temp     = q->head;
 	new_head = q->head->next;
-	q->head = new_head;
-	free(temp);
 
-	thread_spin_unlock( &(q->H_lock) );
-*/
-/*
-	message_t* msg;
-	qnode *I = malloc(sizeof(qnode));
-	mcs_init_local(I);	
-	mcs_lock( &(q->H_lock),I );
-
-	if (fipc_recv_msg_start( q->tail, &msg) != 0)
+	if ( !new_head )
 	{
-		mcs_unlock( &(q->H_lock),I );
+		thread_spin_unlock( &(q->H_lock) );
 		return EMPTY_COLLECTION;
 	}
 
-	*node = (node_t*)msg->regs[0];
-	fipc_recv_msg_end( q->tail, msg );
-	mcs_unlock( &(q->H_lock),I );
-*/
-//	return SUCCESS;
+//	*data   = new_head->data;
+	*data   = temp->data;
+	q->head = new_head;
+
+	// Release Lock, Exit Critical Section
+	thread_spin_unlock( &(q->H_lock) );
+
+	return SUCCESS;
 }
 
