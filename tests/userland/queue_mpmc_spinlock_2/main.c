@@ -154,7 +154,18 @@ consumer ( void* data )
 			//if ( dequeue( q[prod_id], &node ) != SUCCESS ) {
 			if ( dequeue( q, &node ) != SUCCESS ) {
 				break;
-
+			}
+			else
+			{
+				switch ( node )
+				{
+					case NULL_INVOCATION:
+						null_invocation();
+						break;
+					case HALT:
+						halt = 1;
+						break;
+				}
 			}
 
 			//cons_sum += node->field; 
@@ -310,7 +321,7 @@ void * controller ( void* data )
 	haltMsg.next = 0;
 	haltMsg.data = HALT;
 	enqueue( queues, &haltMsg );
-	halt = 1;
+	//halt = 1;
 
 	// Wait for consumers to complete
 	while ( completed_consumers < consumer_count )
