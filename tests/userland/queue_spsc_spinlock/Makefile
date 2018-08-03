@@ -24,3 +24,6 @@ run:
 
 perf:
 	perf stat -e  ${PERF_CACHE},${PERF_CPU} ./$(TARGET)
+
+debug: $(DEP)
+	$(CC) $(INCLUDE_DIRS) $(DEP) -o $(TARGET) $(CFLAGS) -g	

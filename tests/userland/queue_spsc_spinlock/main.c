@@ -107,7 +107,7 @@ consumer ( void* data )
 	uint64_t end;
 	uint64_t prod_id = 0;
 	uint64_t transaction_id = 0;
-	node_t   *node;
+	uint64_t request;
 	int i;
 
 	uint64_t rank = *(uint64_t*)data;
@@ -128,13 +128,13 @@ consumer ( void* data )
 
 	start = RDTSC_START();
 
-	while(!halt[rank])
+	while( halt[rank] <= producer_count )
+//	while( !halt[rank] )
 	{
-	
 		for(i = 0; i < batch_size; i++) {
 
 			// Receive and unmarshall 
-			if ( dequeue( q[prod_id], &node ) != SUCCESS ) {
+			if ( dequeue( q[prod_id], &request ) != SUCCESS ) {
 				break;
 			}
 			else
@@ -146,7 +146,8 @@ consumer ( void* data )
 					null_invocation();
 					break;
 				case HALT:
-					halt[rank] = 1;
+					printf("HALT  [%d] %d  in %d \n",rank, halt[rank], prod_id);
+					halt[rank] += 1;
 					break;
 				}
 
@@ -154,14 +155,13 @@ consumer ( void* data )
 
 			}
 
-			transaction_id ++;
 		}
 
 		++prod_id; if ( prod_id >= producer_count ) prod_id = 0;
 	}
 
 	end = RDTSCP();
-
+	halt[rank] = 0;
 	// End test
 	fipc_test_mfence();
 	pr_err( "Consumer %lu finished, receiving %lu messages (cycles per message %lu) (%s)\n", 
@@ -192,6 +192,8 @@ void * controller ( void* data )
 	prod_queues = (queue_t***) vmalloc( producer_count*sizeof(queue_t**) );
 	cons_queues = (queue_t***) vmalloc( consumer_count*sizeof(queue_t**) );
 
+	node_t** haltMsg = (node_t**) vmalloc( producer_count*sizeof(node_t*) );
+
 	halt = (int*) vmalloc( consumer_count*sizeof(*halt) );
 
 	for ( i = 0; i < producer_count; ++i )
@@ -200,6 +202,7 @@ void * controller ( void* data )
 	for ( i = 0; i < consumer_count; ++i ) {
 		cons_queues[i] = (queue_t**) vmalloc( producer_count*sizeof(queue_t*) );
 		halt[i] = 0;
+		haltMsg[i] = (node_t*) vmalloc( consumer_count*sizeof(node_t) );
 	}
 
 	// Queue Linking
@@ -274,7 +277,7 @@ void * controller ( void* data )
 
 	while ( ready_producers < (producer_count-1) )
 		fipc_test_pause();
-
+	
 	fipc_test_mfence();
 
 	// Begin Test
@@ -293,9 +296,14 @@ void * controller ( void* data )
 	fipc_test_mfence();
 
 	// Tell consumers to halt
-	for ( i = 0; i < consumer_count; ++i ) {
-
-		halt[i] = 1;
+	for ( i = 0; i < producer_count; ++i ) 
+	{
+		for ( j = 0; j < consumer_count; ++j ) 
+		{
+			haltMsg[i][j].next = 0;
+			haltMsg[i][j].data = HALT;
+			enqueue( prod_queues[i][j], &haltMsg[i][j] );
+		}
 	}
 
 	// Wait for consumers to complete
