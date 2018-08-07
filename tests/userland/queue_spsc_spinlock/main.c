@@ -68,7 +68,7 @@ producer ( void* data )
 		for(i = 0; i < batch_size; i++) {
 			node_t *node = &t[transaction_id & obj_id_mask]; 
 
-			node->field = NULL_INVOCATION;
+			node->data = NULL_INVOCATION;
 		
 			if ( enqueue( q[cons_id], node ) != SUCCESS )
 			{
@@ -107,7 +107,7 @@ consumer ( void* data )
 	uint64_t end;
 	uint64_t prod_id = 0;
 	uint64_t transaction_id = 0;
-	uint62_t request;
+	uint64_t request;
 	int i;
 
 	uint64_t rank = *(uint64_t*)data;
@@ -192,6 +192,7 @@ void * controller ( void* data )
 	prod_queues = (queue_t***) vmalloc( producer_count*sizeof(queue_t**) );
 	cons_queues = (queue_t***) vmalloc( consumer_count*sizeof(queue_t**) );
 
+	node_t** haltMsg = (node_t**) vmalloc( consumer_count*sizeof(node_t*) );
 	halt = (int*) vmalloc( consumer_count*sizeof(*halt) );
 
 	for ( i = 0; i < producer_count; ++i )
@@ -199,6 +200,7 @@ void * controller ( void* data )
 
 	for ( i = 0; i < consumer_count; ++i ) {
 		cons_queues[i] = (queue_t**) vmalloc( producer_count*sizeof(queue_t*) );
+		haltMsg[i] = (node_t*) vmalloc( producer_count*sizeof(node_t) );
 		halt[i] = 0;
 	}
 
@@ -295,9 +297,12 @@ void * controller ( void* data )
 	// Tell consumers to halt
 	for ( i = 0; i < consumer_count; ++i ) 
 	{
-		haltMsg[i].next = 0;
-		haltMsg[i].data = HALT;
-		enqueue(full_queues[i], &haltMsg[i]);
+		for ( i = 0; i < producer_count; ++i ) 
+		{
+		haltMsg[i][j].next = 0;
+		haltMsg[i][j].data = HALT;
+		enqueue(cons_queues[i][j], &haltMsg[i][j]);
+		}
 	}
 
 	// Wait for consumers to complete
