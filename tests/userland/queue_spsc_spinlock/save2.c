@@ -16,6 +16,7 @@
 #define vfree free
 #define pr_err printf
 
+
 #endif
 
 uint64_t prod_sum = 0;
@@ -67,12 +68,10 @@ producer ( void* data )
 		for(i = 0; i < batch_size; i++) {
 			node_t *node = &t[transaction_id & obj_id_mask]; 
 
-			node->data = transaction_id;
-
-
+			node->data = NULL_INVOCATION;
+		
 			if ( enqueue( q[cons_id], node ) != SUCCESS )
 			{
-				pr_err("Failed to enqueue tid:%llu\n",(unsigned long long)transaction_id);
 				break;
 			}
 			transaction_id ++;
@@ -109,8 +108,7 @@ consumer ( void* data )
 	uint64_t prod_id = 0;
 	uint64_t transaction_id = 0;
 	uint64_t request;
-
-	int i, j;
+	int i;
 
 	uint64_t rank = *(uint64_t*)data;
 	queue_t** q = cons_queues[rank];
@@ -130,15 +128,15 @@ consumer ( void* data )
 
 	start = RDTSC_START();
 
-	while(halt[rank]<producer_count)
+	while(halt[rank] < producer_count)
 	{
 	
 		for(i = 0; i < batch_size; i++) {
 
 			// Receive and unmarshall 
-			if (dequeue(q, &request) != SUCCESS)
-			{
+			if ( dequeue( q[prod_id],&request) != SUCCESS ) {
 				break;
+
 			}
 			else
 			{
@@ -148,13 +146,16 @@ consumer ( void* data )
 				case NULL_INVOCATION:
 					null_invocation();
 					break;
-
 				case HALT:
 					halt[rank] += 1;
 					break;
 				}
+
 				transaction_id++;
+
 			}
+
+		}
 
 		++prod_id; if ( prod_id >= producer_count ) prod_id = 0;
 	}
@@ -183,7 +184,7 @@ void * controller ( void* data )
 	mem_pool_size = 1 << mem_pool_order;
 
 	// Queue Allocation
-	queue_t* queues = (queue_t*) vmalloc( producer_count*consumer_count*sizeof(queue_t) );
+	queue_t* queues = (queue_t*) vmalloc( consumer_count * sizeof(queue_t) );
 
 	for ( i = 0; i < producer_count*consumer_count; ++i )
 		init_queue ( &queues[i] );
@@ -191,15 +192,15 @@ void * controller ( void* data )
 	prod_queues = (queue_t***) vmalloc( producer_count*sizeof(queue_t**) );
 	cons_queues = (queue_t***) vmalloc( consumer_count*sizeof(queue_t**) );
 
+	node_t** haltMsg = (node_t**) vmalloc( consumer_count*sizeof(node_t*) );
 	halt = (int*) vmalloc( consumer_count*sizeof(*halt) );
-	node_t** haltMsg = (node_t**) vmalloc(consumer_count * sizeof(node_t*));
 
 	for ( i = 0; i < producer_count; ++i )
 		prod_queues[i] = (queue_t**) vmalloc( consumer_count*sizeof(queue_t*) );
 
 	for ( i = 0; i < consumer_count; ++i ) {
 		cons_queues[i] = (queue_t**) vmalloc( producer_count*sizeof(queue_t*) );
-		haltMsg[i] = (node_t*) vmalloc( producer_count * sizeof(node_t) );
+		haltMsg[i] = (node_t*) vmalloc( producer_count*sizeof(node_t) );
 		halt[i] = 0;
 	}
 
@@ -214,18 +215,12 @@ void * controller ( void* data )
 	}
 
 	// Node Table Allocation
-	node_tables = (node_t**) vmalloc( producer_count*sizeof(node_t*) );
+	node_tables = (node_t**)vmalloc(producer_count * sizeof(node_t*));
 
-	for ( i = 0; i < producer_count; ++i ) {
-		pr_err("Allocating %lu bytes for the pool of %lu objects (pool order:%lu)\n", 
-			mem_pool_size*sizeof(node_t), mem_pool_size, mem_pool_order);
-
-		node_tables[i] = (node_t*) vmalloc( mem_pool_size*sizeof(node_t) );
-		if(!node_tables[i]) {
-			pr_err("Failed to allocate nodes\n");
-			return NULL;
-		}
-		
+	for (i = 0; i < producer_count; ++i) {
+		pr_err("Allocating %lu bytes for the pool of %lu objects (pool order:%lu)\n",
+			mem_pool_size * sizeof(node_t), mem_pool_size, mem_pool_order);
+		node_tables[i] = (node_t*)vmalloc(mem_pool_size * sizeof(node_t));
 	}
 
 
@@ -300,15 +295,16 @@ void * controller ( void* data )
 	fipc_test_mfence();
 
 	// Tell consumers to halt
-	for (i = 0; i < consumer_count; ++i) {
-		for (i = 0; i < producer_count; ++i) {
-			haltMsg[i][j].next = 0;
-			haltMsg[i][j].data = HALT;
-
-			enqueue(cons_queues[i][j], &haltMsg[i][j]);
-
+	for ( i = 0; i < consumer_count; ++i ) 
+	{
+		for ( i = 0; i < producer_count; ++i ) 
+		{
+		haltMsg[i][j].next = 0;
+		haltMsg[i][j].data = HALT;
+		enqueue(cons_queues[i][j], &haltMsg[i][j]);
 		}
 	}
+
 	// Wait for consumers to complete
 	while ( completed_consumers < consumer_count )
 		fipc_test_pause();
@@ -330,30 +326,26 @@ void * controller ( void* data )
 	if ( prod_threads != NULL )
 		vfree( prod_threads );
 
-	for (i = 0; i < consumer_count; ++i)
-		vfree(haltMsg[i]);
-
-	vfree( haltMsg );
 	vfree( halt );
 
 	for ( i = 0; i < producer_count; ++i )
-		vfree( node_tables[i] );
+		free( node_tables[i] );
 
 	vfree( node_tables );
 
 	for ( i = 0; i < consumer_count; ++i )
-		vfree( cons_queues[i] );
+		free( cons_queues[i] );
 
 	for ( i = 0; i < producer_count; ++i )
-		vfree( prod_queues[i] );
+		free( prod_queues[i] );
 
-	vfree( cons_queues );
-	vfree( prod_queues );
+	free( cons_queues );
+	free( prod_queues );
 
 	for ( i = 0; i < producer_count*consumer_count; ++i )
 		free_queue( &queues[i] );
 
-	vfree( queues );
+	free( queues );
 
 	// End Experiment
 	fipc_test_mfence();
