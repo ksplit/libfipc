@@ -1,7 +1,6 @@
-/*
 #include "fipc_numa.h"
 
-int match_cpus(uint32_t* producer_cpus, uint32_t* consumer_cpus)
+int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus)
 {
     	struct bitmask *cm;	
         int num_nodes;
@@ -29,22 +28,13 @@ int match_cpus(uint32_t* producer_cpus, uint32_t* consumer_cpus)
                 goto err_numa;
         }
 
-        printf("numa_available: %s\n", numa_present ? "false" : "true");
-        printf("numa_max_possible_node: %d\n", numa_max_possible_node());
-        printf("numa_num_possible_nodes: %d\n", numa_num_possible_nodes());
-        printf("numa_max_node: %d\n", numa_max_node());
-
         config->num_nodes = num_nodes = numa_num_configured_nodes();
         cm = numa_allocate_cpumask();
 
         config->nodes = nodes = calloc(num_nodes, sizeof(struct node));
 
-        printf("numa_num_configured_nodes: %d\n", numa_num_configured_nodes());
-        printf("numa_num_configured_cpus: %d\n", numa_num_configured_cpus());
-        printf("numa_num_possible_cpus: %d\n", numa_num_possible_cpus());
-
-        producer_cpus = calloc(possible_cpus, sizeof(uint32_t));
-        consumer_cpus = calloc(possible_cpus, sizeof(uint32_t));
+        *producer_cpus = calloc(possible_cpus, sizeof(uint32_t));
+        *consumer_cpus = calloc(possible_cpus, sizeof(uint32_t));
 
         for (n = 0; n < num_nodes; n++) {
                 int num_cpus, cpus = 0;
@@ -79,10 +69,10 @@ int match_cpus(uint32_t* producer_cpus, uint32_t* consumer_cpus)
                 for (cpu = 0; cpu < num_cpus / 2; cpu++) {
 			int next = num_nodes * (num_cpus / 2);
 			
-			producer_cpus[prod_id] = nodes[n].cpu_list[cpu];
-		        producer_cpus[prod_id + next] = nodes[n].cpu_list[cpu + (num_cpus / 2)];
-			consumer_cpus[cons_id] = producer_cpus[prod_id + next];
-			consumer_cpus[cons_id + next] = producer_cpus[prod_id];
+			(*producer_cpus)[prod_id] = nodes[n].cpu_list[cpu];
+		        (*producer_cpus)[prod_id + next] = nodes[n].cpu_list[cpu + (num_cpus / 2)];
+			(*consumer_cpus)[cons_id] = (*producer_cpus)[prod_id + next];
+			(*consumer_cpus)[cons_id + next] = (*producer_cpus)[prod_id];
 			
 			++prod_id;
 			++cons_id;
@@ -90,11 +80,12 @@ int match_cpus(uint32_t* producer_cpus, uint32_t* consumer_cpus)
 //              printf("\n");
                 free(nodes[n].cpu_list);
         }
-//	int i;
-//	for (i = 0; i < 64; ++i){
-//	        printf("producer_cpus[%d] :  %d, consumer_cpus[%d] : %d\n", i, producer_cpus[i], i, consumer_cpus[i]); 
-//	}
-
+/*
+	int i;
+	for (i = 0; i < 64; ++i){
+	        printf("producer_cpus[%d] :  %d, consumer_cpus[%d] : %d\n", i, (*producer_cpus)[i], i, (*consumer_cpus)[i]); 
+	}
+*/
         
         free(nodes);
 	return 0;
@@ -103,4 +94,4 @@ err_range:
 err_numa:
 	return ret;
 }
-*/
+

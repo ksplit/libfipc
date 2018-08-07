@@ -1,8 +1,5 @@
-/*
+
 #include "../libfipc_test.h"
-#include <numa.h>
-#include <stdio.h>
-#include <stdint.h>
 
 #define _GNU_SOURC
 #define RESET_MASK(x)           ~(1LL << (x))
@@ -31,5 +28,5 @@ struct task_placement {
         uint32_t *consumer_cpus;
 }policies[NUM_POLICIES];
 
-int match_cpus(uint32_t*, uint32_t*);
-*/
+int match_cpus(uint32_t**, uint32_t**);
+

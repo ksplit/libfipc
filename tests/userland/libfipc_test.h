@@ -37,11 +37,11 @@
 #include <pthread.h>
 #include <limits.h>
 #include <libfipc.h>
-/*
+
 #include <numa.h>
 #include <stdio.h>
 #include <stdint.h>
-*/
+
 typedef struct fipc_message cache_line_t;
 typedef CACHE_ALIGNED unsigned long long cache_aligned_ull_int_t;
 

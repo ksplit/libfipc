@@ -1,7 +1,6 @@
 CC:=gcc
-CFLAGS:=-Wall -D_GNU_SOURCE -pthread -lm -O2
+CFLAGS:=-Wall -D_GNU_SOURCE -pthread -lm -O2 -lnuma
 INCLUDE_DIRS:=-I../../../include -I../../../include/userland
-LIBS:= -lnuma
 TARGET:=$(notdir $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))))
 DEP:=main.c ../../../src/ipc.c queue.c spinlock.c fipc_numa.c
 
@@ -15,7 +14,7 @@ PERF_CPU:='cycles,instructions,migrations,stalled-cycles-frontend, \
 			stalled-cycles-backend,branches,faults'
 
 compile: $(DEP)
-	$(CC) $(INCLUDE_DIRS) $(DEP) -o $(TARGET) $(CFLAGS) $(LIBS)
+	$(CC) $(INCLUDE_DIRS) $(DEP) -o $(TARGET) $(CFLAGS)
 
 clean:
 	rm -f $(TARGET)
