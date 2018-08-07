@@ -87,14 +87,14 @@ int dequeue ( queue_t* q, uint64_t* data )
 	node_t* new_head;
 
 	// Acquire Lock, Enter Critical Section
-	thread_spin_lock( &(q->H_lock) );
+//	thread_spin_lock( &(q->H_lock) );
 	
 	temp     = q->head;
 	new_head = q->head->next;
 
 	if ( new_head == NULL )
 	{
-		thread_spin_unlock( &(q->H_lock) );
+	//	thread_spin_unlock( &(q->H_lock) );
 		return EMPTY_COLLECTION;
 	}
 
@@ -102,7 +102,7 @@ int dequeue ( queue_t* q, uint64_t* data )
 	q->head = new_head;
 
 	// Release Lock, Exit Critical Section
-	thread_spin_unlock( &(q->H_lock) );
+//	thread_spin_unlock( &(q->H_lock) );
 
 	return SUCCESS;
 }

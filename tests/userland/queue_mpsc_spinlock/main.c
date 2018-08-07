@@ -17,7 +17,7 @@
 #define pr_err printf
 
 #endif
-
+/*
 uint64_t prod_sum = 0;
 uint64_t cons_sum = 0;
 int* halt;
@@ -327,14 +327,19 @@ void * controller ( void* data )
 	test_finished = 1;
 	return 0;
 }
-
+*/
 #ifndef __KERNEL__
 int main(int argc, char *argv[])
 #else
 int init_module(void)
 #endif
 {
+	auto_generate_numa_node();
+	fipc_test_mfence();
 
+	return 0;
+}
+/*
 #ifndef __KERNEL__
 	if (argc == 2) {
 		transactions = (uint64_t) strtoul(argv[1], NULL, 10);
@@ -375,7 +380,8 @@ int init_module(void)
 
 	return 0;
 }
-
+*/
+/*
 #ifdef __KERNEL__
 void cleanup_module(void)
 {
@@ -384,3 +390,4 @@ void cleanup_module(void)
 
 MODULE_LICENSE("GPL");
 #endif
+*/
