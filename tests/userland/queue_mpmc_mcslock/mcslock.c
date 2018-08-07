@@ -21,7 +21,7 @@ void mcs_lock ( mcslock* L, qnode* I )
 {
 	I->next = NULL;
 
-	mcslock *pred = (mcslock *) fetch_and_store(L, (uint64_t)I);
+	mcslock *pred = fetch_and_store(&L, &I);
 
 	if ( pred == NULL)
 		return;

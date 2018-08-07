@@ -40,13 +40,14 @@ cmp_and_swap_atomic(mcslock* L, uint64_t cmpval, uint64_t newval)
 }
 */
 
-static inline qnode*
-fetch_and_store ( mcslock* L, qnode* val )
+static inline mcslock*
+fetch_and_store ( mcslock** L, qnode** val )
 {
+    mcslock* ret = *L;
     __asm__ volatile(
                 "lock; xchgq %0, %1\n\t"
-                : "+m" (L), "+r" (val)
-                : 
+                : "=r" (L)
+                :  "m" (*L), "0" (*val)
                 : "memory", "cc");
     return val;
 }
