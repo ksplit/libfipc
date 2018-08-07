@@ -10,8 +10,12 @@
 
 #include "queue.h"
 
+#define HALT		0
+#define NULL_INVOCATION	1
+
+
 // Test Variables
-static uint64_t transactions = 100000000;
+static uint64_t transactions = 10000000;
 
 static uint8_t producer_count = 1;
 static uint8_t consumer_count = 1;
@@ -20,7 +24,6 @@ uint64_t batch_size = 1;
 
 uint64_t mem_pool_order = 20;
 uint64_t mem_pool_size;
-
 
 
 #ifdef __KERNEL__
@@ -35,18 +38,15 @@ module_param( consumer_count, byte, 0 );
 //NUMA node3 CPU(s):     3,7,11,15,19,23,27,31
 
 static uint8_t producer_cpus[32] = {  0,  4,  8, 12,      1,  5,  9, 13,    2,  6, 10, 14,     3,  7, 11, 15,  
-	            	                 16, 20, 24, 28,     17, 21, 25, 29,   18, 22, 26, 30,    19, 23, 27, 31 };
+	                              16, 20, 24, 28,    17, 21, 25, 29,   18, 22, 26, 30,    19, 23, 27, 31 };
 
 static uint8_t consumer_cpus[32] = { 16, 20, 24, 28,     17, 21, 25, 29,   18, 22, 26, 30,    19, 23, 27, 31,  
-	                        	      0,  4,  8, 12,      1,  5,  9, 13,    2,  6, 10, 14,     3,  7, 11, 15 };
+	                              0,  4,  8, 12,      1,  5,  9, 13,    2,  6, 10, 14,     3,  7, 11, 15 };
 #define pr_err printf
 
-// Queue Variables
-//static queue_t*** prod_queues = NULL;
-//static queue_t*** cons_queues = NULL;
+// Queue Variable
+static queue_t queue;
 static node_t**   node_tables = NULL;
-
-static queue_t* queues = NULL;
 
 // Request Types
 #define MSG_ENQUEUE         1

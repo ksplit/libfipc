@@ -40,14 +40,14 @@ cmp_and_swap_atomic(mcslock* L, uint64_t cmpval, uint64_t newval)
 }
 */
 
-static inline mcslock*
-fetch_and_store ( mcslock** L, qnode** val )
+static inline qnode*
+fetch_and_store ( mcslock*** L, qnode** val )
 {
-    mcslock* ret = *L;
+    qnode* ret = **L;
     __asm__ volatile(
                 "lock; xchgq %0, %1\n\t"
-                : "=r" (L)
-                :  "m" (*L), "0" (*val)
+                : "=r" (*L)
+                :  "m" (**L), "0" (*val)
                 : "memory", "cc");
     return ret;
 }
@@ -64,9 +64,9 @@ cmp_and_swap ( mcslock *L, uint64_t cmpval, uint64_t newval )
     return out == cmpval;
 }
 
-void mcs_init_global( mcslock* L );
+void mcs_init_global( mcslock** L );
 void mcs_init_local	( qnode* I );
 //void mcs_init	( mcslock *L );
-void mcs_lock 	( mcslock *L, qnode* I );
-void mcs_unlock ( mcslock *L, qnode* I );
+void mcs_lock 	( mcslock **L, qnode* I );
+void mcs_unlock ( mcslock **L, qnode* I );
 

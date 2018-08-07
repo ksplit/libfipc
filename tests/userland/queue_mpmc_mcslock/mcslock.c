@@ -5,9 +5,9 @@
 
 #include "mcslock.h"
 
-void mcs_init_global ( mcslock* L )
+void mcs_init_global ( mcslock** L )
 {
-    L = NULL;
+	*L = NULL;
 	//pr_err("mcs init\n");
 }
 
@@ -17,11 +17,11 @@ void mcs_init_local	( qnode* I )
 	I->waiting = 0;
 }
 
-void mcs_lock ( mcslock* L, qnode* I )
+void mcs_lock ( mcslock** L, qnode* I )
 {
 	I->next = NULL;
 
-	mcslock *pred = fetch_and_store(&L, &I);
+	qnode* pred = fetch_and_store(&L, &I);
 
 	if ( pred == NULL)
 		return;
@@ -32,12 +32,12 @@ void mcs_lock ( mcslock* L, qnode* I )
 		;
 }
 
-void mcs_unlock ( mcslock* L, qnode* I )
+void mcs_unlock ( mcslock** L, qnode* I )
 {
-	mcslock *succ;
+	qnode *succ;
 	if ( !(succ = I->next) )
 	{
-		if ( cmp_and_swap( L, (uint64_t)I, (uint64_t)NULL) )
+		if ( cmp_and_swap( *L, (uint64_t)I, (uint64_t)NULL ) )
 			return;
 		do
 		{

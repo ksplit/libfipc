@@ -40,8 +40,8 @@ typedef struct queue_t
 
 	node_t header;
 
-	mcslock H_lock;
-	mcslock T_lock;
+	mcslock* H_lock;
+	mcslock* T_lock;
 
 } queue_t;
 
