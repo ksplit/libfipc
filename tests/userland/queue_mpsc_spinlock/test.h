@@ -9,7 +9,36 @@
 #define LIBFIPC_TEST_QUEUE_TEST
 
 #include "queue.h"
-#include "fipc_numa.h"
+//#include "fipc_numa.h"
+
+struct node 
+{
+	unsigned long cpu_bitmask;
+	unsigned int num_cpus;
+	uint32_t *cpu_list;
+};
+
+struct numa_config 
+{
+	int num_nodes;
+	int total_cpus;
+	struct node *nodes;
+};
+
+enum numa_policy 
+{
+    PROD_CONS_SEPARATE_NODES = 1,
+	PROD_CONS_SAME_NODES = 2,
+	PROD_CONS_MIXED_MODE = 3,
+	NUM_POLICIES,
+};
+
+struct task_placement 
+{
+	uint32_t *producer_cpus;
+	uint32_t *consumer_cpus;
+} policies[NUM_POLICIES];
+
 
 // Test Variables
 static uint64_t transactions = 10000000;

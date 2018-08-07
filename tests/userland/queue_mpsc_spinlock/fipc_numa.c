@@ -1,8 +1,4 @@
 /*
-
-
-*/
-
 #include "fipc_numa.h"
 
 int match_cpus(uint32_t* producer_cpus, uint32_t* consumer_cpus)
@@ -32,21 +28,21 @@ int match_cpus(uint32_t* producer_cpus, uint32_t* consumer_cpus)
                 perror("calloc:");
                 goto err_numa;
         }
-/*
+
         printf("numa_available: %s\n", numa_present ? "false" : "true");
         printf("numa_max_possible_node: %d\n", numa_max_possible_node());
         printf("numa_num_possible_nodes: %d\n", numa_num_possible_nodes());
         printf("numa_max_node: %d\n", numa_max_node());
-*/
+
         config->num_nodes = num_nodes = numa_num_configured_nodes();
         cm = numa_allocate_cpumask();
 
         config->nodes = nodes = calloc(num_nodes, sizeof(struct node));
-/*
+
         printf("numa_num_configured_nodes: %d\n", numa_num_configured_nodes());
         printf("numa_num_configured_cpus: %d\n", numa_num_configured_cpus());
         printf("numa_num_possible_cpus: %d\n", numa_num_possible_cpus());
-*/
+
         producer_cpus = calloc(possible_cpus, sizeof(uint32_t));
         consumer_cpus = calloc(possible_cpus, sizeof(uint32_t));
 
@@ -107,3 +103,4 @@ err_range:
 err_numa:
 	return ret;
 }
+*/

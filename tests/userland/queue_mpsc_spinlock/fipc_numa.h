@@ -1,3 +1,4 @@
+/*
 #include "../libfipc_test.h"
 #include <numa.h>
 #include <stdio.h>
@@ -31,3 +32,4 @@ struct task_placement {
 }policies[NUM_POLICIES];
 
 int match_cpus(uint32_t*, uint32_t*);
+*/
