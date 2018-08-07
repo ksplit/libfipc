@@ -49,7 +49,7 @@ fetch_and_store ( mcslock** L, qnode** val )
                 : "=r" (L)
                 :  "m" (*L), "0" (*val)
                 : "memory", "cc");
-    return val;
+    return ret;
 }
  
 static inline uint64_t
@@ -69,7 +69,4 @@ void mcs_init_local	( qnode* I );
 //void mcs_init	( mcslock *L );
 void mcs_lock 	( mcslock *L, qnode* I );
 void mcs_unlock ( mcslock *L, qnode* I );
-
-
-
 
