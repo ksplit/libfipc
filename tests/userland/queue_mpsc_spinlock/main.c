@@ -334,8 +334,10 @@ int main(int argc, char *argv[])
 int init_module(void)
 #endif
 {
-	auto_generate_numa_node();
+	match_cpus(producer_cpus, consumer_cpus);
 	fipc_test_mfence();
+
+	printf("%d \n", producer_cpus[0]);
 
 	return 0;
 }
@@ -380,8 +382,8 @@ int init_module(void)
 
 	return 0;
 }
-*/
-/*
+
+
 #ifdef __KERNEL__
 void cleanup_module(void)
 {
