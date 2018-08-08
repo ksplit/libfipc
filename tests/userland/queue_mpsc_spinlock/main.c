@@ -334,7 +334,7 @@ int main(int argc, char *argv[])
 int init_module(void)
 #endif
 {
-	match_cpus(&producer_cpus, &consumer_cpus);
+	match_cpus(&producer_cpus, &consumer_cpus, policy);
 	fipc_test_mfence();
 
 #ifndef __KERNEL__

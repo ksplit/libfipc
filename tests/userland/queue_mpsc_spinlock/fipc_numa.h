@@ -28,5 +28,5 @@ struct task_placement {
         uint32_t *consumer_cpus;
 }policies[NUM_POLICIES];
 
-int match_cpus(uint32_t**, uint32_t**);
+int match_cpus(uint32_t**, uint32_t**, uint8_t);
 

@@ -42,6 +42,7 @@ module_param( consumer_count, byte, 0 );
 
 static uint32_t* producer_cpus = NULL;
 static uint32_t* consumer_cpus = NULL;
+static uint8_t policy = 1;
 
 #define pr_err printf
 
