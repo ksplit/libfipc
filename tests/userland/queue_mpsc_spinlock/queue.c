@@ -65,14 +65,14 @@ int enqueue ( queue_t* q, node_t* r )
 
 	if ( q->tail ) 
 	{
-	    q->tail->next = r;
-        q->tail = r;
-    }
+		q->tail->next = r;
+		q->tail = r;
+    	}
 	else
 	{
 		q->head = r;
 		q->tail = r;
-    }
+    	}
 
 	thread_spin_unlock( &(q->T_lock) );
 	

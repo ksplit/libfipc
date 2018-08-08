@@ -37,7 +37,7 @@ void mcs_unlock ( mcslock** L, qnode* I )
 	qnode *succ;
 	if ( !(succ = I->next) )
 	{
-		if ( cmp_and_swap( *L, (uint64_t)I, (uint64_t)NULL ) )
+		if ( cmp_and_swap( &L, (uint64_t)I, (uint64_t)NULL ) )
 			return;
 		do
 		{

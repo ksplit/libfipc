@@ -17,11 +17,11 @@
 #define pr_err printf
 
 #endif
-/*
+
 uint64_t prod_sum = 0;
 uint64_t cons_sum = 0;
 int* halt;
-
+/*
 int null_invocation ( void )
 {
 	asm volatile ("nop");
@@ -334,12 +334,7 @@ int main(int argc, char *argv[])
 int init_module(void)
 #endif
 {
-	auto_generate_numa_node();
-	fipc_test_mfence();
 
-	return 0;
-}
-/*
 #ifndef __KERNEL__
 	if (argc == 2) {
 		transactions = (uint64_t) strtoul(argv[1], NULL, 10);
@@ -350,6 +345,15 @@ int init_module(void)
 		consumer_count = strtoul(argv[2], NULL, 10);
 		printf("Starting test with prod count %d, cons count %d\n",
 				producer_count, consumer_count);
+
+	} else if (argc == 4) {
+		producer_count = strtoul(argv[1], NULL, 10);
+		consumer_count = strtoul(argv[2], NULL, 10);
+		policy = (uint8_t) strtoul(argv[3], NULL, 10);
+
+		printf("Starting test with prod count %d, cons count %d, [%d] policy\n", 
+				producer_count, consumer_count, policy);
+
 	} else if (argc == 5) {
 		producer_count = strtoul(argv[1], NULL, 10);
 		consumer_count = strtoul(argv[2], NULL, 10);
@@ -360,6 +364,9 @@ int init_module(void)
 				producer_count, consumer_count, transactions, batch_size);
 	}
 
+	match_cpus(&producer_cpus, &consumer_cpus, policy);
+	fipc_test_mfence();
+/*
 #endif
 	kthread_t* controller_thread = fipc_test_thread_spawn_on_CPU ( controller, NULL, producer_cpus[producer_count-1] );
 
@@ -377,10 +384,10 @@ int init_module(void)
 	fipc_test_mfence();
 	fipc_test_thread_free_thread( controller_thread );
 	pr_err("Test finished\n");
-
+*/
 	return 0;
 }
-*/
+
 /*
 #ifdef __KERNEL__
 void cleanup_module(void)

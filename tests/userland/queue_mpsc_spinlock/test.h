@@ -37,8 +37,13 @@ module_param( consumer_count, byte, 0 );
 //static uint8_t producer_cpus[32] = {  0,  4,  8, 12,      1,  5,  9, 13,    2,  6, 10, 14,     3,  7, 11, 15,  
 //	                              16, 20, 24, 28,    17, 21, 25, 29,   18, 22, 26, 30,    19, 23, 27, 31 };
 
-static uint8_t consumer_cpus[32] = { 16, 20, 24, 28,     17, 21, 25, 29,   18, 22, 26, 30,    19, 23, 27, 31,  
-	                              0,  4,  8, 12,      1,  5,  9, 13,    2,  6, 10, 14,     3,  7, 11, 15 };
+//static uint8_t consumer_cpus[32] = { 16, 20, 24, 28,     17, 21, 25, 29,   18, 22, 26, 30,    19, 23, 27, 31,  
+//	                              0,  4,  8, 12,      1,  5,  9, 13,    2,  6, 10, 14,     3,  7, 11, 15 };
+
+static uint32_t* producer_cpus = NULL;
+static uint32_t* consumer_cpus = NULL;
+static int policy = 1;
+
 #define pr_err printf
 
 // Queue Variables
