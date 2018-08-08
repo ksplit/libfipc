@@ -49,22 +49,7 @@ int enqueue ( queue_t* q, node_t* r )
 
 	mcs_unlock( &(q->T_lock), I );
 	free( I );
-/*
-	message_t* msg;
-	qnode *I = malloc(sizeof(qnode));
-	mcs_init_local(I);
-	mcs_lock( &(q->T_lock),I );
 
-	if (fipc_send_msg_start( q->head, &msg ) != 0)
-	{
-		mcs_unlock( &(q->T_lock),I );
-		return NO_MEMORY;
-	}
-
-	msg->regs[0] = (uint64_t)node;
-	fipc_send_msg_end ( q->head, msg );
-	mcs_unlock( &(q->T_lock),I );
-*/
 	return SUCCESS;
 }
 
@@ -84,6 +69,7 @@ int dequeue ( queue_t* q, uint64_t* data )
 	if ( !new_head )
 	{
 		mcs_unlock( &(q->H_lock), I );
+		free( I );
 		return EMPTY_COLLECTION;
 	}
 
@@ -91,21 +77,8 @@ int dequeue ( queue_t* q, uint64_t* data )
 	q->head = new_head;
 
 	mcs_unlock( &(q->H_lock), I );
-/*
-	message_t* msg;
-	qnode *I = malloc(sizeof(qnode));
-	mcs_init_local(I);	
-	mcs_lock( &(q->H_lock),I );
+	free( I );
 
-	if (fipc_recv_msg_start( q->tail, &msg) != 0)
-	{
-		mcs_unlock( &(q->H_lock),I );
-		return EMPTY_COLLECTION;
-	}
-
-	*node = (node_t*)msg->regs[0];
-	fipc_recv_msg_end( q->tail, msg );
-	mcs_unlock( &(q->H_lock),I );
-*/
 	return SUCCESS;
 }
+
