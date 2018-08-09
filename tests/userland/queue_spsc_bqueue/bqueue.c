@@ -86,21 +86,26 @@ int enqueue(queue_t * q, data_t value)
 static inline int backtracking(queue_t * q)
 {
 	uint32_t tmp_tail;
-	tmp_tail = q->tail + CONS_BATCH_SIZE;
+	unsigned long batch_size; 
+#if defined(ADAPTIVE)
+	if (q->batch_history < CONS_BATCH_SIZE) {
+		q->batch_history = 
+			(CONS_BATCH_SIZE < (q->batch_history + BATCH_INCREMENT))? 
+			CONS_BATCH_SIZE : (q->batch_history + BATCH_INCREMENT);
+	}
+	
+	batch_size = q->batch_history;
+#else
+	batch_size = CONS_BATCH_SIZE;
+#endif /* ADAPTIVE */
+
+	tmp_tail = q->tail + batch_size;
 	if ( tmp_tail >= QUEUE_SIZE ) {
 		tmp_tail = 0;
-#if defined(ADAPTIVE)
-		if (q->batch_history < CONS_BATCH_SIZE) {
-			q->batch_history = 
-				(CONS_BATCH_SIZE < (q->batch_history + BATCH_INCREMENT))? 
-				CONS_BATCH_SIZE : (q->batch_history + BATCH_INCREMENT);
-		}
-#endif /* ADAPTIVE */
 	}
 
 #if defined(BACKTRACKING)
 
-	unsigned long batch_size = q->batch_history;
 	while (!(q->data[tmp_tail])) {
 
 		fipc_test_time_wait_ticks(CONGESTION_PENALTY);
