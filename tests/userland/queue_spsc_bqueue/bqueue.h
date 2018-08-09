@@ -16,7 +16,7 @@
 #define PROD_BATCH_SIZE BATCH_SIZE
 #define BATCH_INCREMENT (BATCH_SIZE/2)
 
-#define CONGESTION_PENALTY (1000) /* cycles */
+#define CONGESTION_PENALTY 0 /* cycles */
 
 // Error Values
 #define SUCCESS              0

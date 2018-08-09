@@ -105,14 +105,14 @@ static inline int backtracking(queue_t * q)
 
 		fipc_test_time_wait_ticks(CONGESTION_PENALTY);
 
+		if(batch_size == 0) 
+			return -1; 
+
 		batch_size = batch_size >> 1;
-		if( batch_size > 0 ) {
-			tmp_tail = q->tail + batch_size;
-			if (tmp_tail >= QUEUE_SIZE)
-				tmp_tail = 0;
-		}
-		else
-			return -1;
+
+		tmp_tail = q->tail + batch_size;
+		if (tmp_tail >= QUEUE_SIZE)
+			tmp_tail = 0;
 	}
 #if defined(ADAPTIVE)
 	q->batch_history = batch_size;
