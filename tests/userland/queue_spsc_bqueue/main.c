@@ -127,10 +127,17 @@ consumer ( void* data )
 	uint64_t prod_id = 0;
 	uint64_t transaction_id = 0;
 	node_t   *node;
+	node_t   **node_array; 
 	int i, j;
 
 	uint64_t rank = *(uint64_t*)data;
 	queue_t** q = cons_queues[rank];
+
+	node_array = (node_t **) memalign( FIPC_CACHE_LINE_SIZE, batch_size*sizeof(node_t*) );
+	if(!node_array) {
+		pr_err("Failed to allocate node_array\n");
+		return 0;
+	}
 
 	pr_info( "Consumer %llu starting\n", (unsigned long long)rank );
 
@@ -167,6 +174,7 @@ consumer ( void* data )
 			/* rw flag (0 -- read, 1 -- write), 
 			 * temporal locality (0..3, 0 -- no locality) */
 			__builtin_prefetch (node, 0, 0);
+			node_array[i] = node;
 #endif
 			transaction_id ++;
 
@@ -174,7 +182,7 @@ consumer ( void* data )
 
 #ifdef PREFETCH_VALUE
 		for(j = 0; j < i; j++) {
-			cons_sum += node->field; 
+			cons_sum += node_array[j]->field; 
 		}
 #endif
 
