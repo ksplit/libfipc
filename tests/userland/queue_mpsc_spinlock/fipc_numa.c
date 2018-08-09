@@ -2,7 +2,7 @@
 
 int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy)
 {
-	struct bitmask *cm;	
+    struct bitmask *cm;
     int num_nodes;
     int n;
     unsigned long cpu_bmap;
@@ -36,10 +36,10 @@ int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy)
     *producer_cpus = calloc(possible_cpus, sizeof(uint32_t));
     *consumer_cpus = calloc(possible_cpus, sizeof(uint32_t));
 
-    for (n = 0; n < num_nodes; n++) 
+    for (n = 0; n < num_nodes; n++)
     {
         int num_cpus, cpus = 0;
-        if ((ret = numa_node_to_cpus(n, cm))) 
+        if ((ret = numa_node_to_cpus(n, cm)))
         {
             fprintf(stderr, "bitmask is not long enough\n");
             goto err_range;
@@ -50,7 +50,7 @@ int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy)
         nodes[n].cpu_list = calloc(sizeof(uint32_t), num_cpus);
 
         // extract all the cpus from the bitmask
-        while (cpu_bmap) 
+        while (cpu_bmap)
         {
             // cpu number starts from 0, ffs starts from 1.
             unsigned long c = __builtin_ffsll(cpu_bmap) - 1;
@@ -59,21 +59,29 @@ int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy)
         }
     }
 
-    for (n = 0; n < num_nodes; n++) 
+    for (n = 0; n < num_nodes; n++)
     {
         int cpu;
         int num_cpus = nodes[n].num_cpus;
 
 //        printf("Node: %d cpu_bitmask: 0x%08lx | num_cpus: %d\n", n, nodes[n].cpu_bitmask,
 //                                               nodes[n].num_cpus);
-            
-        for (cpu = 0; cpu < num_cpus / 2; cpu++) 
+
+        for ( cpu = 0; cpu < num_cpus / 2; cpu++ )
         {
             int next = num_nodes * (num_cpus / 2);
-            int m;
             int bias = 0;
 
-            if(policy == PROD_CONS_SAME_NODES)
+            if( policy == PROD_CONS_SEPARATE_NODES )
+            {
+                (*producer_cpus)[prod_id] = nodes[n].cpu_list[cpu];
+                (*producer_cpus)[prod_id + next] = nodes[n].cpu_list[cpu + (num_cpus / 2)];
+
+                (*consumer_cpus)[cons_id] = nodes[(num_nodes-1)-n].cpu_list[cpu + (num_cpus / 2)];
+                (*consumer_cpus)[cons_id + next] = nodes[(num_nodes-1)-n].cpu_list[cpu];
+
+            }
+            else if( policy == PROD_CONS_SAME_NODES )
             {
                 (*producer_cpus)[prod_id] = nodes[n].cpu_list[cpu];
                 (*producer_cpus)[prod_id + next] = nodes[n].cpu_list[cpu + (num_cpus / 2)];
@@ -81,54 +89,38 @@ int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy)
                 (*consumer_cpus)[cons_id] = nodes[n].cpu_list[cpu + (num_cpus / 2)];
                 (*consumer_cpus)[cons_id + next] = nodes[n].cpu_list[cpu];
 
-                
             }
-            else if(policy == PROD_CONS_SEPARATE_NODES)
+            else if( policy == PROD_CONS_MIXED_MODE )
             {
-                m = n+1;
-                if(m >= num_nodes)
-                    m = 0;
-                
+		int temp = n;
+		int index = 0;
+
+		if( n % 2 == 1){
+			temp = n-1;
+			index = num_cpus / 4; 
+		} 
+                if( cons_id % 2 == 1)
+                	bias = 1;
+
                 (*producer_cpus)[prod_id] = nodes[n].cpu_list[cpu];
                 (*producer_cpus)[prod_id + next] = nodes[n].cpu_list[cpu + (num_cpus / 2)];
 
-                (*consumer_cpus)[cons_id] = nodes[m].cpu_list[cpu + (num_cpus / 2)];
-                (*consumer_cpus)[cons_id + next] = nodes[m].cpu_list[cpu];
+                (*consumer_cpus)[cons_id] = nodes[temp+bias].cpu_list[cpu/2 + index +  (num_cpus / 2)];
+                (*consumer_cpus)[cons_id + next] = nodes[temp+bias].cpu_list[cpu/2 + index];
 
-                
-            }
-            else if(policy == PROD_CONS_MIXED_MODE)
-            {
-                if( n == 0)
-                    bias = 1;
-                else if ( n == 1)
-                    bias = -1;
-
-                (*producer_cpus)[prod_id] = nodes[n].cpu_list[cpu];
-                (*producer_cpus)[prod_id + next] = nodes[n].cpu_list[cpu + (num_cpus / 2)];            
-
-                (*consumer_cpus)[cons_id] = nodes[n+bias].cpu_list[cpu + (num_cpus / 2)];
-                (*consumer_cpus)[cons_id + next] = nodes[n+bias].cpu_list[cpu];
-                
             }
             ++prod_id;
             ++cons_id;
         }
-        //printf("\n");
-        free(nodes[n].cpu_list);
     }
 
-int i;
-for (i = 0; i < 64; ++i){
-        printf("producer_cpus[%d] :  %d, consumer_cpus[%d] : %d\n", i, (*producer_cpus)[i], i, (*consumer_cpus)[i]); 
-}
+        for (n = 0; n < num_nodes; n++)
+                free(nodes[n].cpu_list);
 
-        
-    free(nodes);
-	return 0;
+        free(nodes);
+        return 0;
 err_range:
         numa_free_cpumask(cm);
 err_numa:
-	return ret;
+        return ret;
 }
-
