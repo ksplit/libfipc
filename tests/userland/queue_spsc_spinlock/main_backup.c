@@ -69,8 +69,7 @@ producer ( void* data )
 	
 	for ( transaction_id = 0; transaction_id < consumer_count * transactions; )
 	{
-		for(i = 0; i < batch_size; i++) 
-		{
+		for(i = 0; i < batch_size; i++) {
 			node_t *node = &t[transaction_id & obj_id_mask]; 
 
 			node->data = NULL_INVOCATION;
@@ -80,12 +79,12 @@ producer ( void* data )
 				break;
 			}
 			transaction_id ++;
-	
-			++cons_id;
+		};
 
-			if (cons_id >= consumer_count) 
-				cons_id = 0;
-		}
+		++cons_id;
+
+		if (cons_id >= consumer_count) 
+			cons_id = 0;
 	}
 
 	end = RDTSCP();
@@ -152,7 +151,6 @@ consumer ( void* data )
 					null_invocation();
 					break;
 				case HALT:
-		printf("HALT in[%d], count =%d  .......%d \n",rank, halt[rank],prod_id);
 					halt[rank] += 1;
 					break;
 				}
@@ -190,7 +188,7 @@ void * controller ( void* data )
 	mem_pool_size = 1 << mem_pool_order;
 
 	// Queue Allocation
-	queue_t* queues = (queue_t*) vmalloc( consumer_count *producer_count * sizeof(queue_t) );
+	queue_t* queues = (queue_t*) vmalloc( consumer_count * sizeof(queue_t) );
 
 	for ( i = 0; i < producer_count*consumer_count; ++i )
 		init_queue ( &queues[i] );
@@ -333,11 +331,6 @@ void * controller ( void* data )
 		vfree( prod_threads );
 
 	vfree( halt );
-
-	for ( i = 0; i < consumer_count; ++i )
-		free ( haltMsg[i]);
-
-	vfree ( haltMsg); 
 
 	for ( i = 0; i < producer_count; ++i )
 		free( node_tables[i] );
