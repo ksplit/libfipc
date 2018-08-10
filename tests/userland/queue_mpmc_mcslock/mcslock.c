@@ -17,18 +17,17 @@ void mcs_init_local	( qnode* I )
 	I->waiting = 0;
 }
 
-void mcs_lock ( mcslock** L, qnode* I )
+void mcs_lock ( mcslock** L, qnode** I )
 {
-	I->next = NULL;
-
-	qnode* pred = fetch_and_store(&L, &I);
+	(*I)->next = NULL;
+	qnode* pred = fetch_and_store(&L, I);
 
 	if ( pred == NULL)
 		return;
-	I->waiting = 1;
-	pred->next = I;
+	(*I)->waiting = 1;
+	pred->next = *I;
 
-	while ( I->waiting != 0)
+	while ( (*I)->waiting != 0)
 		;
 }
 
