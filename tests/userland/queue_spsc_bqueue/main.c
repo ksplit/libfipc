@@ -28,6 +28,7 @@ static queue_t*** prod_queues = NULL;
 static queue_t*** cons_queues = NULL;
 static node_t**   node_tables = NULL;
 
+#define END_MSG_MARKER		0xabcdef11u
 
 int null_invocation ( void )
 {
@@ -47,11 +48,11 @@ producer ( void* data )
 	uint64_t end;
 	uint64_t cons_id = 0;
 	int i; 
+	node_t *end_msg = calloc(sizeof(node_t), 1);
 
 	// We have a fixed size object pool, we pick one object 
 	// from that pool as transaction_id mod pool_size
 	uint64_t obj_id_mask = ((1UL << mem_pool_order) - 1);
-
 	uint64_t rank = *(uint64_t*)data;
 	node_t*   t = node_tables[rank];
 	queue_t **q = prod_queues[rank];
@@ -87,6 +88,7 @@ producer ( void* data )
 			pr_dbg("Sending, tid:%lu, mask%lu, mod:%lu\n", 
 					transaction_id, obj_id_mask, transaction_id & obj_id_mask);
 
+		//	printf("[%d] Sending %d message to consumer: %d | q->head %d\n", rank, node->field, cons_id, q[cons_id]->head);
 			if ( enqueue( q[cons_id], (data_t)node ) != SUCCESS )
 			{
 				//pr_err("Failed to enqueue tid:%llu\n", 
@@ -98,12 +100,18 @@ producer ( void* data )
 
 		++cons_id;
 
-		if (cons_id >= consumer_count) 
+		if (cons_id >= consumer_count)
 			cons_id = 0;
 	}
 
 	end = RDTSCP();
-
+	end_msg->field = END_MSG_MARKER;
+	for ( cons_id = 0; cons_id < consumer_count; cons_id++) {
+		//fipc_test_mfence();
+		printf("[%d] Sending %p:%lx message to consumer: %d | q->head %d\n",
+					rank, end_msg, end_msg->field, cons_id, q[cons_id]->head);
+		enqueue( q[cons_id], (data_t)end_msg);
+	}
 	// End test
 	pr_err( "Producer %lu finished, sending %lu messages (cycles per message %lu) (prod_sum:%lu)\n", 
 			rank,
@@ -129,7 +137,8 @@ consumer ( void* data )
 	node_t   *node;
 	node_t   **node_array; 
 	int i, j;
-
+	int stop = 0;
+	int halts = 0;
 	uint64_t rank = *(uint64_t*)data;
 	queue_t** q = cons_queues[rank];
 
@@ -154,18 +163,26 @@ consumer ( void* data )
 
 	start = RDTSC_START();
 
-	while(!halt[rank])
+	//while(!halt[rank])
+	while(!stop)
 	{
-	
 		for(i = 0; i < batch_size; i++) {
-
 			// Receive and unmarshall 
 			if ( dequeue( q[prod_id], (data_t*)&node ) != SUCCESS ) {
 				break;
-
 			}
-			pr_dbg("Receiving %lu from prod %lu\n", node->field, prod_id);
+			//printf("[%d] Receiving %p:%lx from prod %lu | q->tail %d\n",
+			//		rank, node, node->field, prod_id, q[prod_id]->tail);
 
+			if (node->field == END_MSG_MARKER) {
+				halts++;
+				printf("[%d] Received HALT[%p:%lx] (%d) msg from %d | q->tail %d\n",
+						rank, node, node->field, halts,
+						prod_id, q[prod_id]->tail);
+				if (halts == producer_count)
+					stop = 1;
+				break;
+			}
 #ifdef TOUCH_VALUE
 			cons_sum += node->field; 
 #endif
@@ -221,6 +238,7 @@ void * controller ( void* data )
 
 	mem_pool_size = 1 << mem_pool_order;
 
+	printf("Producers: %d | consumers: %d\n", producer_count, consumer_count);
 	// Queue Allocation
 	pr_dbg("Allocating %lu bytes for queue_t of size %lu\n",
 			producer_count*consumer_count*sizeof(queue_t), sizeof(queue_t));
@@ -385,10 +403,9 @@ void * controller ( void* data )
 	fipc_test_mfence();
 
 	// Tell consumers to halt
-	for ( i = 0; i < consumer_count; ++i ) {
-
-		halt[i] = 1;
-	}
+	//for ( i = 0; i < consumer_count; ++i ) {
+//		halt[i] = 1;
+//	}
 
 	// Wait for consumers to complete
 	while ( completed_consumers < consumer_count )
@@ -445,6 +462,7 @@ int init_module(void)
 #endif
 {
 
+	printf("<<<<<<<<<<<<<<<<<<<<<< Test Started\n");
 #ifndef __KERNEL__
 	if (argc == 2) {
 		transactions = (uint64_t) strtoul(argv[1], NULL, 10);
@@ -481,7 +499,7 @@ int init_module(void)
 
 	fipc_test_mfence();
 	fipc_test_thread_free_thread( controller_thread );
-	printf("Test finished\n");
+	printf(">>>>>>>>>>>>>>>>>>>> Test finished\n");
 
 	return 0;
 }
