@@ -20,6 +20,7 @@
 #define vfree free
 #define pr_err printf
 
+#define END_MSG_MARKER		0xabcdef11u
 
 #endif
 
@@ -53,6 +54,7 @@ producer ( void* data )
 	uint64_t rank = *(uint64_t*)data;
 	node_t*   t = node_tables[rank];
 	queue_t** q = prod_queues[rank];
+	node_t* end_msg = calloc(sizeof(node_t), 1);
 
 	pr_err( "Producer %lu starting...\n", rank );
 
@@ -73,8 +75,10 @@ producer ( void* data )
 		{
 			node_t *node = &t[transaction_id & obj_id_mask]; 
 
-			node->data = NULL_INVOCATION;
-		
+			//node->data = NULL_INVOCATION;
+			node->data = transaction_id;		
+	
+
 			if ( enqueue( q[cons_id], node ) != SUCCESS )
 			{
 				break;
@@ -89,6 +93,13 @@ producer ( void* data )
 	}
 
 	end = RDTSCP();
+	end_msg->data = END_MSG_MARKER;
+
+	for ( cons_id = 0; cons_id < consumer_count; cons_id++ )
+	{
+		while ( enqueue ( q[cons_id], end_msg ) != SUCCESS) ;
+	} 
+	
 
 	// End test
 	pr_err( "Producer %lu finished, sending %lu messages (cycles per message %lu) (prod_sum:%lu)\n", 
@@ -113,6 +124,7 @@ consumer ( void* data )
 	uint64_t prod_id = 0;
 	uint64_t transaction_id = 0;
 	uint64_t request;
+	int stop = 0;
 	int i;
 
 	uint64_t rank = *(uint64_t*)data;
@@ -133,35 +145,37 @@ consumer ( void* data )
 
 	start = RDTSC_START();
 
-	while(halt[rank] < producer_count)
+	//while(halt[rank] < producer_count)
+	while(!stop)
 	{
 	
-		for(i = 0; i < batch_size; i++) {
-
-			// Receive and unmarshall 
-			if ( dequeue( q[prod_id],&request) != SUCCESS ) {
-				break;
-
-			}
-			else
+		for(i = 0; i < batch_size; i++) 
+		{
+			if ( q[prod_id] != NULL ) 
 			{
-				// Process Request
-				switch (request)
+			// Receive and unmarshall 
+				if ( dequeue( q[prod_id],&request) != SUCCESS ) 
 				{
-				case NULL_INVOCATION:
-					null_invocation();
 					break;
-				case HALT:
-		printf("HALT in[%d], count =%d  .......%d \n",rank, halt[rank],prod_id);
-					halt[rank] += 1;
+
+				}
+				
+				if ( request == END_MSG_MARKER )
+				{	
+					halt[rank] ++;
+				
+					if ( halt[rank] == producer_count ) 
+						stop = 1;
+					q[prod_id] = NULL;
+				
 					break;
 				}
 
 				transaction_id++;
 
 			}
-
 		}
+
 
 		++prod_id; if ( prod_id >= producer_count ) prod_id = 0;
 	}
@@ -215,8 +229,8 @@ void * controller ( void* data )
 	{
 		for ( j = 0; j < consumer_count; ++j )
 		{
-			prod_queues[i][j] = &queues[i*producer_count + j];
-			cons_queues[j][i] = &queues[i*producer_count + j];
+			prod_queues[i][j] = &queues[i*consumer_count + j];
+			cons_queues[j][i] = &queues[i*consumer_count + j];
 		}
 	}
 
@@ -300,6 +314,7 @@ void * controller ( void* data )
 
 	fipc_test_mfence();
 
+/*
 	// Tell consumers to halt
 	for ( i = 0; i < consumer_count; ++i ) 
 	{
@@ -310,7 +325,7 @@ void * controller ( void* data )
 			enqueue(cons_queues[i][j], &haltMsg[i][j]);
 		}
 	}
-
+*/
 	// Wait for consumers to complete
 	while ( completed_consumers < consumer_count )
 		fipc_test_pause();
