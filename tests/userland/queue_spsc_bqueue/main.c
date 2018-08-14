@@ -88,7 +88,7 @@ producer ( void* data )
 			pr_dbg("Sending, tid:%lu, mask%lu, mod:%lu\n", 
 					transaction_id, obj_id_mask, transaction_id & obj_id_mask);
 
-		//	printf("[%d] Sending %d message to consumer: %d | q->head %d\n", rank, node->field, cons_id, q[cons_id]->head);
+			//printf("[%d] Sending %d message to consumer: %d | q->head %d\n", rank, node->field, cons_id, q[cons_id]->head);
 			if ( enqueue( q[cons_id], (data_t)node ) != SUCCESS )
 			{
 				//pr_err("Failed to enqueue tid:%llu\n", 
@@ -106,11 +106,12 @@ producer ( void* data )
 
 	end = RDTSCP();
 	end_msg->field = END_MSG_MARKER;
+	printf("[%d] Sent %d messages\n", rank, transaction_id);
 	for ( cons_id = 0; cons_id < consumer_count; cons_id++) {
 		//fipc_test_mfence();
 		printf("[%d] Sending %p:%lx message to consumer: %d | q->head %d\n",
 					rank, end_msg, end_msg->field, cons_id, q[cons_id]->head);
-		enqueue( q[cons_id], (data_t)end_msg);
+		while (enqueue( q[cons_id], (data_t)end_msg) != SUCCESS) ;
 	}
 	// End test
 	pr_err( "Producer %lu finished, sending %lu messages (cycles per message %lu) (prod_sum:%lu)\n", 
@@ -167,39 +168,41 @@ consumer ( void* data )
 	while(!stop)
 	{
 		for(i = 0; i < batch_size; i++) {
-			// Receive and unmarshall 
-			if ( dequeue( q[prod_id], (data_t*)&node ) != SUCCESS ) {
-				break;
+			// Receive and unmarshall
+			if (q[prod_id] != NULL) {
+				if ( dequeue( q[prod_id], (data_t*)&node ) != SUCCESS ) {
+					break;
+				}
+				//printf("[%d] Receiving %p:%lx from prod %lu | q->tail %d\n",
+				//		rank, node, node->field, prod_id, q[prod_id]->tail);
+
+				if (node->field == END_MSG_MARKER) {
+					halts++;
+					printf("[%d] Received HALT[%p:%lx] (%d) msg from %d | q->tail %d\n",
+							rank, node, node->field, halts,
+							prod_id, q[prod_id]->tail);
+					if (halts == producer_count)
+						stop = 1;
+					q[prod_id] = NULL;
+					break;
+				}
+	#ifdef TOUCH_VALUE
+				cons_sum += node->field;
+	#endif
+
+	#ifdef PREFETCH_VALUE
+				/* rw flag (0 -- read, 1 -- write),
+				 * temporal locality (0..3, 0 -- no locality) */
+				__builtin_prefetch (node, 0, 0);
+				node_array[i] = node;
+	#endif
+				transaction_id ++;
+
 			}
-			//printf("[%d] Receiving %p:%lx from prod %lu | q->tail %d\n",
-			//		rank, node, node->field, prod_id, q[prod_id]->tail);
-
-			if (node->field == END_MSG_MARKER) {
-				halts++;
-				printf("[%d] Received HALT[%p:%lx] (%d) msg from %d | q->tail %d\n",
-						rank, node, node->field, halts,
-						prod_id, q[prod_id]->tail);
-				if (halts == producer_count)
-					stop = 1;
-				break;
-			}
-#ifdef TOUCH_VALUE
-			cons_sum += node->field; 
-#endif
-
-#ifdef PREFETCH_VALUE
-			/* rw flag (0 -- read, 1 -- write), 
-			 * temporal locality (0..3, 0 -- no locality) */
-			__builtin_prefetch (node, 0, 0);
-			node_array[i] = node;
-#endif
-			transaction_id ++;
-
 		}
-
 #ifdef PREFETCH_VALUE
 		for(j = 0; j < i; j++) {
-			cons_sum += node_array[j]->field; 
+			cons_sum += node_array[j]->field;
 		}
 #endif
 
