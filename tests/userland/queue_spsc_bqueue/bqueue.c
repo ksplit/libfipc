@@ -52,7 +52,9 @@ int enqueue(queue_t * q, data_t value)
 			tmp_head = 0;
 
 		if ( q->data[tmp_head] ) {
+#if CONGESTION_PENALTY > 0
 			fipc_test_time_wait_ticks(CONGESTION_PENALTY);
+#endif
 			return BUFFER_FULL;
 		}
 
@@ -108,8 +110,9 @@ static inline int backtracking(queue_t * q)
 
 	while (!(q->data[tmp_tail])) {
 
+#if CONGESTION_PENALTY > 0
 		fipc_test_time_wait_ticks(CONGESTION_PENALTY);
-
+#endif
 		if(batch_size == 0) 
 			return -1; 
 
@@ -125,7 +128,9 @@ static inline int backtracking(queue_t * q)
 
 #else /* BACKTRACKING */
 	if ( !q->data[tmp_tail] ) {
+#if CONGESTION_PENALTY > 0
 		fipc_test_time_wait_ticks(CONGESTION_PENALTY); 
+#endif
 		return -1;
 	}
 #endif  /* BACKTRACKING */
