@@ -26,24 +26,24 @@ typedef struct qnode {
 typedef qnode mcslock;
 
 static inline qnode*
-fetch_and_store ( mcslock*** L, qnode** val )
+fetch_and_store ( mcslock** L, qnode* val )
 {
-    qnode* ret = **L;
+    qnode* ret = *L;
     __asm__ volatile(
                 "lock; xchgq %0, %1\n\t"
-                : "=r" (*L)
-                :  "m" (**L), "0" (*val)
+                : "=r" (L)
+                :  "m" (*L), "0" (val)
                 : "memory", "cc");
     return ret;
 }
  
 static inline uint64_t
-cmp_and_swap ( mcslock ***L, uint64_t cmpval, uint64_t newval )
+cmp_and_swap ( mcslock **L, uint64_t cmpval, uint64_t newval )
 {
     uint64_t out;
     __asm__ volatile(
                 "lock; cmpxchgq %2, %1"
-                : "=a" (out), "+m" (**L)
+                : "=a" (out), "+m" (*L)
                 : "q" (newval), "0"(cmpval)
                 : "cc");
     return out == cmpval;
@@ -52,6 +52,6 @@ cmp_and_swap ( mcslock ***L, uint64_t cmpval, uint64_t newval )
 void mcs_init_global( mcslock** L );
 void mcs_init_local	( qnode* I );
 //void mcs_init	( mcslock *L );
-void mcs_lock 	( mcslock **L, qnode** I );
+void mcs_lock 	( mcslock **L, qnode* I );
 void mcs_unlock ( mcslock **L, qnode* I );
 

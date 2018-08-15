@@ -1,5 +1,5 @@
 /**
-* @File     : main.c  in mpmc spinlcok
+* @File     : main.c
 * @Author   : Abdullah Younis
 */
 #ifdef __KERNEL__

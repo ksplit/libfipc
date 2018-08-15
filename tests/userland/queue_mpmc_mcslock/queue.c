@@ -34,7 +34,7 @@ int enqueue ( queue_t* q, node_t* r )
 	mcs_init_local( I );
 	
 	r->next = NULL;
-	mcs_lock( &(q->T_lock), &I );
+	mcs_lock( &(q->T_lock), I );
 
 	if ( q->tail )
 	{
@@ -61,7 +61,7 @@ int dequeue ( queue_t* q, uint64_t* data )
 	qnode *I = malloc( sizeof(qnode) );
 	mcs_init_local( I );
 
-	mcs_lock( &(q->H_lock), &I );
+	mcs_lock( &(q->H_lock), I );
 
 //	node_t* temp = q->head;
 	node_t* new_head = q->head->next;
