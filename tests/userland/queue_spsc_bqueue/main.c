@@ -7,6 +7,7 @@
 #endif
 
 #include "test.h"
+#include <inttypes.h>
 
 #ifndef __KERNEL__
 #include <sched.h>
@@ -106,10 +107,10 @@ producer ( void* data )
 
 	end = RDTSCP();
 	end_msg->field = END_MSG_MARKER;
-	printf("[%d] Sent %d messages\n", rank, transaction_id);
+	printf("[%" PRId64 "] Sent %" PRId64 " messages\n", rank, transaction_id);
 	for ( cons_id = 0; cons_id < consumer_count; cons_id++) {
 		//fipc_test_mfence();
-		printf("[%d] Sending %p:%lx message to consumer: %d | q->head %d\n",
+		printf("[%" PRId64 "] Sending %p:%lx message to consumer: %" PRId64 " | q->head %u\n",
 					rank, end_msg, end_msg->field, cons_id, q[cons_id]->head);
 		while (enqueue( q[cons_id], (data_t)end_msg) != SUCCESS) ;
 	}
@@ -178,7 +179,7 @@ consumer ( void* data )
 
 				if (node->field == END_MSG_MARKER) {
 					halts++;
-					printf("[%d] Received HALT[%p:%lx] (%d) msg from %d | q->tail %d\n",
+					printf("[%" PRId64 "] Received HALT[%p:%lx] (%d) msg from %" PRId64 " | q->tail %u\n",
 							rank, node, node->field, halts,
 							prod_id, q[prod_id]->tail);
 					if (halts == producer_count)
