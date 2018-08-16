@@ -77,7 +77,8 @@ producer ( void* data )
 
 			//node->data = NULL_INVOCATION;
 			node->data = transaction_id;		
-	
+			node->produ_id = rank;
+			node->consu_id = cons_id;	
 
 			if ( enqueue( q[cons_id], node ) != SUCCESS )
 			{
@@ -313,6 +314,25 @@ void * controller ( void* data )
 		fipc_test_pause();
 
 	fipc_test_mfence();
+
+	node_t* temp;
+
+int count=0;
+	for (i=0;i<producer_count;i++){	
+		
+		for(j=0;j<consumer_count;j++){
+			temp = &prod_queues[i][j]->header;	
+			printf("producer_queues[%d][%d] start...\n", i, j);;
+			while(temp->next){
+count++;
+				printf("[%d]  data : %d, prod_id : %d, cons_id : %d\n",count, temp->data, temp->produ_id, temp->consu_id);
+				temp = temp->next;
+			}
+			printf("producer_queues[%d][%d] finish...\n", i, j);;
+		}
+
+
+	}
 
 /*
 	// Tell consumers to halt

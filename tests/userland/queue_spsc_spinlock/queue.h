@@ -23,6 +23,8 @@ typedef struct linked_node_t
 {
 
 	uint64_t data;
+	uint64_t produ_id;
+	uint64_t consu_id;
 	struct linked_node_t* next;
 
 } node_t;
