@@ -12,7 +12,7 @@
 #include "fipc_numa.h"
 
 // Test Variables
-static uint64_t transactions = 10000000;
+static uint64_t transactions = 100000000;
 
 static uint8_t producer_count = 1;
 static uint8_t consumer_count = 1;

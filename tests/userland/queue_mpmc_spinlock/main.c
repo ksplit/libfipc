@@ -61,7 +61,7 @@ producer(void* data)
 	start = RDTSC_START();
 
 
-	for ( transaction_id = 0; transaction_id < transactions; )
+	for ( transaction_id = 0; transaction_id < consumer_count * transactions; )
 	{
 		for( i = 0; i < batch_size; i++ )
 		{
@@ -169,7 +169,6 @@ consumer(void* data)
 void * controller(void* data)
 {
 	uint64_t i;
-
 	mem_pool_size = 1 << mem_pool_order;
 
 	// Queue Init
@@ -308,7 +307,6 @@ int main(int argc, char *argv[])
 int init_module(void)
 #endif
 {
-
 #ifndef __KERNEL__
 	if (argc == 2) {
 		transactions = (uint64_t)strtoul(argv[1], NULL, 10);

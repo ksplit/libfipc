@@ -1,0 +1,16 @@
+Starting test with prod count 2, cons count 2
+Pinning thread to cpu:4
+Allocating 16777216 bytes for the pool of 1048576 objects (pool order:20)
+Allocating 16777216 bytes for the pool of 1048576 objects (pool order:20)
+Pinning thread to cpu:0
+Pinning thread to cpu:16
+Producer 0 starting...
+Pinning thread to cpu:20
+Consumer 0 starting
+Consumer 1 starting
+Producer 1 starting...
+Producer 0 finished, sending 10000000 messages (cycles per message 1694)
+Producer 1 finished, sending 10000000 messages (cycles per message 1885)
+Consumer 1 finished, receiving 18292053 messages (cycles per message 1030) (PASSED)
+Consumer 0 finished, receiving 1707949 messages (cycles per message 11040) (PASSED)
+Test finished
