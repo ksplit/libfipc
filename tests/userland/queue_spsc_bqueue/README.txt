@@ -4,4 +4,4 @@ To run the test
 
 For example
 
-./queue_spsc_bqueue 4 4 1000000 128
+./queue_spsc_bqueue 4 4 100000000 128
