@@ -4,8 +4,8 @@ import json, getopt
 from subprocess import *
 from time import localtime, strftime
 
-RUN_BASE = "/users/ji1/fast-ipc-module/tests/userland"
-TEST_LIST = [ 'queue_mpmc_spinlock', 'queue_mpsc_spinlock' ]
+RUN_BASE = "/users/achaccha/fast-ipc-module/tests/userland"
+TEST_LIST = ['queue_mpsc_spinlock' ]
 systemInfoFName = 'system.info'
 
 
@@ -73,46 +73,48 @@ def main(argv=None):
 	#
 	# Running benchmark
 	#
+	opt = [ 1]
+
 	for i in range( 0, len(TEST_LIST) ):
 		for ii in range(0, len(producer_count) ):
-			for t in range( 0, 3 ):
+			for t in range( 0, 30 ):
+				for o in range (0, len(opt)):
+					##########################
+					# Setup output directories
+					##########################
 
-				##########################
-				# Setup output directories
-				##########################
+					exp_output_path = "%s/%s" % (output_path, TEST_LIST[i])
 
-				exp_output_path = "%s/%s" % (output_path, TEST_LIST[i])
+					print "exp_output_path: %s\n" % exp_output_path
+					if not os.path.isdir(exp_output_path):
+						os.makedirs(exp_output_path)
 
-				print "exp_output_path: %s\n" % exp_output_path
-				if not os.path.isdir(exp_output_path):
-					os.makedirs(exp_output_path)
+					outputFile = open("%s/%s-%s-%s-%s-%s" % (exp_output_path, TEST_LIST[i], producer_count[ii], consumer_count[ii], t, opt[o]), 'w')
+					print "outputFile: %s" % outputFile
 
-				outputFile = open("%s/%s-%s-%s-%s" % (exp_output_path, TEST_LIST[i], producer_count[ii], consumer_count[ii], t), 'w')
-				print "outputFile: %s" % outputFile
+					print "\nDropping page cache"
+					cmd = "echo 3 | sudo tee /proc/sys/vm/drop_caches"
+					p = Popen( shlex.split(cmd) )
+					p.wait()
 
-				print "\nDropping page cache"
-				cmd = "echo 3 | sudo tee /proc/sys/vm/drop_caches"
-				p = Popen( shlex.split(cmd) )
-				p.wait()
+					start_time = time.time()
+					cmd = "%s/%s/%s %s %s %s" % (RUN_BASE,TEST_LIST[i], TEST_LIST[i], producer_count[ii], consumer_count[ii], opt[o])
+					print("------------------------------\n")
+					print "\n[ (%d) try ] %s" % (t, cmd)
+					p = Popen( cmd, stdout=PIPE,  shell=True )
 
-				start_time = time.time()
-				cmd = "%s/%s/%s %s %s" % (RUN_BASE,TEST_LIST[i], TEST_LIST[i], producer_count[ii], consumer_count[ii])
-				print("------------------------------\n")
-				print "\n[ (%d) try ] %s" % (t, cmd)
-				p = Popen( cmd, stdout=PIPE,  shell=True )
+					for line in p.stdout.readlines():
+						print line
+						outputFile.write(line)
+					outputFile.close()
 
-				for line in p.stdout.readlines():
-					print line
-					outputFile.write(line)
-				outputFile.close()
-
-				end_time = time.time()
-				print "Time elapsed: ", end_time-start_time
-				print "Outpute path: ", output_path
-
-				print "Done"			
-				print "Waiting... to warm the states"
-				time.sleep(30)
+					end_time = time.time()
+					print "Time elapsed: ", end_time-start_time
+					print "Outpute path: ", output_path
+	
+					print "Done"			
+					print "Waiting... to warm the states"
+					time.sleep(30)
 
 
 if __name__ == '__main__' :
