@@ -11,20 +11,15 @@ int init_queue ( queue_t* q )
 {
 	q->header.next = NULL;
 
-//	q->head = &(q->header);
-//	q->tail = &(q->header);
-
 	q->head = NULL;
 	q->tail = NULL;
 
     	thread_spin_init(&(q->spin_lock));
-//	thread_spin_init(&(q->T_lock));
 
 	return SUCCESS;
 }
 
 // Destructor
-
 int free_queue ( queue_t* q )
 {
 	// STUB
@@ -32,7 +27,6 @@ int free_queue ( queue_t* q )
 }
 
 // Enqueue
-
 int enqueue ( queue_t* q, node_t* r )
 {
 	r->next = NULL;
@@ -55,7 +49,6 @@ int enqueue ( queue_t* q, node_t* r )
 }
 
 // Dequeue
-
 int dequeue ( queue_t* q, uint64_t* data )
 {
         thread_spin_lock( &(q->spin_lock) );
@@ -68,10 +61,9 @@ int dequeue ( queue_t* q, uint64_t* data )
                 return EMPTY_COLLECTION;
         }
 
-        node_t* new_head = q->head->next;
         *data = temp->data;
-//printf("transaction_id : %d\n", *data);
-        if ( q->head == q->tail )
+        
+	if ( q->head == q->tail )
         {
                 q->tail = NULL;
         }

@@ -67,7 +67,6 @@ producer ( void* data )
 	fipc_test_mfence();
 
 	start = RDTSC_START();
-
 	
 	for ( transaction_id = 0; transaction_id < consumer_count * transactions; )
 	{
@@ -85,15 +84,16 @@ producer ( void* data )
 				break;
 			}
 			transaction_id ++;
-	
+		}	
 			++cons_id;
 
 			if (cons_id >= consumer_count) 
 				cons_id = 0;
-		}
+		
 	}
 
 	end = RDTSCP();
+
 	end_msg->data = END_MSG_MARKER;
 
 	for ( cons_id = 0; cons_id < consumer_count; cons_id++ )
@@ -145,6 +145,35 @@ consumer ( void* data )
 	fipc_test_mfence();
 
 	start = RDTSC_START();
+/*
+	while(halt[rank] < producer_count)
+	{	
+		for(i = 0; i < batch_size; i++) 
+		{
+			// Receive and unmarshall 
+			if ( dequeue ( q[rank], &request ) != SUCCESS )
+			{
+				break;
+			}
+			else
+			{
+				// Process Request
+				switch ( request )
+				{
+					case NULL_INVOCATION:
+						null_invocation();
+						break;
+					case HALT:
+						halt[rank] += 1;
+						break;
+				}
+				
+				transaction_id ++;					
+			}
+		}
+		++prod_id; if ( prod_id >= producer_count ) prod_id = 0;
+	}
+*/
 
 	//while(halt[rank] < producer_count)
 	while(!stop)
@@ -314,7 +343,7 @@ void * controller ( void* data )
 		fipc_test_pause();
 
 	fipc_test_mfence();
-
+/*
 	node_t* temp;
 
 int count=0;
@@ -333,7 +362,7 @@ count++;
 
 
 	}
-
+*/
 /*
 	// Tell consumers to halt
 	for ( i = 0; i < consumer_count; ++i ) 
@@ -346,10 +375,10 @@ count++;
 		}
 	}
 */
+
 	// Wait for consumers to complete
 	while ( completed_consumers < consumer_count )
 		fipc_test_pause();
-
 	fipc_test_mfence();
 
 	// Clean up
