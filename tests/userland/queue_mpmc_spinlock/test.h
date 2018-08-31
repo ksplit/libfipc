@@ -22,7 +22,7 @@ static uint8_t consumer_count = 1;
 
 uint64_t batch_size = 1;
 
-uint64_t mem_pool_order = 20;
+uint64_t mem_pool_order = 30;
 uint64_t mem_pool_size;
 
 
