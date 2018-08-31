@@ -6,17 +6,19 @@
 #include "queue.h"
 
 #define pr_err printf
-// Constructor
 
 int init_queue ( queue_t* q )
 {
 	q->header.next = NULL;
 
-	q->head = &(q->header);
-	q->tail = &(q->header);
+//	q->head = &(q->header);
+//	q->tail = &(q->header);
 
-    	thread_spin_init(&(q->H_lock));
-	thread_spin_init(&(q->T_lock));
+	q->head = NULL;
+	q->tail = NULL;
+
+    	thread_spin_init(&(q->spin_lock));
+//	thread_spin_init(&(q->T_lock));
 
 	return SUCCESS;
 }
@@ -30,38 +32,11 @@ int free_queue ( queue_t* q )
 }
 
 // Enqueue
-/*
-int enqueue_blk ( queue_t* q, node_t* r )
-{
-	message_t* msg;
-
-	fipc_test_blocking_send_start(q->head, &msg );
-	msg->regs[0] = (uint64_t)node;
-	fipc_send_msg_end ( q->head, msg );
-
-	return SUCCESS;
-}
-
-// Dequeue
-
-int dequeue_blk ( queue_t* q, uint64_t* data )
-{
-	message_t* msg;
-
-	fipc_test_blocking_recv_start(q->tail, &msg);
-	*n = (node_t*)msg->regs[0];
-	fipc_recv_msg_end( q->tail, msg );
-	
-	return SUCCESS;
-}
-*/
-
-// enqueue
 
 int enqueue ( queue_t* q, node_t* r )
 {
 	r->next = NULL;
-	thread_spin_lock( &(q->T_lock) );
+	thread_spin_lock( &(q->spin_lock) );
 
 	if ( q->tail ) 
 	{
@@ -74,7 +49,7 @@ int enqueue ( queue_t* q, node_t* r )
 		q->tail = r;
     	}
 
-	thread_spin_unlock( &(q->T_lock) );
+	thread_spin_unlock( &(q->spin_lock) );
 	
 	return SUCCESS;
 }
@@ -83,27 +58,26 @@ int enqueue ( queue_t* q, node_t* r )
 
 int dequeue ( queue_t* q, uint64_t* data )
 {
-	node_t* temp;
-	node_t* new_head;
+        thread_spin_lock( &(q->spin_lock) );
 
-	// Acquire Lock, Enter Critical Section
-//	thread_spin_lock( &(q->H_lock) );
-	
-	temp     = q->head;
-	new_head = q->head->next;
+        node_t* temp = q->head;
+        
+	if ( !temp )
+        {
+        	thread_spin_unlock( &(q->spin_lock) );
+                return EMPTY_COLLECTION;
+        }
 
-	if ( new_head == NULL )
-	{
-	//	thread_spin_unlock( &(q->H_lock) );
-		return EMPTY_COLLECTION;
-	}
+        node_t* new_head = q->head->next;
+        *data = temp->data;
+//printf("transaction_id : %d\n", *data);
+        if ( q->head == q->tail )
+        {
+                q->tail = NULL;
+        }
+        q->head = temp->next;
 
-	*data   = new_head->data;
-	q->head = new_head;
+       	thread_spin_unlock( &(q->spin_lock) );
 
-	// Release Lock, Exit Critical Section
-//	thread_spin_unlock( &(q->H_lock) );
-
-	return SUCCESS;
+        return SUCCESS;
 }
-

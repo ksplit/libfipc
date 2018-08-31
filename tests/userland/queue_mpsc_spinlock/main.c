@@ -18,6 +18,8 @@
 
 #endif
 
+#define END_MSG_MARKER          0xabcdef11u
+
 uint64_t prod_sum = 0;
 uint64_t cons_sum = 0;
 int* halt;
@@ -38,6 +40,7 @@ producer ( void* data )
 	queue_t** 	 q = full_queues;
 	uint64_t rank = *(uint64_t*)data;
 	node_t*   t = node_tables[rank];
+	node_t* end_msg = malloc(sizeof(node_t));
 
 	uint64_t transaction_id;
 	uint64_t start;
@@ -68,6 +71,7 @@ producer ( void* data )
 			node_t *node = &t[transaction_id & obj_id_mask]; 
 
 			node->data = NULL_INVOCATION;
+//			node->data = transaction_id;
 			
 			if ( enqueue( q[cons_id], node ) != SUCCESS )
 			{
@@ -81,8 +85,16 @@ producer ( void* data )
 		if (cons_id >= consumer_count) 
 			cons_id = 0;
 	}
-
+	
 	end = RDTSCP();
+/*
+	end_msg->data = END_MSG_MARKER;
+
+        for ( cons_id = 0; cons_id < consumer_count; cons_id++ )
+        {
+                while ( enqueue ( q[cons_id], end_msg ) != SUCCESS) ;
+        }
+*/
 
 	// End test
 	pr_err( "Producer %lu finished, sending %lu messages (cycles per message %lu)\n", 
@@ -107,7 +119,8 @@ consumer ( void* data )
 	uint64_t start;
 	uint64_t end;
 	uint64_t request;
-	int i;	
+	int i;
+	int stop = 0;	
 	uint64_t transaction_id = 0;
 	uint64_t rank = *(uint64_t*)data;		
 	
@@ -125,7 +138,29 @@ consumer ( void* data )
 	fipc_test_mfence();
 
 	start = RDTSC_START();
-	
+/*
+	while(!stop)
+	{
+		for(i = 0; i < batch_size; i++)
+                {
+	       		// Receive and unmarshall
+                        if ( dequeue( q[rank],&request) != SUCCESS )
+                        {
+                        	break;
+                        }
+
+                        if ( request == END_MSG_MARKER )
+                        {
+                        	stop = 1;
+                                break;
+                        }
+printf("%d transaction_id : %d\n", rank, transaction_id);
+			transaction_id++;
+                }
+                
+	}
+*/
+
 	while(!halt[rank])
 	{	
 		for(i = 0; i < batch_size; i++) 
