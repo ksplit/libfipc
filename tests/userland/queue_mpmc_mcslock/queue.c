@@ -11,8 +11,11 @@ int init_queue ( queue_t* q )
 {
 	q->header.next = NULL;
 
-	q->head = &(q->header);
-	q->tail = &(q->header);
+//	q->head = &(q->header);
+//	q->tail = &(q->header);
+	q->head = NULL;
+	q->tail = NULL;
+
 
 	mcs_init_global( &(q->H_lock) );
 	mcs_init_global( &(q->T_lock) );
@@ -30,7 +33,7 @@ int free_queue ( queue_t* q )
 
 int enqueue ( queue_t* q, node_t* r )
 {
-	qnode *I = malloc( sizeof(qnode) );
+	qnode *I = (qnode *)malloc( sizeof(qnode) );
 	mcs_init_local( I );
 	
 	r->next = NULL;
@@ -58,25 +61,30 @@ int enqueue ( queue_t* q, node_t* r )
 
 int dequeue ( queue_t* q, uint64_t* data )
 {
-	qnode *I = malloc( sizeof(qnode) );
+	qnode *I = (qnode *)malloc( sizeof(qnode) );
 	mcs_init_local( I );
 
-	mcs_lock( &(q->H_lock), I );
+	mcs_lock( &(q->T_lock), I );
 
-//	node_t* temp = q->head;
-	node_t* new_head = q->head->next;
+	node_t* temp = q->head;
 
-	if ( !new_head )
+	if ( !temp )
 	{
-		mcs_unlock( &(q->H_lock), I );
+		mcs_unlock( &(q->T_lock), I );
 		free( I );
 		return EMPTY_COLLECTION;
 	}
 
-	*data   = new_head->data;
-	q->head = new_head;
+	node_t* new_head = q->head->next;
 
-	mcs_unlock( &(q->H_lock), I );
+	*data = temp->data;
+	if ( q->head == q->tail )
+	{
+		q->tail = NULL;
+	}
+	q->head = temp->next;
+
+	mcs_unlock( &(q->T_lock), I );
 	free( I );
 
 	return SUCCESS;
