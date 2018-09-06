@@ -48,35 +48,37 @@ int enqueue ( queue_t* q, node_t* r )
     	}
 
 	mcs_unlock( &(q->lock), &I );
+
 	
 	return SUCCESS;
 }
-
 // Dequeue
-int dequeue ( queue_t* q, uint64_t* data )
+int dequeue ( queue_t* q, node_t* value )
 {
 	qnode I;
 	mcs_init_local( &I );
         mcs_lock( &(q->lock), &I );
 
-        node_t* temp = q->head;
+        node_t* tmp = q->head;
         
-	if ( !temp )
+	if ( !tmp )
         {
         	mcs_unlock( &(q->lock), &I );
+		printf("[dequeue] tmp null. release\n");
                 return EMPTY_COLLECTION;
         }
 
-        *data = temp->data;
+        value->data = tmp->data;
         
 	if ( q->head == q->tail )
         {
                 q->tail = NULL;
         }
-        q->head = temp->next;
+        q->head = tmp->next;
 
        	mcs_unlock( &(q->lock), &I );
 
         return SUCCESS;
 }
+
 

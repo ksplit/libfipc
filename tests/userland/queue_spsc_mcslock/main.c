@@ -20,6 +20,8 @@
 #define vfree free
 #define pr_err printf
 
+
+node_t end;
 #define END_MSG_MARKER		0xabcdef11u
 
 #endif
@@ -124,7 +126,8 @@ consumer ( void* data )
 	uint64_t end;
 	uint64_t prod_id = 0;
 	uint64_t transaction_id = 0;
-	uint64_t request;
+	node_t request;
+	 
 	int stop = 0;
 	int i;
 
@@ -189,8 +192,7 @@ consumer ( void* data )
 					break;
 
 				}
-				
-				if ( request == END_MSG_MARKER )
+				if ( request.data == END_MSG_MARKER )
 				{	
 					halt[rank] ++;
 				
@@ -231,6 +233,7 @@ void * controller ( void* data )
 	uint64_t i;
 	uint64_t j;
 
+	end.data = END_MSG_MARKER;
 	mem_pool_size = 1 << mem_pool_order;
 
 	// Queue Allocation
@@ -484,3 +487,4 @@ void cleanup_module(void)
 
 MODULE_LICENSE("GPL");
 #endif
+
