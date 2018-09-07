@@ -24,3 +24,6 @@ run:
 
 perf:
 	perf stat -e  ${PERF_CACHE},${PERF_CPU} ./$(TARGET)
+
+race:
+	gcc -o race race.c -lpthread mcs.c
