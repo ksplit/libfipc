@@ -31,8 +31,6 @@ typedef struct queue_t
 	node_t* head;
 	node_t* tail;
 
-	node_t header;
-
 	struct thread_spinlock spin_lock;
 } queue_t;
 

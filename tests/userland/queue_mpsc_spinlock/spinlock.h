@@ -9,7 +9,7 @@
 typedef unsigned int uint;
 
 struct thread_spinlock {
-  unsigned int locked;       // Is the lock held?
+  volatile unsigned int locked;       // Is the lock held?
 };
 
 void thread_spin_init(struct thread_spinlock *lk);

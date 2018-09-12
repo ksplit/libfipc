@@ -9,8 +9,6 @@
 
 int init_queue ( queue_t* q )
 {
-	q->header.next = NULL;
-
 	q->head = NULL;
 	q->tail = NULL;
 

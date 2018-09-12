@@ -23,8 +23,8 @@ typedef struct linked_node_t
 {
 
 	uint64_t data;
-	uint64_t produ_id;
-	uint64_t consu_id;
+	uint64_t prod_id;
+	uint64_t cons_id;
 	struct linked_node_t* next;
 
 } node_t;
@@ -34,8 +34,6 @@ typedef struct queue_t
 {
 	node_t* head;
 	node_t* tail;
-
-	node_t header;
 
 	struct thread_spinlock spin_lock;
 

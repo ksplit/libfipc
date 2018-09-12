@@ -7,7 +7,7 @@
 #define LIBFIPC_TEST_QUEUE
 
 #include "../libfipc_test.h"
-#include "spinlock.h"
+#include "ticketlock.h"
 
 #define CHANNEL_ORDER ilog2(sizeof(message_t)) + 16
 
@@ -20,6 +20,8 @@
 typedef struct linked_node_t
 {
 	uint64_t data;
+	uint64_t prod_id;
+	uint64_t cons_id;
 	struct linked_node_t* next;
 
 } node_t;
@@ -31,7 +33,7 @@ typedef struct queue_t
 	node_t* head;
 	node_t* tail;
 
-	struct thread_spinlock spin_lock;
+	struct thread_ticketlock ticket_lock;
 } queue_t;
 
 

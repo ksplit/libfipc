@@ -12,7 +12,7 @@ int init_queue ( queue_t* q )
 	q->head = NULL;
 	q->tail = NULL;
 
-    	thread_spin_init(&(q->spin_lock));
+    	thread_ticket_spin_init(&(q->ticket_lock));
 
 	return SUCCESS;
 }
@@ -28,7 +28,7 @@ int free_queue ( queue_t* q )
 int enqueue ( queue_t* q, node_t* r )
 {
 	r->next = NULL;
-	thread_spin_lock( &(q->spin_lock) );
+	thread_ticket_spin_lock( &(q->ticket_lock) );
 
 	if ( q->tail ) 
 	{
@@ -41,7 +41,7 @@ int enqueue ( queue_t* q, node_t* r )
 		q->tail = r;
     	}
 
-	thread_spin_unlock( &(q->spin_lock) );
+	thread_ticket_spin_unlock( &(q->ticket_lock) );
 	
 	return SUCCESS;
 }
@@ -49,13 +49,13 @@ int enqueue ( queue_t* q, node_t* r )
 // Dequeue
 int dequeue ( queue_t* q, uint64_t* data )
 {
-        thread_spin_lock( &(q->spin_lock) );
+        thread_ticket_spin_lock( &(q->ticket_lock) );
 
         node_t* temp = q->head;
         
 	if ( !temp )
         {
-        	thread_spin_unlock( &(q->spin_lock) );
+        	thread_ticket_spin_unlock( &(q->ticket_lock) );
                 return EMPTY_COLLECTION;
         }
 
@@ -67,8 +67,7 @@ int dequeue ( queue_t* q, uint64_t* data )
         }
         q->head = temp->next;
 
-       	thread_spin_unlock( &(q->spin_lock) );
+       	thread_ticket_spin_unlock( &(q->ticket_lock) );
 
         return SUCCESS;
 }
-

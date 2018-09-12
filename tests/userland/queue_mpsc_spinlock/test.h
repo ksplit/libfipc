@@ -11,8 +11,13 @@
 #include "queue.h"
 #include "fipc_numa.h"
 
+// Request Types
+#define HALT         		0
+#define NULL_INVOCATION         1
+
 // Test Variables
-static uint64_t transactions = 10000000;
+//static uint64_t transactions = 10000000;
+static uint64_t transactions = 10000;
 
 static uint8_t producer_count = 1;
 static uint8_t consumer_count = 1;
@@ -42,17 +47,14 @@ module_param( consumer_count, byte, 0 );
 
 static uint32_t* producer_cpus = NULL;
 static uint32_t* consumer_cpus = NULL;
-static int policy = 1;
+static int policy = 2;
 
 #define pr_err printf
 
 // Queue Variables
-static queue_t** 	 full_queues = NULL;
-static request_t**   node_tables = NULL;
+static queue_t** 	cons_queues = NULL;
+static request_t**   	node_tables = NULL;
 
-// Request Types
-#define HALT         			1
-#define NULL_INVOCATION         2
 
 // Thread Locks
 static uint64_t completed_producers = 0;
