@@ -18,11 +18,12 @@ void mcs_init_local	( qnode* I )
 
 void mcs_lock ( mcslock** L, qnode* I )
 {
-	I->next = NULL;
-	qnode* pred = fetch_and_store(L, I);
+	volatile qnode* pred = fetch_and_store(L, I);
 
-	if ( pred == NULL)
+	if ( pred == NULL ) {
+printf("\n[lock] empty\n");
 		return;
+    }
 	I->waiting = 1;
 	pred->next = I;
 
@@ -30,22 +31,25 @@ void mcs_lock ( mcslock** L, qnode* I )
     {    
         //printf("spin_lock\n");
     }
-	
+printf("\n[lock] not\n");
+	__sync_synchronize();
 }
 
 void mcs_unlock ( mcslock** L, qnode* I )
 {
-	qnode *succ;
-	if ( !(succ = I->next) )
+    __sync_synchronize();
+	if ( !(I->next) )
 	{
-		if ( cmp_and_swap( L, (uint64_t)I, (uint64_t)NULL ) )
+		if ( cmp_and_swap( L, (uint64_t)I, (uint64_t)NULL ) ) {
+printf("[unlock] last\n\n");
 			return;
-		do
+        }
+		while ( !I->next )
 		{
-			succ = I->next;
-            //printf("spin_unlock\n");
-		} while ( !succ );
+//printf("spin_unlock\n");
+		}
 	}
-	succ->waiting = 0;
+	I->next->waiting = 0;
+printf("[unlock] not\n\n");
 }
 

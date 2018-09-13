@@ -8,11 +8,14 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
 
 #include "mcs.h"
 
-int cnt = 0;
+#ifndef __PTHREAD__
+#include <pthread.h>
+#endif
+
+volatile int cnt = 0;
 pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
 mcslock* g_mcs;
 
@@ -28,6 +31,7 @@ void *counter(void* data)
 	{
         mcs_lock( &g_mcs, &node );
         //pthread_mutex_lock( &g_lock );
+printf("i: %d \t cnt: %d \t tid: %ld\n", i, cnt, pthread_self());
 		++cnt;
         //pthread_mutex_unlock( &g_lock );
         mcs_unlock( &g_mcs, &node );

@@ -18,6 +18,7 @@ compile: $(DEP)
 
 clean:
 	rm -f $(TARGET)
+	rm race
 
 run:
 	./$(TARGET)
