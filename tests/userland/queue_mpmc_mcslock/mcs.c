@@ -1,55 +1,50 @@
 /**
- * @File     : mcs.c
+ * @File	: mcs.c
  */
 
 #include "mcs.h"
 
-void mcs_init_global ( mcslock** L )
+void mcs_init_global( mcslock** L)
 {
 	*L = NULL;
-	//pr_err("mcs init\n");
 }
 
-void mcs_init_local	( qnode* I )
+void mcs_lock ( mcslock **L, qnode* I)
 {
-	I->next = NULL;
-	I->waiting = 0;
+        qnode *tail;
+
+        I->next = NULL;
+        I->spin = 0;
+
+        tail = xchg_64(L, I);
+
+        /* No one there? */
+        if (!tail) return;
+
+        /* Someone there, need to link in */
+        tail->next = I;
+
+        /* Make sure we do the above setting of next. */
+         barrier();
+
+       /* Spin on my spin variable */
+        while (!I->spin) cpu_relax();
+
+        return;
 }
 
-void mcs_lock ( mcslock** L, qnode* I )
+void mcs_unlock ( mcslock** L, qnode* I)
 {
-	volatile qnode* pred = fetch_and_store(L, I);
+        /* No successor yet? */
+        if (!I->next)
+        {
+            /* Try to atomically unlock */
+            if (cmpxchg(L, I, NULL) == I) return;
 
-	if ( pred == NULL ) {
-printf("\n[lock] empty\n");
-		return;
-    }
-	I->waiting = 1;
-	pred->next = I;
-
-	while ( I->waiting != 0)
-    {    
-        //printf("spin_lock\n");
-    }
-printf("\n[lock] not\n");
-	__sync_synchronize();
-}
-
-void mcs_unlock ( mcslock** L, qnode* I )
-{
-    __sync_synchronize();
-	if ( !(I->next) )
-	{
-		if ( cmp_and_swap( L, (uint64_t)I, (uint64_t)NULL ) ) {
-printf("[unlock] last\n\n");
-			return;
+            /* Wait for successor to appear */
+            while (!I->next) cpu_relax();
         }
-		while ( !I->next )
-		{
-//printf("spin_unlock\n");
-		}
-	}
-	I->next->waiting = 0;
-printf("[unlock] not\n\n");
-}
 
+        /* Unlock next one */
+        I->next->spin = 1;
+}

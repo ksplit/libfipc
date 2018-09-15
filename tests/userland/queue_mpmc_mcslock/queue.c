@@ -9,35 +9,26 @@
 
 int init_queue ( queue_t* q )
 {
-	q->header.next = NULL;
-
-//	q->head = &(q->header);
-//	q->tail = &(q->header);
 	q->head = NULL;
 	q->tail = NULL;
 
-
-	mcs_init_global( &(q->H_lock) );
-	mcs_init_global( &(q->T_lock) );
+	mcs_init_global( &(q->mcs_one_lock) );
 
 	return SUCCESS;
 }
 
 int free_queue ( queue_t* q )
 {
-//	fipc_test_free_channel( CHANNEL_ORDER, q->head, q->tail );
 	return SUCCESS;
 }
 
 // Enqueue
-
 int enqueue ( queue_t* q, node_t* r )
 {
 	qnode I;
-	mcs_init_local( &I );
-	
 	r->next = NULL;
-	mcs_lock( &(q->T_lock), &I );
+	
+	mcs_lock( &(q->mcs_one_lock), &I );
 
 	if ( q->tail )
 	{
@@ -50,7 +41,7 @@ int enqueue ( queue_t* q, node_t* r )
 		q->tail = r;
 	}
 
-	mcs_unlock( &(q->T_lock), &I );
+	mcs_unlock( &(q->mcs_one_lock), &I );
 
 	return SUCCESS;
 }
@@ -61,20 +52,16 @@ int enqueue ( queue_t* q, node_t* r )
 int dequeue ( queue_t* q, uint64_t* data )
 {
 	qnode I;
-	mcs_init_local( &I );
 
-	mcs_lock( &(q->T_lock), &I );
+	mcs_lock( &(q->mcs_one_lock), &I );
 
 	node_t* temp = q->head;
 
 	if ( !temp )
 	{
-		mcs_unlock( &(q->T_lock), &I );
-		free( I );
+		mcs_unlock( &(q->mcs_one_lock), &I );
 		return EMPTY_COLLECTION;
 	}
-
-	node_t* new_head = q->head->next;
 
 	*data = temp->data;
 	if ( q->head == q->tail )
@@ -83,7 +70,7 @@ int dequeue ( queue_t* q, uint64_t* data )
 	}
 	q->head = temp->next;
 
-	mcs_unlock( &(q->T_lock), &I );
+	mcs_unlock( &(q->mcs_one_lock), &I );
 
 	return SUCCESS;
 }

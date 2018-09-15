@@ -16,6 +16,8 @@
 #define vfree free
 #define pr_err printf
 
+#define END_MSG_MARKER          0xabcdef11u
+
 #endif
 
 uint64_t CACHE_ALIGNED prod_sum = 0;
@@ -35,6 +37,10 @@ void *
 #endif
 producer(void* data)
 {
+	queue_t*   q = &queue;	
+	uint64_t rank = *(uint64_t*)data;
+	node_t*   t = node_tables[rank];
+	
 	uint64_t transaction_id;
 	uint64_t start;
 	uint64_t end;
@@ -43,11 +49,6 @@ producer(void* data)
 	// We have a fixed size object pool, we pick one object 
 	// from that pool as transaction_id mod pool_size
 	uint64_t obj_id_mask = ((1UL << mem_pool_order) - 1);
-
-	uint64_t rank = *(uint64_t*)data;
-	node_t*   t = node_tables[rank];
-	queue_t*   q = &queue;
-
 
 	pr_err("Producer %lu starting...\n", rank);
 	
@@ -60,19 +61,19 @@ producer(void* data)
 
 	start = RDTSC_START();
 
-
-	for ( transaction_id = 0; transaction_id < transactions; )
+	for ( transaction_id = 0; transaction_id < consumer_count * transactions; )
 	{
 		for( i = 0; i < batch_size; i++ )
 		{
 			node_t *node = &t[transaction_id & obj_id_mask];
 
-			node->data = NULL_INVOCATION;
+			node->data = transaction_id;
 
 			if( enqueue(q, node) != SUCCESS )
 			{
 				break;
 			}
+
 			transaction_id++;
 		}
 	}
@@ -97,15 +98,15 @@ void *
 #endif
 consumer(void* data)
 {
+
+	queue_t* q = &queue;
+	uint64_t rank = *(uint64_t*)data;
+
 	uint64_t start;
 	uint64_t end;
-	uint64_t transaction_id = 0;
 	uint64_t request;
 	int i;
-
-	uint64_t rank = *(uint64_t*)data;
-	queue_t* q = &queue;
-
+	uint64_t transaction_id = 0;
 
 	pr_err("Consumer %llu starting\n", (unsigned long long)rank);
 
@@ -132,21 +133,13 @@ consumer(void* data)
 			{
 				break;
 			}
-			else
-			{
-				// Process Request
-				switch (request)
-				{
-				case NULL_INVOCATION:
-					null_invocation();
-					break;
+			if ( request == END_MSG_MARKER )
+                        {
+				halt = 1;
+                        	break;
+                        }
 
-				case HALT:
-					halt = 1;
-					break;
-				}
-				transaction_id++;
-			}
+                        transaction_id++;
 		}
 	}
 
@@ -169,14 +162,12 @@ consumer(void* data)
 void * controller(void* data)
 {
 	uint64_t i;
-
 	mem_pool_size = 1 << mem_pool_order;
 
 	// Queue Init
 	init_queue(&queue);
 
 	node_t* haltMsg = (node_t*)vmalloc(consumer_count * sizeof(node_t));
-
 
 	// Node Table Allocation
 	node_tables = (node_t**)vmalloc(producer_count * sizeof(node_t*));
@@ -263,7 +254,7 @@ void * controller(void* data)
 	for (i = 0; i < consumer_count; ++i)
 	{
 		haltMsg[i].next = 0;
-		haltMsg[i].data = HALT;
+		haltMsg[i].data = END_MSG_MARKER;
 
 		enqueue(&queue, &haltMsg[i]);
 	}
@@ -308,7 +299,6 @@ int main(int argc, char *argv[])
 int init_module(void)
 #endif
 {
-
 #ifndef __KERNEL__
 	if (argc == 2) {
 		transactions = (uint64_t)strtoul(argv[1], NULL, 10);
@@ -321,6 +311,15 @@ int init_module(void)
 		printf("Starting test with prod count %d, cons count %d\n",
 			producer_count, consumer_count);
 	}
+	else if (argc == 4) {
+                producer_count = strtoul(argv[1], NULL, 10);
+                consumer_count = strtoul(argv[2], NULL, 10);
+                policy = (uint8_t) strtoul(argv[3], NULL, 10);
+
+                printf("Starting test with prod count %d, cons count %d, [%d] policy\n",
+                                producer_count, consumer_count, policy);
+
+        }
 	else if (argc == 5) {
 		producer_count = strtoul(argv[1], NULL, 10);
 		consumer_count = strtoul(argv[2], NULL, 10);
@@ -332,6 +331,9 @@ int init_module(void)
 	}
 
 #endif
+	match_cpus(&producer_cpus, &consumer_cpus, policy);
+	fipc_test_mfence();
+
 	kthread_t* controller_thread = fipc_test_thread_spawn_on_CPU(controller, NULL, producer_cpus[producer_count - 1]);
 
 	if (controller_thread == NULL)

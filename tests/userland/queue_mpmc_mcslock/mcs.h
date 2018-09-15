@@ -1,7 +1,3 @@
-/**
- * @File     : mcs.h
- */
-
 #include <stdio.h>
 #include <stdint.h>
 
@@ -9,67 +5,77 @@
 #include <pthread.h>
 #endif
 
-#ifndef __KERNEL__ 
-#define pr_err printf 
-#endif 
+#define cmpxchg(P, O, N) __sync_val_compare_and_swap((P), (O), (N))
 
-#define MAX_MCS_LOCKS        2
+/* Compile read-write barrier */
+#define barrier() asm volatile("": : :"memory")
 
-// Types
-typedef uint64_t data_t;
+/* Pause instruction to prevent excess processor bus usage */ 
+#define cpu_relax() asm volatile("pause\n": : :"memory")
 
-typedef struct qnode {
-    volatile struct qnode* next; 
-    volatile char waiting; 
-} qnode; 
+
+/* Atomic exchange (of various sizes) */
+static inline void *xchg_64(void *ptr, void *x)
+{
+        __asm__ __volatile__("xchgq %0,%1"
+                             :"=r" ((unsigned long long) x)
+                             :"m" (*(volatile long long *)ptr), "0" ((unsigned long long) x)
+                             :"memory");
+        return x;
+}
+
+//typedef struct mcs_lock_t mcs_lock_t;
+typedef struct qnode
+{
+        struct qnode *next;
+        int spin;
+} qnode;
 
 typedef qnode mcslock;
 
-static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t n = PTHREAD_MUTEX_INITIALIZER;
-
-// L = val, return former L value
-static inline qnode*
-fetch_and_store ( mcslock** L, qnode* val )
-{
-    qnode* ret;
-    __asm__ volatile(
-        "lock; xchgq %2, %1 \n\t"
-        : "=a" (*L), "=r" (ret)
-        : "m" (*L), "0" (val)
-        : "memory", "cc");
-    return ret;
-    /*
-    pthread_mutex_lock(&m);
-    
-    qnode* ret = *L;
-    __asm__ volatile(
-                "lock; xchgq %0, %1\n\t"
-                : "=r" (L)
-                :  "m" (*L), "0" (val)
-                : "memory", "cc");
-    pthread_mutex_unlock(&m);
-    return ret;
-    */
-}
- 
-// if L == cmpval, L = newval
-static inline uint64_t
-cmp_and_swap ( mcslock **L, uint64_t cmpval, uint64_t newval )
-{
-    pthread_mutex_lock(&n);
-    uint64_t out;
-    __asm__ volatile(
-                "lock; cmpxchgq %2, %1"
-                : "=a" (out), "+m" (*L)
-                : "q" (newval), "0"(cmpval)
-                : "cc");
-    pthread_mutex_unlock(&n);
-    return out == cmpval;
-}
-
+//typedef struct mcs_lock_t *mcs_lock;
 void mcs_init_global( mcslock** L );
-void mcs_init_local	( qnode* I );
-void mcs_lock 	( mcslock **L, qnode* I );
-void mcs_unlock ( mcslock **L, qnode* I );
+void mcs_lock	( mcslock **L, qnode* I);
+void mcs_unlock	( mcslock **L, qnode* I);
+/*
 
+static void lock_mcs(mcs_lock *m, mcs_lock_t *me)
+{
+        mcs_lock_t *tail;
+            
+        me->next = NULL;
+        me->spin = 0;
+
+        tail = xchg_64(m, me);
+                        
+        // No one there? 
+        if (!tail) return;
+
+        // Someone there, need to link in 
+        tail->next = me;
+
+        // Make sure we do the above setting of next.
+         barrier();
+                                    
+        // Spin on my spin variable 
+        while (!me->spin) cpu_relax();
+                                     
+        return;
+}
+
+static void unlock_mcs(mcs_lock *m, mcs_lock_t *me)
+{
+        // No successor yet? 
+        if (!me->next)
+        {
+            // Try to atomically unlock 
+            if (cmpxchg(m, me, NULL) == me) return;
+                               
+            // Wait for successor to appear 
+            while (!me->next) cpu_relax();
+        }
+
+        // Unlock next one 
+        me->next->spin = 1; 
+}
+*/
