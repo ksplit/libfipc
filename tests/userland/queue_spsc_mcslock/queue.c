@@ -1,28 +1,24 @@
 /**
  * @File     : queue.c
  * @Author   : Abdullah Younis
+ * @Author   : Jeonghoon Lee
  */
+
 
 #include "queue.h"
 
-#define pr_err printf
-
 int init_queue ( queue_t* q )
 {
-	q->header.next = NULL;
-
 	q->head = NULL;
 	q->tail = NULL;
 
-    	mcs_init_global( &(q->lock) );
+	mcs_init_global( &(q->mcs_one_lock) );
 
 	return SUCCESS;
 }
 
-// Destructor
 int free_queue ( queue_t* q )
 {
-	// STUB
 	return SUCCESS;
 }
 
@@ -30,55 +26,52 @@ int free_queue ( queue_t* q )
 int enqueue ( queue_t* q, node_t* r )
 {
 	qnode I;
-	mcs_init_local( &I );
-
 	r->next = NULL;
+	
+	mcs_lock( &(q->mcs_one_lock), &I );
 
-	mcs_lock( &(q->lock), &I );
-
-	if ( q->tail ) 
+	if ( q->tail )
 	{
 		q->tail->next = r;
-		q->tail = r;
-    	}
+		q->tail	= r;
+	}
 	else
 	{
 		q->head = r;
 		q->tail = r;
-    	}
+	}
 
-	mcs_unlock( &(q->lock), &I );
+	mcs_unlock( &(q->mcs_one_lock), &I );
 
-	
 	return SUCCESS;
 }
+
+
 // Dequeue
-int dequeue ( queue_t* q, node_t* value )
+
+int dequeue ( queue_t* q, uint64_t* data )
 {
 	qnode I;
-	mcs_init_local( &I );
-        mcs_lock( &(q->lock), &I );
 
-        node_t* tmp = q->head;
-        
-	if ( !tmp )
-        {
-        	mcs_unlock( &(q->lock), &I );
-		printf("[dequeue] tmp null. release\n");
-                return EMPTY_COLLECTION;
-        }
+	mcs_lock( &(q->mcs_one_lock), &I );
 
-        value->data = tmp->data;
-        
+	node_t* temp = q->head;
+
+	if ( !temp )
+	{
+		mcs_unlock( &(q->mcs_one_lock), &I );
+		return EMPTY_COLLECTION;
+	}
+
+	*data = temp->data;
 	if ( q->head == q->tail )
-        {
-                q->tail = NULL;
-        }
-        q->head = tmp->next;
+	{
+		q->tail = NULL;
+	}
+	q->head = temp->next;
 
-       	mcs_unlock( &(q->lock), &I );
+	mcs_unlock( &(q->mcs_one_lock), &I );
 
-        return SUCCESS;
+	return SUCCESS;
 }
-
 

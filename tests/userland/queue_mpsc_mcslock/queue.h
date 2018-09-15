@@ -11,7 +11,7 @@
 #include "../libfipc_test.h"
 #endif
 
-#include "mcslock.h"
+#include "mcs.h"
 
 #define CHANNEL_ORDER ilog2(sizeof(message_t)) + 13
 
@@ -38,10 +38,7 @@ typedef struct queue_t
 	node_t* CACHE_ALIGNED head;
 	node_t* CACHE_ALIGNED tail;
 
-	node_t header;
-
-	mcslock* H_lock;
-	mcslock* T_lock;
+	mcslock* mcs_one_lock;
 
 } queue_t;
 

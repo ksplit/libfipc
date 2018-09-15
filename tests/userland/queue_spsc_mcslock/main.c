@@ -2,9 +2,6 @@
  * @File     : main.c
  * @Author   : Abdullah Younis
 
-% this main is working good at producer: 1 by consumer : 1~ situation,
-% but not working on the multi producer
-
  */
 #ifdef __KERNEL__
 #include <linux/module.h>
@@ -20,8 +17,6 @@
 #define vfree free
 #define pr_err printf
 
-
-node_t end;
 #define END_MSG_MARKER		0xabcdef11u
 
 #endif
@@ -42,21 +37,21 @@ void *
 void *
 #endif
 producer ( void* data )
-{
+{	
+	uint64_t rank = *(uint64_t*)data;
+	queue_t** q = prod_queues[rank];
+	node_t*   t = node_tables[rank];
+	node_t* end_msg = calloc(sizeof(node_t), 1);
+
 	uint64_t transaction_id;
 	uint64_t start;
 	uint64_t end;
-	uint64_t cons_id = 0;
 	int i; 
+	uint64_t cons_id = 0;
 
 	// We have a fixed size object pool, we pick one object 
 	// from that pool as transaction_id mod pool_size
 	uint64_t obj_id_mask = ((1UL << mem_pool_order) - 1);
-
-	uint64_t rank = *(uint64_t*)data;
-	node_t*   t = node_tables[rank];
-	queue_t** q = prod_queues[rank];
-	node_t* end_msg = calloc(sizeof(node_t), 1);
 
 	pr_err( "Producer %lu starting...\n", rank );
 
@@ -76,21 +71,21 @@ producer ( void* data )
 		{
 			node_t *node = &t[transaction_id & obj_id_mask]; 
 
-			//node->data = NULL_INVOCATION;
 			node->data = transaction_id;		
-			node->produ_id = rank;
-			node->consu_id = cons_id;	
+			node->prod_id = rank;
+			node->cons_id = cons_id;	
 
 			if ( enqueue( q[cons_id], node ) != SUCCESS )
 			{
 				break;
 			}
+			
 			transaction_id ++;
 		}	
-			++cons_id;
+		++cons_id;
 
-			if (cons_id >= consumer_count) 
-				cons_id = 0;
+		if (cons_id >= consumer_count) 
+			cons_id = 0;
 		
 	}
 
@@ -122,17 +117,16 @@ void *
 #endif
 consumer ( void* data )
 {
-	uint64_t start;
-	uint64_t end;
-	uint64_t prod_id = 0;
-	uint64_t transaction_id = 0;
-	node_t request;
-	 
-	int stop = 0;
-	int i;
-
 	uint64_t rank = *(uint64_t*)data;
 	queue_t** q = cons_queues[rank];
+	
+	uint64_t start;
+	uint64_t end;	
+	uint64_t request;
+	int i;
+	uint64_t transaction_id = 0;
+	uint64_t prod_id = 0;
+	int stop = 0;
 
 	pr_err( "Consumer %llu starting\n", (unsigned long long)rank );
 
@@ -177,22 +171,20 @@ consumer ( void* data )
 		++prod_id; if ( prod_id >= producer_count ) prod_id = 0;
 	}
 */
-
-	//while(halt[rank] < producer_count)
 	while(!stop)
-	{
-	
+	{	
 		for(i = 0; i < batch_size; i++) 
 		{
 			if ( q[prod_id] != NULL ) 
 			{
-			// Receive and unmarshall 
+				// Receive and unmarshall 
 				if ( dequeue( q[prod_id],&request) != SUCCESS ) 
 				{
 					break;
 
 				}
-				if ( request.data == END_MSG_MARKER )
+				
+				if ( request == END_MSG_MARKER )
 				{	
 					halt[rank] ++;
 				
@@ -209,7 +201,10 @@ consumer ( void* data )
 		}
 
 
-		++prod_id; if ( prod_id >= producer_count ) prod_id = 0;
+		++prod_id; 
+		
+		if ( prod_id >= producer_count )
+			 prod_id = 0;
 	}
 
 	end = RDTSCP();
@@ -233,7 +228,6 @@ void * controller ( void* data )
 	uint64_t i;
 	uint64_t j;
 
-	end.data = END_MSG_MARKER;
 	mem_pool_size = 1 << mem_pool_order;
 
 	// Queue Allocation
@@ -245,7 +239,7 @@ void * controller ( void* data )
 	prod_queues = (queue_t***) vmalloc( producer_count*sizeof(queue_t**) );
 	cons_queues = (queue_t***) vmalloc( consumer_count*sizeof(queue_t**) );
 
-	node_t** haltMsg = (node_t**) vmalloc( consumer_count*sizeof(node_t*) );
+//	node_t** haltMsg = (node_t**) vmalloc( consumer_count*sizeof(node_t*) );
 	halt = (int*) vmalloc( consumer_count*sizeof(*halt) );
 
 	for ( i = 0; i < producer_count; ++i )
@@ -253,7 +247,7 @@ void * controller ( void* data )
 
 	for ( i = 0; i < consumer_count; ++i ) {
 		cons_queues[i] = (queue_t**) vmalloc( producer_count*sizeof(queue_t*) );
-		haltMsg[i] = (node_t*) vmalloc( producer_count*sizeof(node_t) );
+//		haltMsg[i] = (node_t*) vmalloc( producer_count*sizeof(node_t) );
 		halt[i] = 0;
 	}
 
@@ -275,7 +269,6 @@ void * controller ( void* data )
 			mem_pool_size * sizeof(node_t), mem_pool_size, mem_pool_order);
 		node_tables[i] = (node_t*)vmalloc(mem_pool_size * sizeof(node_t));
 	}
-
 
 	fipc_test_mfence();
 
@@ -357,7 +350,7 @@ int count=0;
 			printf("producer_queues[%d][%d] start...\n", i, j);;
 			while(temp->next){
 count++;
-				printf("[%d]  data : %d, prod_id : %d, cons_id : %d\n",count, temp->data, temp->produ_id, temp->consu_id);
+				printf("[%d]  data : %d, prod_id : %d, cons_id : %d\n",count, temp->data, temp->prod_id, temp->cons_id);
 				temp = temp->next;
 			}
 			printf("producer_queues[%d][%d] finish...\n", i, j);;
@@ -401,11 +394,12 @@ count++;
 
 	vfree( halt );
 
+/*	
 	for ( i = 0; i < consumer_count; ++i )
 		free ( haltMsg[i]);
 
 	vfree ( haltMsg); 
-
+*/
 	for ( i = 0; i < producer_count; ++i )
 		free( node_tables[i] );
 
@@ -443,12 +437,23 @@ int init_module(void)
 		transactions = (uint64_t) strtoul(argv[1], NULL, 10);
 		printf("Starting test with %lu transactions\n", transactions);
 
-	} else if (argc == 3) {
+	} 
+	else if (argc == 3) {
 		producer_count = strtoul(argv[1], NULL, 10);
 		consumer_count = strtoul(argv[2], NULL, 10);
 		printf("Starting test with prod count %d, cons count %d\n",
 				producer_count, consumer_count);
-	} else if (argc == 5) {
+	} 
+	else if (argc == 4) {
+                producer_count = strtoul(argv[1], NULL, 10);
+                consumer_count = strtoul(argv[2], NULL, 10);
+                policy = (uint8_t) strtoul(argv[3], NULL, 10);
+
+                printf("Starting test with prod count %d, cons count %d, [%d] policy\n",
+                                producer_count, consumer_count, policy);
+
+        } 
+	else if (argc == 5) {
 		producer_count = strtoul(argv[1], NULL, 10);
 		consumer_count = strtoul(argv[2], NULL, 10);
 		transactions = (uint64_t) strtoul(argv[3], NULL, 10);
@@ -459,6 +464,9 @@ int init_module(void)
 	}
 
 #endif
+	match_cpus(&producer_cpus, &consumer_cpus, policy);
+        fipc_test_mfence();
+
 	kthread_t* controller_thread = fipc_test_thread_spawn_on_CPU ( controller, NULL, producer_cpus[producer_count-1] );
 
 	if ( controller_thread == NULL )
@@ -487,4 +495,3 @@ void cleanup_module(void)
 
 MODULE_LICENSE("GPL");
 #endif
-

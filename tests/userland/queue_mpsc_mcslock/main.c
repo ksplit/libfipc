@@ -18,6 +18,8 @@
 
 #endif
 
+#define END_MSG_MARKER          0xabcdef11u
+
 uint64_t prod_sum = 0;
 uint64_t cons_sum = 0;
 int* halt;
@@ -35,15 +37,15 @@ void *
 #endif
 producer ( void* data )
 {
-	queue_t** 	 q = full_queues;
+	queue_t** 	 q = cons_queues;
 	uint64_t rank = *(uint64_t*)data;
 	node_t*   t = node_tables[rank];
 
 	uint64_t transaction_id;
 	uint64_t start;
 	uint64_t end;
+	int i; 
 	uint64_t cons_id = 0;
-	int i = 0; 
 
 	// We have a fixed size object pool, we pick one object 
 	// from that pool as transaction_id mod pool_size
@@ -67,13 +69,12 @@ producer ( void* data )
 		{
 			node_t *node = &t[transaction_id & obj_id_mask]; 
 
-			node->data = NULL_INVOCATION;
+			node->data = transaction_id;
 			
 			if ( enqueue( q[cons_id], node ) != SUCCESS )
 			{
 				break;
 			}
-
 			transaction_id ++;
 		}	
 		++cons_id;
@@ -81,7 +82,7 @@ producer ( void* data )
 		if (cons_id >= consumer_count) 
 			cons_id = 0;
 	}
-
+	
 	end = RDTSCP();
 
 	// End test
@@ -102,14 +103,14 @@ void *
 #endif
 consumer ( void* data )
 {
-	queue_t** q = full_queues;
-
+	queue_t** q = cons_queues;
+	uint64_t rank = *(uint64_t*)data;		
+	
 	uint64_t start;
 	uint64_t end;
 	uint64_t request;
-	int i;	
+	int i;
 	uint64_t transaction_id = 0;
-	uint64_t rank = *(uint64_t*)data;		
 	
 	pr_err( "Consumer %llu starting\n", (unsigned long long)rank );
 
@@ -135,23 +136,14 @@ consumer ( void* data )
 			{
 				break;
 			}
-			else
-			{
-				// Process Request
-				switch ( request )
-				{
-					case NULL_INVOCATION:
-						null_invocation();
-						break;
-					case HALT:
-						halt[rank] = 1;
-						break;
-				}
-				
-				transaction_id ++;			
-				
-			}
+		
+                        if ( request == END_MSG_MARKER )
+                        {
+                                halt[rank] = 1;
+                                break;
+                        }
 
+                        transaction_id++;
 		}
 	}
 
@@ -174,7 +166,6 @@ consumer ( void* data )
 void * controller ( void* data )
 {
 	uint64_t i;
-
 	mem_pool_size = 1 << mem_pool_order;
 
 	// Queue Allocation
@@ -184,7 +175,7 @@ void * controller ( void* data )
 	for ( i = 0; i < consumer_count; ++i )
 		init_queue ( &queues[i] );
 
-	full_queues = (queue_t**) vmalloc( consumer_count*sizeof(queue_t*) );
+	cons_queues = (queue_t**) vmalloc( consumer_count*sizeof(queue_t*) );
 
 	node_t* haltMsg = (node_t*) vmalloc( consumer_count*sizeof(node_t) );
 
@@ -192,12 +183,12 @@ void * controller ( void* data )
 	
 	for ( i = 0; i < consumer_count; ++i ) 
 	{
-		full_queues[i] = (queue_t*) vmalloc( sizeof(queue_t) );
+		cons_queues[i] = (queue_t*) vmalloc( sizeof(queue_t) );
 		halt[i] = 0;
 	}
 
 	for ( i = 0; i < consumer_count; ++i )
-		full_queues[i] = &queues[i];
+		cons_queues[i] = &queues[i];
 
 	// Node Table Allocation
 	node_tables = (node_t**) vmalloc( producer_count*sizeof(node_t*) );
@@ -285,8 +276,8 @@ void * controller ( void* data )
 	for ( i = 0; i < consumer_count; ++i )
 	{
 		haltMsg[i].next = 0;
-		haltMsg[i].data = HALT;
-		enqueue( full_queues[i], &haltMsg[i] );
+		haltMsg[i].data = END_MSG_MARKER;
+		enqueue( cons_queues[i], &haltMsg[i] );
 	}
 
 	// Wait for consumers to complete
@@ -320,7 +311,7 @@ void * controller ( void* data )
 		free_queue( &queues[i] );
 	
 	vfree( queues );
-	vfree( full_queues );
+	vfree( cons_queues );
 
 	// End Experiment
 	fipc_test_mfence();
@@ -340,13 +331,15 @@ int init_module(void)
 		transactions = (uint64_t) strtoul(argv[1], NULL, 10);
 		printf("Starting test with %lu transactions\n", transactions);
 
-	} else if (argc == 3) {
+	} 
+	else if (argc == 3) {
 		producer_count = strtoul(argv[1], NULL, 10);
 		consumer_count = strtoul(argv[2], NULL, 10);
 		printf("Starting test with prod count %d, cons count %d\n",
 				producer_count, consumer_count);
 
-	} else if (argc == 4) {
+	} 
+	else if (argc == 4) {
 		producer_count = strtoul(argv[1], NULL, 10);
 		consumer_count = strtoul(argv[2], NULL, 10);
 		policy = (uint8_t) strtoul(argv[3], NULL, 10);
@@ -354,7 +347,8 @@ int init_module(void)
 		printf("Starting test with prod count %d, cons count %d, [%d] policy\n", 
 				producer_count, consumer_count, policy);
 
-	} else if (argc == 5) {
+	} 
+	else if (argc == 5) {
 		producer_count = strtoul(argv[1], NULL, 10);
 		consumer_count = strtoul(argv[2], NULL, 10);
 		transactions = (uint64_t) strtoul(argv[3], NULL, 10);
