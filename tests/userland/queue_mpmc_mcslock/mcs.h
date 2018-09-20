@@ -26,8 +26,8 @@ static inline void *xchg_64(void *ptr, void *x)
 //typedef struct mcs_lock_t mcs_lock_t;
 typedef struct qnode
 {
-        struct qnode *next;
-        int spin;
+    volatile struct qnode *next;
+    volatile int spin;
 } qnode;
 
 typedef qnode mcslock;
