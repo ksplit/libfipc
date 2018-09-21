@@ -147,12 +147,13 @@ consumer(void* data)
 
 	// End test
 	fipc_test_mfence();
-	pr_err("Consumer %lu finished, receiving %lu messages (cycles per message %lu) (%s)\n",
-		rank,
-		transaction_id,
-		(end - start) / transaction_id,
-		prod_sum == cons_sum ? "PASSED" : "FAILED");
-
+	if(transaction_id){
+		pr_err("Consumer %lu finished, receiving %lu messages (cycles per message %lu) (%s)\n",
+			rank,
+			transaction_id,
+			(end - start) / transaction_id,
+			prod_sum == cons_sum ? "PASSED" : "FAILED");
+	}
 	fipc_test_thread_release_control_of_CPU();
 	fipc_test_FAI(completed_consumers);
 	return 0;
