@@ -27,6 +27,7 @@ volatile int g_cnt = 0;
 int g_op;
 int thread_count = 1;
 long long sum_time = 0;
+int ready_threads = 0;
 
 mcslock* g_mcs;
 struct thread_spinlock g_spin;
@@ -36,42 +37,48 @@ void *counter(void* data)
 {
 	int i;	
 	int n = *(int*)data;
-    	qnode node;
+	qnode node;
 
 	long long start, end;
 
+	fipc_test_FAI( ready_threads );
+
+	while ( ready_threads < thread_count ) {
+		fipc_test_pause();
+	}
+
 	start = RDTSC_START();
-   
-    if ( g_op == 1 ) {
-    	for ( i = 0; i < n; ++i )
-    	{
-            mcs_lock( &g_mcs, &node );
-		    ++g_cnt;
-            mcs_unlock( &g_mcs, &node );
+
+	if ( g_op == 1 ) {
+		for ( i = 0; i < n; ++i )
+		{
+			mcs_lock( &g_mcs, &node );
+			++g_cnt;
+			mcs_unlock( &g_mcs, &node );
+		}
 	}
-    }
-    else if ( g_op == 2 ) {
-	for ( i = 0; i < n; ++i )
-    	{
-            thread_spin_lock( &g_spin );
-		    ++g_cnt;
-            thread_spin_unlock( &g_spin );
-    	}
-    } 
-    else if ( g_op == 3 ) {
-    	for ( i = 0; i < n; ++i )
-    	{
-            thread_ticket_spin_lock( &g_ticket );
-    		++g_cnt;
-            thread_ticket_spin_unlock( &g_ticket );
-    	}
-    }
-    else if ( g_op == 4 ) {
-    	for ( i = 0; i < n; ++i )
-	{
-            fipc_test_FAI( g_cnt );
+	else if ( g_op == 2 ) {
+		for ( i = 0; i < n; ++i )
+		{
+			thread_spin_lock( &g_spin );
+			++g_cnt;
+			thread_spin_unlock( &g_spin );
+		}
+	} 
+	else if ( g_op == 3 ) {
+		for ( i = 0; i < n; ++i )
+		{
+			thread_ticket_spin_lock( &g_ticket );
+			++g_cnt;
+			thread_ticket_spin_unlock( &g_ticket );
+		}
 	}
-    }
+	else if ( g_op == 4 ) {
+		for ( i = 0; i < n; ++i )
+		{
+			fipc_test_FAI( g_cnt );
+		}
+	}
 
 	end = RDTSCP();
 	sum_time += (end - start) / n;
@@ -100,7 +107,7 @@ int main(int argc, char* argv[])
 		printf("usage: <option> <increment times>\n");
 	}
 
-    
+
 	if ( g_op == 1 ) {
 		printf("Option [1] MCS lock\n");
 		printf(">>>>> Number of Threads : %d, Increment: %d\n", thread_count, n);
@@ -126,12 +133,12 @@ int main(int argc, char* argv[])
 	}   
 
 	pthread_t p[thread_count];
-	
+
 	for( i = 0; i < thread_count; ++i )
 		pthread_create( &p[i], NULL, counter, &n );
 
 	for( i = 0; i < thread_count; ++i )
-    		pthread_join ( p[i], NULL ) ;
+		pthread_join ( p[i], NULL ) ;
 
 	printf(">>>>> Average time : %llu, Final result count : %d \n\n", sum_time / thread_count, g_cnt);
 
