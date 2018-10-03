@@ -32,6 +32,17 @@ int ready_threads = 0;
 mcslock* g_mcs;
 struct thread_spinlock g_spin;
 struct thread_ticketlock g_ticket;
+/*
+static uint8_t cpus[32] = { 0,4,8,12,16,20,24,28,
+			    1,5,9,13,17,21,25,29,
+			    2,6,10,14,18,22,26,30,
+			    3,7,11,15,19,23,27,31 };
+*/
+static uint8_t cpus[64] = { 0,4,8,12,16,20,24,28,32,36,40,44,48,52,56,60,
+			    1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,
+			    2,6,10,14,18,22,26,30,34,38,42,46,50,54,58,62,
+			    3,7,11,15,19,23,27,31,35,39,43,47,51,55,59,63 };
+
 
 void *counter(void* data)
 {
@@ -50,7 +61,8 @@ void *counter(void* data)
 	start = RDTSC_START();
 
 	if ( g_op == 1 ) {
-		for ( i = 0; i < n; ++i )
+		//for ( i = 0; i < n; ++i )
+		while ( g_cnt < n )
 		{
 			mcs_lock( &g_mcs, &node );
 			++g_cnt;
@@ -58,7 +70,8 @@ void *counter(void* data)
 		}
 	}
 	else if ( g_op == 2 ) {
-		for ( i = 0; i < n; ++i )
+//		for ( i = 0; i < n; ++i )
+		while ( g_cnt < n )
 		{
 			thread_spin_lock( &g_spin );
 			++g_cnt;
@@ -66,7 +79,8 @@ void *counter(void* data)
 		}
 	} 
 	else if ( g_op == 3 ) {
-		for ( i = 0; i < n; ++i )
+//		for ( i = 0; i < n; ++i )
+		while ( g_cnt < n )
 		{
 			thread_ticket_spin_lock( &g_ticket );
 			++g_cnt;
@@ -74,7 +88,8 @@ void *counter(void* data)
 		}
 	}
 	else if ( g_op == 4 ) {
-		for ( i = 0; i < n; ++i )
+		//for ( i = 0; i < n; ++i )
+		while ( g_cnt < n )
 		{
 			fipc_test_FAI( g_cnt );
 		}
@@ -82,7 +97,7 @@ void *counter(void* data)
 
 	end = RDTSCP();
 	sum_time += (end - start) / n;
-	printf("Cycle per n : %lld, Total: %d, N: %d\n", (end - start) / n , g_cnt, n);
+//	printf("Cycle per n : %lld, Total: %d, N: %d\n", (end - start) / n , g_cnt, n);
 	return 0;
 }
 
@@ -109,36 +124,38 @@ int main(int argc, char* argv[])
 
 
 	if ( g_op == 1 ) {
-		printf("Option [1] MCS lock\n");
-		printf(">>>>> Number of Threads : %d, Increment: %d\n", thread_count, n);
+//		printf("Option [1] MCS lock\n");
+//		printf(">>>>> Number of Threads : %d, Increment: %d\n", thread_count, n);
 		mcs_init_global( &g_mcs );
 	}
 	else if ( g_op == 2 ) {
-		printf("Option [2] Spin lock\n");
-		printf(">>>>> Number of Threads : %d, Increment: %d\n", thread_count, n);
+//		printf("Option [2] Spin lock\n");
+//		printf(">>>>> Number of Threads : %d, Increment: %d\n", thread_count, n);
 		thread_spin_init( &g_spin );
 	}
 	else if ( g_op == 3 ) {
-		printf("Option [3] Ticket lock\n");
-		printf(">>>>> Number of Threads : %d, Increment: %d\n", thread_count, n);
+//		printf("Option [3] Ticket lock\n");
+//		printf(">>>>> Number of Threads : %d, Increment: %d\n", thread_count, n);
 		thread_ticket_spin_init( &g_ticket );
 	}
 	else if ( g_op == 4 ) {
-		printf("Option [4] FAI\n");
-		printf(">>>>> Number of Threads : %d, Increment: %d\n", thread_count, n);
+//		printf("Option [4] FAI\n");
+//		printf(">>>>> Number of Threads : %d, Increment: %d\n", thread_count, n);
 	}
 	else {
 		printf("Wrong option\n");
 		return 0;
 	}   
 
-	pthread_t p[thread_count];
+	pthread_t *p[thread_count];
 
 	for( i = 0; i < thread_count; ++i )
-		pthread_create( &p[i], NULL, counter, &n );
+//		pthread_create( &p[i], NULL, counter, &n );
+		p[i] = fipc_test_thread_spawn_on_CPU( counter, &n, cpus[i] );
 
 	for( i = 0; i < thread_count; ++i )
-		pthread_join ( p[i], NULL ) ;
+//		pthread_join ( p[i], NULL );
+		fipc_test_thread_wait_for_thread( p[i] );
 
 	printf(">>>>> Average time : %llu, Final result count : %d \n\n", sum_time / thread_count, g_cnt);
 
