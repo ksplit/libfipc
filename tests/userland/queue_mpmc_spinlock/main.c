@@ -288,6 +288,8 @@ void * controller(void* data)
 
 	free_queue(&queue);
 
+	vfree(haltMsg);
+
 	// End Experiment
 	fipc_test_mfence();
 	test_finished = 1;
