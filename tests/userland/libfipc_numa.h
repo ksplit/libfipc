@@ -1,4 +1,4 @@
-#include "../libfipc_test.h"
+#include "libfipc_test.h"
 
 #define _GNU_SOURC
 #define RESET_MASK(x)           ~(1LL << (x))

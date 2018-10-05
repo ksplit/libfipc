@@ -2,7 +2,7 @@ CC:=gcc
 CFLAGS:=-Wall -D_GNU_SOURCE -pthread -lm -O2 -lnuma
 INCLUDE_DIRS:=-I../../../include -I../../../include/userland
 TARGET:=$(notdir $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))))
-DEP:=main.c ../../../src/ipc.c queue.c ticketlock.c fipc_numa.c
+DEP:=main.c ../../../src/ipc.c queue.c ticketlock.c ../libfipc_numa.c
 
 PERF_CACHE:='cache-misses,cache-references,alignment-faults,major-faults, \
 				minor-faults,L1-dcache-load-misses,L1-dcache-loads, \

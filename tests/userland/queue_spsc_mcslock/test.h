@@ -9,7 +9,7 @@
 #define LIBFIPC_TEST_QUEUE_TEST
 
 #include "queue.h"
-#include "fipc_numa.h"
+#include "../libfipc_numa.h"
 
 #define HALT		0
 #define NULL_INVOCATION	1

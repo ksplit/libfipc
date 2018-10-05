@@ -9,7 +9,7 @@
 #define LIBFIPC_TEST_QUEUE_TEST
 
 #include "queue.h"
-#include "fipc_numa.h"
+#include "../libfipc_numa.h"
 
 // Request Types
 #define HALT         		0

@@ -1,4 +1,4 @@
-#include "fipc_numa.h"
+#include "libfipc_numa.h"
 
 int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy)
 {
@@ -92,13 +92,13 @@ int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy)
             }
             else if( policy == PROD_CONS_MIXED_MODE )
             {
-		int temp = n;
-		int index = 0;
+                int temp = n;
+                int index = 0;
 
-		if( n % 2 == 1){
-			temp = n-1;
-			index = num_cpus / 4; 
-		} 
+                if( n % 2 == 1){
+                    temp = n-1;
+                    index = num_cpus / 4; 
+                } 
                 if( cons_id % 2 == 1)
                 	bias = 1;
 
@@ -113,12 +113,14 @@ int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy)
             ++cons_id;
         }
     }
+    
+    free(config);
 
-        for (n = 0; n < num_nodes; n++)
-                free(nodes[n].cpu_list);
+    for (n = 0; n < num_nodes; n++)
+        free(nodes[n].cpu_list);
 
-        free(nodes);
-        return 0;
+    free(nodes);
+    return 0;
 err_range:
         numa_free_cpumask(cm);
 err_numa:
