@@ -49,6 +49,7 @@ void *counter(void* data)
 	int i;	
 	int n = *(int*)data;
 	qnode node;
+	int cnt = 0;
 
 	long long start, end;
 
@@ -66,6 +67,7 @@ void *counter(void* data)
 		{
 			mcs_lock( &g_mcs, &node );
 			++g_cnt;
+			++cnt;
 			mcs_unlock( &g_mcs, &node );
 		}
 	}
@@ -75,6 +77,7 @@ void *counter(void* data)
 		{
 			thread_spin_lock( &g_spin );
 			++g_cnt;
+			++cnt;
 			thread_spin_unlock( &g_spin );
 		}
 	} 
@@ -84,6 +87,7 @@ void *counter(void* data)
 		{
 			thread_ticket_spin_lock( &g_ticket );
 			++g_cnt;
+			++cnt;
 			thread_ticket_spin_unlock( &g_ticket );
 		}
 	}
@@ -92,12 +96,14 @@ void *counter(void* data)
 		while ( g_cnt < n )
 		{
 			fipc_test_FAI( g_cnt );
+			++cnt;
 		}
 	}
 
 	end = RDTSCP();
-	sum_time += (end - start) / n;
-//	printf("Cycle per n : %lld, Total: %d, N: %d\n", (end - start) / n , g_cnt, n);
+//	__sync_fetch_and_add( &sum_time, (end - start) / n );
+	__sync_fetch_and_add( &sum_time, end - start );
+//	printf("Cycle per n : %lld, Total: %d, N: %d\n", (end - start) / cnt , g_cnt, cnt);
 	return 0;
 }
 
@@ -122,25 +128,24 @@ int main(int argc, char* argv[])
 		printf("usage: <option> <increment times>\n");
 	}
 
-
 	if ( g_op == 1 ) {
-//		printf("Option [1] MCS lock\n");
-//		printf(">>>>> Number of Threads : %d, Increment: %d\n", thread_count, n);
+		printf("Option [1] MCS lock\n");
+		printf(">>>>> Number of Threads : %d, Increment: %d\n", thread_count, n);
 		mcs_init_global( &g_mcs );
 	}
 	else if ( g_op == 2 ) {
-//		printf("Option [2] Spin lock\n");
-//		printf(">>>>> Number of Threads : %d, Increment: %d\n", thread_count, n);
+		printf("Option [2] Spin lock\n");
+		printf(">>>>> Number of Threads : %d, Increment: %d\n", thread_count, n);
 		thread_spin_init( &g_spin );
 	}
 	else if ( g_op == 3 ) {
-//		printf("Option [3] Ticket lock\n");
-//		printf(">>>>> Number of Threads : %d, Increment: %d\n", thread_count, n);
+		printf("Option [3] Ticket lock\n");
+		printf(">>>>> Number of Threads : %d, Increment: %d\n", thread_count, n);
 		thread_ticket_spin_init( &g_ticket );
 	}
 	else if ( g_op == 4 ) {
-//		printf("Option [4] FAI\n");
-//		printf(">>>>> Number of Threads : %d, Increment: %d\n", thread_count, n);
+		printf("Option [4] FAI\n");
+		printf(">>>>> Number of Threads : %d, Increment: %d\n", thread_count, n);
 	}
 	else {
 		printf("Wrong option\n");
@@ -157,7 +162,8 @@ int main(int argc, char* argv[])
 //		pthread_join ( p[i], NULL );
 		fipc_test_thread_wait_for_thread( p[i] );
 
-	printf(">>>>> Average time : %llu, Final result count : %d \n\n", sum_time / thread_count, g_cnt);
+//	printf(">>>>> Average time : %llu, Final result count : %d \n\n", sum_time / thread_count, g_cnt);
+	printf(">>>>> Average time : %llu, Final result count : %d \n\n", sum_time / g_cnt, g_cnt);
 
 	return 0;
 }
