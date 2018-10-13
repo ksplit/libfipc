@@ -1,5 +1,6 @@
 #include "libfipc_numa.h"
 
+
 int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy)
 {
     struct bitmask *cm;
@@ -89,8 +90,8 @@ int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy)
                 (*consumer_cpus)[cons_id] = nodes[n].cpu_list[cpu + (num_cpus / 2)];
                 (*consumer_cpus)[cons_id + next] = nodes[n].cpu_list[cpu];
 
-            }
-            else if( policy == PROD_CONS_MIXED_MODE )
+            }	   
+	    else if( policy == PROD_CONS_MIXED_MODE )
             {
                 int temp = n;
                 int index = 0;
@@ -109,6 +110,16 @@ int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy)
                 (*consumer_cpus)[cons_id + next] = nodes[temp+bias].cpu_list[cpu/2 + index];
 
             }
+	    else
+	    {
+		int temp = 0;
+		if( cpu >= 4 ){
+		    temp = 4;
+		}
+		(*producer_cpus)[prod_id] = nodes[n].cpu_list[cpu + temp];
+	
+   		(*consumer_cpus)[cons_id] = nodes[n].cpu_list[cpu + temp + (num_cpus/4)];
+	    }
             ++prod_id;
             ++cons_id;
         }
