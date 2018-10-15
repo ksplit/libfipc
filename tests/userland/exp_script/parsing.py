@@ -1,18 +1,18 @@
 import os, sys
 import csv, re, numpy
 
-cnt=['1','2','4','8','16']
-p_list={'1':[], '2':[], '4':[], '8':[], '16':[]}
-c_list={'1':[], '2':[], '4':[], '8':[], '16':[]}
+p_list = {}
+c_list = {}
 
 def usage():
-    print 'Usage: %s -f result.csv' % sys.argv[0]
+    print 'Usage: %s -t <testDir> -f <resultFName>' % sys.argv[0]
 
 def main(argv=None):
 
     resultFName = None
     testFName = None
-
+    transCnt = 0
+    cntCheck = 0
     # get arguments
     try:
         opts, args = getopt.getopt(sys.argv[1:], 'hf:t:', ['help', 'file=', 'test='])
@@ -25,9 +25,9 @@ def main(argv=None):
             usage()
             sys.exit()
         elif o in ('f', '--file'):
-            resultFName = a
+            resultFName= a
         elif t in ('t', '--test'):
-            testFName = a
+            testFDir = a
         else:
             assert False, 'unhandled option'
     
@@ -35,9 +35,12 @@ def main(argv=None):
     resultFile = open(resultFName,'a')
     wr = csv.writer(resultFile)
 
-    for root, dirs, files in os.walk(RESULT_PATH_BENCH):
+    for root, dirs, files in os.walk(testFDir):
         for fname in files:
-            bench,p_cnt, c_cnt,try_cnt,opt = fname.split('-')
+            bench, p_cnt, c_cnt,try_cnt,opt = fname.split('-')
+            if p_cnt not in p_list:
+                p_list.append({p_cnt:0})
+                c_list.append({p_cnt:0})
 
             f = open(RESULT_PATH_BENCH+'/'+fname,'r')
             l = f.readlines()
@@ -48,19 +51,20 @@ def main(argv=None):
                 if 'finished' in line:
                     if 'Producer' in line:
                         m = p.findall(line)
-                        print 'producer ( ' + p_cnt +' )' +m[2]
-
-                        p_list[p_cnt].append(int(m[2]));    
+                        p_list[p_cnt].append(int(m[2]))  
+			if cntCheck == 0:
+                            transCnt = int(m[1])
+                            cntCheck = 1
                     if 'Consumer' in line:
                         m = p.findall(line)
-                        c_list[c_cnt].append(int(m[2]));
+                        c_list[c_cnt].append(int(m[2]))
         print bench
         print 'producer '
         print p_list
         print 'Consumer'
         print c_list    
         key = p_list.keys()
-        wr.writerow([bench,'10^2'])
+        wr.writerow([bench, transCnt])
         wr.writerow(['','avg','std','avg','std'])
         wr.writerow(['cnt','prod','prod','cons','cons'])
 
@@ -75,13 +79,12 @@ def main(argv=None):
         	wr.writerow([key[i],p_avg,p_std,c_avg,c_std])
 
 
-        p_list={'1':[], '2':[], '4':[], '8':[], '16':[]}
-        c_list={'1':[], '2':[], '4':[], '8':[], '16':[]}
-
-
+        cntCheck = 0
+        p_list = {}
+        c_list = {}
                         
 
-    f = open('result_spsc.csv','a')
+    f = open(resultFile, 'a')
     wr = csv.writer(f)
     wr.writerow([RESULT_PATH_BENCH])
     for i in range(0,len(p_list)):
