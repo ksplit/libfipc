@@ -63,7 +63,7 @@ producer ( void* data )
 
 	start = RDTSC_START();
 	
-	for ( transaction_id = 0; transaction_id < consumer_count * transactions; )
+	for ( transaction_id = 0; transaction_id < transactions; )
 	{
 		for(i = 0; i < batch_size; i++) 
 		{

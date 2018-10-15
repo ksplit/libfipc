@@ -16,15 +16,15 @@
 #define NULL_INVOCATION         1
 
 // Test Variables
-//static uint64_t transactions = 10000000;
-static uint64_t transactions = 10000;
+static uint64_t transactions = 10000000;
+//static uint64_t transactions = 10000;
 
 static uint8_t producer_count = 1;
 static uint8_t consumer_count = 1;
 
 uint64_t batch_size = 1;
 
-uint64_t mem_pool_order = 20;
+uint64_t mem_pool_order = 28;
 uint64_t mem_pool_size;
 
 
