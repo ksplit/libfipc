@@ -1,18 +1,23 @@
-import os, sys
+import os, sys, getopt
 import csv, re, numpy
 
-p_list = {}
-c_list = {}
+# list storing cycles/message
 
+
+# Usage
 def usage():
     print 'Usage: %s -t <testDir> -f <resultFName>' % sys.argv[0]
 
+# Main function
 def main(argv=None):
 
     resultFName = None
     testFName = None
     transCnt = 0
     cntCheck = 0
+    p_list = {}
+    c_list = {}
+
     # get arguments
     try:
         opts, args = getopt.getopt(sys.argv[1:], 'hf:t:', ['help', 'file=', 'test='])
@@ -24,25 +29,34 @@ def main(argv=None):
         if o in ('-h', '--help'):
             usage()
             sys.exit()
-        elif o in ('f', '--file'):
+        elif o in ('-f', '--file'):
             resultFName= a
-        elif t in ('t', '--test'):
-            testFDir = a
+        elif o in ('-t', '--test'):
+            testDir = a
         else:
             assert False, 'unhandled option'
     
-    p = re.compile('[0-9]+')
-    resultFile = open(resultFName,'a')
-    wr = csv.writer(resultFile)
+    if resultFName == None:
+        usage()
+        sys.exit()
 
-    for root, dirs, files in os.walk(testFDir):
+    if testDir == None:
+        usage()
+        sys.exit()
+
+    p = re.compile('[0-9]+')
+    f = open(resultFName+'.csv', 'a')
+    wr = csv.writer(f)
+
+    # Parse the files
+    for root, dirs, files in os.walk(testDir):
         for fname in files:
             bench, p_cnt, c_cnt,try_cnt,opt = fname.split('-')
-            if p_cnt not in p_list:
-                p_list.append({p_cnt:0})
-                c_list.append({p_cnt:0})
+            if any(p_cnt in x for x in p_list) == False:
+                p_list[p_cnt] = []
+                c_list[c_cnt] = []
 
-            f = open(RESULT_PATH_BENCH+'/'+fname,'r')
+            f = open(testDir+'/'+fname,'r')
             l = f.readlines()
             i = 0
             while i < len(l):
@@ -78,18 +92,17 @@ def main(argv=None):
         	c_std=numpy.std(c_list[key[i]])
         	wr.writerow([key[i],p_avg,p_std,c_avg,c_std])
 
-
+        # initialize 
         cntCheck = 0
         p_list = {}
         c_list = {}
                         
-
-    f = open(resultFile, 'a')
-    wr = csv.writer(f)
-    wr.writerow([RESULT_PATH_BENCH])
+    # Make csv file
+    wr.writerow([resultFName])
     for i in range(0,len(p_list)):
         wr.writerow([cnt[i],p_list[cnt[i]], c_list[cnt[i]]])
     
     f.close()
+
 if __name__ == "__main__":
     sys.exit(main())
