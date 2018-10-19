@@ -50,7 +50,7 @@ producer(void* data)
 	// from that pool as transaction_id mod pool_size
 	uint64_t obj_id_mask = ((1UL << mem_pool_order) - 1);
 
-	pr_err("Producer %lu starting...\n", rank);
+	pr_err("Producer %lu (tid: %lu) starting...\n", rank, pthread_self());
 	
 	fipc_test_FAI(ready_producers);
 
@@ -108,7 +108,7 @@ consumer(void* data)
 	int i;
 	uint64_t transaction_id = 0;
 
-	pr_err("Consumer %llu starting\n", (unsigned long long)rank);
+	pr_err("Consumer %llu (tid: %lu) starting\n", (unsigned long long)rank, pthread_self());
 
 	// Begin test
 	// fipc_test_thread_take_control_of_CPU();
