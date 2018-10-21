@@ -14,13 +14,11 @@ ht_set() {
     fi
     # on -> off
     cd /sys/devices/system/cpu
-    cat /sys/devices/system/cpu/cpu*/topology/thread_siblings_list | sort | uniq |
+    cat ./cpu*/topology/thread_siblings_list | sort | uniq |
     while read -r line; do
       IFS=',' read -ra CORE <<< "$line"
       cd cpu${CORE[1]}
-      sudo chmod 777 online
-      sudo echo $1 > online
-      sudo chmod 644 online
+      echo 1 | sudo tee online
       cd ..
     done 
     exit 1
