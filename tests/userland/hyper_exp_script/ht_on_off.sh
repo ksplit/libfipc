@@ -24,7 +24,7 @@ ht_on() {
     for i in ${OFFLINE[@]}; do 
       IFS='-' read -ra LIST <<< "$i"
       for i in $(seq ${LIST[0]} ${LIST[1]}); do
-        if (( $i < ${PRESENT[1]} )); then 
+        if [ $i -le ${PRESENT[1]} ]; then 
           cd cpu$i
           ht_set 1 
           cd ..
@@ -55,12 +55,12 @@ while getopts ":hso:" opt; do
   case $opt in
     o)
       # -o 1: turn on sibling thread
-     if [ $OPTARG == 1 ]; then
+     if [ $OPTARG -eq 1 ]; then
         ht_on
       fi
        
       # -o 0: turn off sibling thread
-      if [ $OPTARG == 0 ]; then
+      if [ $OPTARG -eq 0 ]; then
         ht_off
       fi
       
