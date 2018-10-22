@@ -13,14 +13,12 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- Tested on `Intel(R) Xeon(R) Gold 6142 CPU @ 2.60GHz`, `Intel(R) Xeon(R) CPU E5-4620 0 @ 2.20GHz`<br/><br/>
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`-h` <br/>
-
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;usage function <br/>
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`-o` <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; parameter `0`: turn off, parameter `1`: turn on 
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`-s` <br/>
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;show current othread
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;show current turned on threads
  
 
