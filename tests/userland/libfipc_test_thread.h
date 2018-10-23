@@ -33,10 +33,8 @@ int fipc_test_thread_pin_process_to_CPU ( pid_t pid, size_t cpu_pin )
  * This inline helper function pins the specified thread to the specified core.
  */
 static inline
-int fipc_test_thread_pin_thread_to_CPU ( pthread_t thread, size_t cpu_pin )
+int fipc_test_thread_pin_thread_to_CPU ( pthread_t thread, size_t cpu_pin)
 {
-	printf("Pinning thread to cpu:%zu\n", cpu_pin); 
-
 	if ( cpu_pin >= NUM_CORES ) {
 		printf("%s:Error: cpu:%zu id exeeds number of cores %lu\n", 
 			__func__, cpu_pin, NUM_CORES); 
@@ -131,6 +129,8 @@ pthread_t* fipc_test_thread_spawn_on_CPU ( void* (*threadfn)(void* data),
 		free( thread );
 		return NULL;
 	}
+	
+	printf("Pinning thread %lu to core %zu...\n", *thread, cpu_pin );
 
 	return thread;
 }
