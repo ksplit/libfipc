@@ -140,7 +140,7 @@ consumer(void* data)
 		pr_err("Consumer %lu finished, receiving %lu messages (cycles per message %lu) (%s)\n",
 			rank,
 			transaction_id,
-			(cons_ends[rank] - cons_ends[rank]) / transaction_id,
+			(cons_ends[rank] - cons_starts[rank]) / transaction_id,
 			prod_sum == cons_sum ? "PASSED" : "FAILED");
 	}
 	fipc_test_thread_release_control_of_CPU();
