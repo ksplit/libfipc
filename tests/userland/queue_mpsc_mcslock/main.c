@@ -310,14 +310,13 @@ void * controller ( void* data )
 	global_end = RDTSCP();	
 	test_finished = 1;
 
-	printf (">>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
 	for(int i = 0; i < consumer_count; ++i)
-		printf("Consumer %d, start %lu\t/ end %lu\n", i, cons_starts[i] - global_start, cons_ends[i] - global_start);
+		printf("Consumer %d time : (%lu / %lu)\n", i, cons_starts[i] - global_start, cons_ends[i] - global_start);
 
 	for(int i = 0; i < producer_count; ++i)
-		printf("Producer %d, start %lu\t/ end %lu\n", i, prod_starts[i] - global_start, prod_ends[i] - global_start);
+		printf("Producer %d time : (%lu / %lu)\n", i, prod_starts[i] - global_start, prod_ends[i] - global_start);
 
-	printf("Global start %lu / end %lu : %lu\n", global_start, global_end, global_end - global_start);
+	printf("Global time : (%lu / %lu)\n", global_start, global_end);
 	
 	return 0;
 }
