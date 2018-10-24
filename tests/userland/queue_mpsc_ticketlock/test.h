@@ -39,7 +39,7 @@ static int policy = 2;
 
 // Queue Variables
 static queue_t** 	cons_queues = NULL;
-static request_t**   	node_tables = NULL;
+static node_t**   	node_tables = NULL;
 
 // Thread Locks
 static uint64_t completed_producers = 0;
