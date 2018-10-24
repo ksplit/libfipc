@@ -72,8 +72,6 @@ producer ( void* data )
 			node_t *node = &t[transaction_id & obj_id_mask]; 
 
 			node->data = transaction_id;		
-			node->prod_id = rank;
-			node->cons_id = cons_id;	
 
 			if ( enqueue( q[cons_id], node ) != SUCCESS )
 			{

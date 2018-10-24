@@ -9,9 +9,9 @@
 
 int init_queue ( queue_t* q )
 {
-	q->header.next.ptr = NULL;
-	q->head.ptr = &q->header;
-	q->tail.ptr = &q->header;
+	q->header.next = NULL;
+	q->head = &q->header;
+	q->tail = &q->header;
 
 	return SUCCESS;
 }
@@ -26,81 +26,89 @@ int free_queue ( queue_t* q )
 // Enqueue
 int enqueue ( queue_t* q, node_t* r )
 {
-	pointer_t tail;
-	pointer_t next;
-	r->next.ptr = NULL;
-	while(1)
+	node_t* tail;
+	node_t* next;
+	r->next = NULL;
+	while (1)
 	{
 		tail = q->tail;
-		next = tail.ptr->next;
+		next = tail->next;
 		
-		if (tail.ptr == q->tail.ptr && tail.count == q->tail.count)
+		if (tail == q->tail)
 		{
-			if (next.ptr == NULL)
+			if (next == NULL)
 			{
-				pointer_t *p = malloc(sizeof(pointer_t));
-				p->ptr = r;
-				p->count = next.count+1;
-				if (fast_ipc_CAS(&tail.ptr->next, next, *p))
+				//pointer_t *p = malloc(sizeof(pointer_t));
+				//p->ptr = r;
+				//p->count = next.count+1;
+				if ( fipc_test_CAS( &tail->next, next, r ) )
 					break;
-				else
-					free(p);
+				//else
+					//free(p);
 			}
 			else
 			{
-				pointer_t *p = malloc(sizeof(pointer_t));
-				p->ptr = next.ptr;
-				p->count = tail.count+1;
-				if(! fast_ipc_CAS(&q->tail, tail, *p))
-					free(p);
+				//pointer_t *p = malloc(sizeof(pointer_t));
+				//p->ptr = next.ptr;
+				//p->count = tail.count+1;
+				if( !fipc_test_CAS( &q->tail, tail, next ) )
+					;
+					//free(p);
 			}
 		}
 	}
-	pointer_t *p = malloc(sizeof(pointer_t));
-	p->ptr = r;
-	p->count = tail.count + 1;
-	if( !fast_ipc_CAS(&q->tail, tail, *p))
-		free(p);
+	//pointer_t *p = malloc(sizeof(pointer_t));
+	//p->ptr = r;
+	//p->count = tail.count + 1;
+	if( !fipc_test_CAS(&q->tail, tail, r))
+		;
+		//free(p);
+
+	return SUCCESS;
 }
 
 // Dequeue
 int dequeue ( queue_t* q, uint64_t* data )
 {
-	pointer_t head;
-	pointer_t tail;
-	pointer_t next;
+	node_t* head;
+	node_t* tail;
+	node_t* next;
 	
-	while(1)
+	while (1)
 	{
 		head = q->head;
 		tail = q->tail;
-		next = head.ptr->next;
-		if(head.ptr == q->head.ptr && head.count == q->head.count)
+		next = head->next;
+		if (head == q->head)
 		{
-		 	if(head.ptr == tail.ptr)
+		 	if (head == tail)
 			{
-				if(next.ptr == NULL)
+				if(next == NULL)
 					return EMPTY_COLLECTION;
 
-				pointer_t *p = malloc(sizeof(pointer_t));
-				p->ptr = next.ptr;
-				p->count = tail.count+1;
-				if(!fast_ipc_CAS(&q->tail, tail, *p))
-					free(p);
+				//pointer_t *p = malloc(sizeof(pointer_t));
+				//p->ptr = next.ptr;
+				//p->count = tail.count+1;
+				if (!fipc_test_CAS(&q->tail, tail, next))
+					;
+					//free(p);
 			}
 			else
 			{
-				pointer_t *p = malloc(sizeof(pointer_t));
-				p->ptr = next.ptr;
-				p->count = head.count+1;
-				if(fast_ipc_CAS(&q->head, head, *p))
+				*data = next->data;
+				fipc_test_mfence();
+				//pointer_t *p = malloc(sizeof(pointer_t));
+				//p->ptr = next.ptr;
+				//p->count = head.count+1;
+				if(fipc_test_CAS(&q->head, head, next))
 					break;
 				else
-					free(p);
+					;
+					//free(p);
 			}
 		}
 	}
-	free(head.ptr);
-        return SUCCESS;
+	//free(head.ptr);
+	return SUCCESS;
 }
 

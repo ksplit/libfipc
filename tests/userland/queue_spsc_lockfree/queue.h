@@ -27,16 +27,14 @@ typedef struct pointer_t
 typedef struct node_t 
 {
 	uint64_t data;
-	uint64_t prod_id;
-	uint64_t cons_id;
-	pointer_t next;	
+	struct node_t* next;	
 } node_t;
 
 typedef struct queue_t
 {
 	node_t header;
-	pointer_t head;
-	pointer_t tail;
+	node_t* head;
+	node_t* tail;
 
 } queue_t;
 
