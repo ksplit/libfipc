@@ -4,9 +4,9 @@
 #define RESET_MASK(x)           ~(1LL << (x))
 
 // CPUS Placement Policy
-#define PROD_CONS_SEPARATE_NODES        1
-#define PROD_CONS_SAME_NODES            2
-#define PROD_CONS_MIXED_MODE            3
+#define DIFF_NODE        	1
+#define SAME_NODE_NON_SIBLING   2
+#define SAME_NODE_SIBLING       3
 
 struct node {
         unsigned long cpu_bitmask;
