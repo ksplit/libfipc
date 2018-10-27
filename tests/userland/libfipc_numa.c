@@ -5,7 +5,7 @@ int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy)
 {
     struct bitmask *cm;
     int num_nodes;
-    int n;
+    int n, i;
     unsigned long cpu_bmap;
     int numa_present;
     int ret = 0;
@@ -60,6 +60,31 @@ int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy)
         }
     }
 
+    int node_order[4]={0,1,2,3};
+    
+    for (i = 0; i < num_nodes; i++)
+    {
+        int cpu, half;
+	int n = node_order[i]; 
+        int num_cpus = nodes[n].num_cpus;
+	
+
+        for ( cpu = 0; cpu < num_cpus / 2  ; cpu++ )
+	{
+	    
+            if( policy == SAME_NODE_NON_SIBLING )
+ 	    {
+                (*producer_cpus)[prod_id] = nodes[n].cpu_list[cpu];
+                (*consumer_cpus)[cons_id] = nodes[n].cpu_list[cpu + num_cpus / 2 ];
+	    }
+	    else if ( policy == SAME_NODE_SIBLING ) //only hyper on
+	    {
+                (*producer_cpus)[prod_id] = nodes[n].cpu_list[cpu];
+                (*consumer_cpus)[cons_id] = nodes[n].cpu_list[cpu + 4];
+	    }
+	}
+    }
+/*
     for (n = 0; n < num_nodes; n++)
     {
         int cpu;
@@ -123,7 +148,7 @@ int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy)
             ++prod_id;
             ++cons_id;
         }
-    }
+    }*/
     
     free(config);
 
