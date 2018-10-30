@@ -24,8 +24,6 @@ typedef struct linked_node_t
 
 } node_t;
 
-typedef node_t request_t;
-
 typedef struct queue_t
 {
 	node_t* head;
@@ -37,10 +35,8 @@ typedef struct queue_t
 
 int init_queue	( queue_t* q );
 int free_queue	( queue_t* q );
-int enqueue 	( queue_t* q, request_t* r );
+int enqueue 	( queue_t* q, node_t* r );
 int dequeue 	( queue_t* q, uint64_t* data );
-int enqueue_blk	( queue_t* q, request_t* r );
-int dequeue_blk	( queue_t* q, uint64_t* data );
 
 
 #endif

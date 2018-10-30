@@ -5,7 +5,7 @@ int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy)
 {
     struct bitmask *cm;
     int num_nodes;
-    int n;
+    int n, i;
     unsigned long cpu_bmap;
     int numa_present;
     int ret = 0;
@@ -59,7 +59,49 @@ int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy)
             nodes[n].cpu_list[cpus++] = c;
         }
     }
+/*
+ if nodes state like below
+    0  1
 
+    3  2
+*/
+    int node_order[4]={0,2,1,3};
+    
+    for (i = 0; i < num_nodes; i++)
+    {
+        int cpu;
+	int n = node_order[i]; 
+        int num_cpus = nodes[n].num_cpus;
+	int half = num_cpus / 2;
+
+        for ( cpu = 0; cpu < half; cpu++ )
+	{
+	    if ( policy == DIFF_NODE) 
+	    {
+		int next_node = node_order[i+2];
+
+		(*producer_cpus)[prod_id] = nodes[n].cpu_list[cpu];
+                (*producer_cpus)[prod_id] = nodes[n].cpu_list[cpu + half];
+                (*consumer_cpus)[cons_id] = nodes[next_node].cpu_list[cpu];
+                (*consumer_cpus)[cons_id] = nodes[next_node].cpu_list[cpu + half];
+	
+		if( i == 1 && cpu == 7 ) i = num_nodes; 
+	    }
+            else if( policy == SAME_NODE_NON_SIBLING )
+ 	    {
+		(*producer_cpus)[prod_id] = nodes[n].cpu_list[cpu];
+                (*consumer_cpus)[cons_id] = nodes[n].cpu_list[cpu + half];
+	    }
+	    else if ( policy == SAME_NODE_SIBLING ) //only hyper on
+	    {
+	        half = cpu >= num_cpus/4 ? num_cpus/4 : 0 ;
+                
+		(*producer_cpus)[prod_id] = nodes[n].cpu_list[cpu + half];
+                (*consumer_cpus)[cons_id] = nodes[n].cpu_list[cpu + half + 4];
+	    }
+	}
+    }
+/*
     for (n = 0; n < num_nodes; n++)
     {
         int cpu;
@@ -123,7 +165,7 @@ int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy)
             ++prod_id;
             ++cons_id;
         }
-    }
+    }*/
     
     free(config);
 

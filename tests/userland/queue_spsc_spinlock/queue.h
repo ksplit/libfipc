@@ -21,10 +21,7 @@ typedef uint64_t data_t;
 
 typedef struct linked_node_t 
 {
-
 	uint64_t data;
-	uint64_t prod_id;
-	uint64_t cons_id;
 	struct linked_node_t* next;
 
 } node_t;
@@ -43,6 +40,5 @@ int init_queue(queue_t* q);
 int free_queue(queue_t* q);
 int enqueue(queue_t* q, node_t* r);
 int dequeue(queue_t* q, uint64_t* data);
-
 
 #endif

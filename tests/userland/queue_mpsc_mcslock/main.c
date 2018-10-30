@@ -2,6 +2,7 @@
  * @File     : main.c
  * @Author   : Abdullah Younis
  */
+
 #ifdef __KERNEL__
 #include <linux/module.h>
 #endif
@@ -16,9 +17,9 @@
 #define vfree free
 #define pr_err printf
 
-#endif
-
 #define END_MSG_MARKER          0xabcdef11u
+
+#endif
 
 uint64_t prod_sum = 0;
 uint64_t cons_sum = 0;
@@ -26,7 +27,7 @@ int* halt;
 
 int null_invocation ( void )
 {
-	asm volatile ("nop");
+	asm volatile ("");
 	return 0;
 }
 
@@ -37,21 +38,19 @@ void *
 #endif
 producer ( void* data )
 {
-	queue_t** 	 q = cons_queues;
 	uint64_t rank = *(uint64_t*)data;
+	queue_t** q = cons_queues;
 	node_t*   t = node_tables[rank];
 
-	uint64_t transaction_id;
-	uint64_t start;
-	uint64_t end;
-	int i; 
 	uint64_t cons_id = 0;
+	uint64_t transaction_id;
+	int i; 
 
 	// We have a fixed size object pool, we pick one object 
 	// from that pool as transaction_id mod pool_size
 	uint64_t obj_id_mask = ((1UL << mem_pool_order) - 1);	
 
-	pr_err( "Producer %lu starting...\n", rank );
+	pr_err( "Producer %lu (tid: %lu) starting\n", rank, pthread_self() );
 
 	// Wait for everyone to be ready
 	fipc_test_FAI( ready_producers );
@@ -61,14 +60,13 @@ producer ( void* data )
 
 	fipc_test_mfence();
 
-	start = RDTSC_START();
+	prod_starts[rank] = RDTSC_START();
 	
 	for ( transaction_id = 0; transaction_id < transactions; )
 	{
 		for(i = 0; i < batch_size; i++) 
 		{
 			node_t *node = &t[transaction_id & obj_id_mask]; 
-
 			node->data = transaction_id;
 			
 			if ( enqueue( q[cons_id], node ) != SUCCESS )
@@ -83,13 +81,13 @@ producer ( void* data )
 			cons_id = 0;
 	}
 	
-	end = RDTSCP();
+	prod_ends[rank] = RDTSCP();
 
 	// End test
 	pr_err( "Producer %lu finished, sending %lu messages (cycles per message %lu)\n", 
 			rank,
 			transaction_id, 
-			(end - start) / transaction_id);
+			(prod_ends[rank] - prod_starts[rank]) / transaction_id);
 
 	fipc_test_thread_release_control_of_CPU();
 	fipc_test_FAI(completed_producers);
@@ -103,19 +101,14 @@ void *
 #endif
 consumer ( void* data )
 {
-	queue_t** q = cons_queues;
 	uint64_t rank = *(uint64_t*)data;		
+	queue_t** q = cons_queues;
 	
-	uint64_t start;
-	uint64_t end;
 	uint64_t request;
-	int i;
 	uint64_t transaction_id = 0;
+	int i;
 	
-	pr_err( "Consumer %llu starting\n", (unsigned long long)rank );
-
-	// Begin test
-	// fipc_test_thread_take_control_of_CPU();
+	pr_err( "Consumer %lu (tid: %lu) starting\n", rank, pthread_self() );
 
 	// Wait for everyone to be ready
 	fipc_test_FAI( ready_consumers );
@@ -125,7 +118,7 @@ consumer ( void* data )
 
 	fipc_test_mfence();
 
-	start = RDTSC_START();
+	cons_starts[rank] = RDTSC_START();
 	
 	while(!halt[rank])
 	{	
@@ -142,19 +135,18 @@ consumer ( void* data )
                                 halt[rank] = 1;
                                 break;
                         }
-
                         transaction_id++;
 		}
 	}
 
-	end = RDTSCP();
+	cons_ends[rank] = RDTSCP();
 
 	// End test
 	fipc_test_mfence();
 	pr_err( "Consumer %lu finished, receiving %lu messages (cycles per message %lu) (%s)\n", 
 			rank,
 			transaction_id, 
-			(end - start) / transaction_id, 
+			(cons_ends[rank] - cons_starts[rank]) / transaction_id, 
 			prod_sum == cons_sum ? "PASSED" : "FAILED");
 
 	fipc_test_thread_release_control_of_CPU();
@@ -178,7 +170,6 @@ void * controller ( void* data )
 	cons_queues = (queue_t**) vmalloc( consumer_count*sizeof(queue_t*) );
 
 	node_t* haltMsg = (node_t*) vmalloc( consumer_count*sizeof(node_t) );
-
 	halt = (int*) vmalloc( consumer_count*sizeof(*halt) );
 	
 	for ( i = 0; i < consumer_count; ++i ) 
@@ -236,7 +227,6 @@ void * controller ( void* data )
 			pr_err( "%s\n", "Error while creating thread" );
 			return NULL;
 		}
-
 	}
 
 #ifdef __KERNEL__
@@ -259,6 +249,7 @@ void * controller ( void* data )
 
 	// Begin Test
 	test_ready = 1;
+	global_start = RDTSCP();
 
 	fipc_test_mfence();
 	
@@ -315,7 +306,18 @@ void * controller ( void* data )
 
 	// End Experiment
 	fipc_test_mfence();
+
+	global_end = RDTSCP();	
 	test_finished = 1;
+
+	for(int i = 0; i < consumer_count; ++i)
+		printf("Consumer %d time : (%lu / %lu)\n", i, cons_starts[i] - global_start, cons_ends[i] - global_start);
+
+	for(int i = 0; i < producer_count; ++i)
+		printf("Producer %d time : (%lu / %lu)\n", i, prod_starts[i] - global_start, prod_ends[i] - global_start);
+
+	printf("Global time : (%lu / %lu)\n", global_start, global_end);
+	
 	return 0;
 }
 

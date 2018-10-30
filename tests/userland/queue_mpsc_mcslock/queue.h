@@ -31,8 +31,6 @@ typedef struct linked_node_t
 
 } node_t;
  
-typedef node_t request_t;
-
 typedef struct queue_t
 {
 	node_t* CACHE_ALIGNED head;

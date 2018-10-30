@@ -27,3 +27,6 @@ perf:
 
 debug: $(DEP)
 	$(CC) $(INCLUDE_DIRS) $(DEP) -o $(TARGET) $(CFLAGS) -g	
+
+test:
+	$(CC) $(INCLUDE_DIRS) test.c -o test $(CFLAGS)	
