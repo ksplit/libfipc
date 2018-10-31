@@ -138,6 +138,7 @@ consumer ( void* data )
 		{
 			if ( q[prod_id] != NULL ) 
 			{
+				//fipc_test_time_wait_ticks(200);
 				// Receive and unmarshall 
 				if ( dequeue( q[prod_id],&request) != SUCCESS ) 
 				{

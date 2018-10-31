@@ -124,6 +124,7 @@ consumer ( void* data )
 	{	
 		for(i = 0; i < batch_size; i++) 
 		{
+			fipc_test_time_wait_ticks(200);
 			// Receive and unmarshall 
 			if ( dequeue ( q[rank], &request ) != SUCCESS )
 			{
