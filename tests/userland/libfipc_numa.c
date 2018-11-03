@@ -65,39 +65,38 @@ int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy)
 
     3  2
 */
-    int node_order[4]={0,2,1,3};
-    
+    int node_order[2][4] = {{0,1,2,3},{0,3,1,2}};
+    int order_type = policy == DIFF_NODE ? 1 : 0;
+ 
     for (i = 0; i < num_nodes; i++)
     {
         int cpu;
-	int n = node_order[i]; 
+	int n = node_order[order_type][i]; 
         int num_cpus = nodes[n].num_cpus;
-	int half = num_cpus / 2;
+	int half = policy == DIFF_NODE ? num_cpus : num_cpus / 2;
 
         for ( cpu = 0; cpu < half; cpu++ )
 	{
 	    if ( policy == DIFF_NODE) 
 	    {
-		int next_node = node_order[i+2];
+		int next_node = node_order[1][i+2];
 
-		(*producer_cpus)[prod_id] = nodes[n].cpu_list[cpu];
-                (*producer_cpus)[prod_id] = nodes[n].cpu_list[cpu + half];
-                (*consumer_cpus)[cons_id] = nodes[next_node].cpu_list[cpu];
-                (*consumer_cpus)[cons_id] = nodes[next_node].cpu_list[cpu + half];
+		(*producer_cpus)[prod_id++] = nodes[n].cpu_list[cpu];
+                (*consumer_cpus)[cons_id++] = nodes[next_node].cpu_list[cpu];
 	
-		if( i == 1 && cpu == 7 ) i = num_nodes; 
+		if( i == 1 && cpu == half - 1 ) i = num_nodes; 
 	    }
             else if( policy == SAME_NODE_NON_SIBLING )
  	    {
-		(*producer_cpus)[prod_id] = nodes[n].cpu_list[cpu];
-                (*consumer_cpus)[cons_id] = nodes[n].cpu_list[cpu + half];
+	        int temp = cpu >= num_cpus/4 ? num_cpus/4 : 0 ;
+		
+		(*producer_cpus)[prod_id++] = nodes[n].cpu_list[cpu + temp];
+                (*consumer_cpus)[cons_id++] = nodes[n].cpu_list[cpu + temp + 4];
 	    }
 	    else if ( policy == SAME_NODE_SIBLING ) //only hyper on
 	    {
-	        half = cpu >= num_cpus/4 ? num_cpus/4 : 0 ;
-                
-		(*producer_cpus)[prod_id] = nodes[n].cpu_list[cpu + half];
-                (*consumer_cpus)[cons_id] = nodes[n].cpu_list[cpu + half + 4];
+		(*producer_cpus)[prod_id++] = nodes[n].cpu_list[cpu];
+                (*consumer_cpus)[cons_id++] = nodes[n].cpu_list[cpu + half];
 	    }
 	}
     }
