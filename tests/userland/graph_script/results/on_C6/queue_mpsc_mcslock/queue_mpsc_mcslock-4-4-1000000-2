@@ -1,0 +1,40 @@
+try 0
+Starting test with prod count 4, cons count 4, [2] policy
+Pinning thread 140689087252224 to core 6...
+Allocating 1073741824 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 1073741824 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 1073741824 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 1073741824 bytes for the pool of 67108864 objects (pool order:26)
+Pinning thread 140689078859520 to core 0...
+Producer 0 (tid: 140689078859520) starting
+Pinning thread 140689070466816 to core 2...
+Producer 1 (tid: 140689070466816) starting
+Pinning thread 140689062074112 to core 4...
+Producer 2 (tid: 140689062074112) starting
+Pinning thread 140689053681408 to core 32...
+Consumer 0 (tid: 140689053681408) starting
+Pinning thread 140689045288704 to core 34...
+Consumer 1 (tid: 140689045288704) starting
+Pinning thread 140684673660672 to core 36...
+Consumer 2 (tid: 140684673660672) starting
+Pinning thread 140684665267968 to core 38...
+Consumer 3 (tid: 140684665267968) starting
+Producer 3 (tid: 140689087252224) starting
+Producer 3 finished, sending 1000000 messages (cycles per message 1477)
+Producer 2 finished, sending 1000000 messages (cycles per message 1477)
+Producer 1 finished, sending 1000000 messages (cycles per message 1478)
+Producer 0 finished, sending 1000000 messages (cycles per message 1480)
+Consumer 0 finished, receiving 1000000 messages (cycles per message 1480) (PASSED)
+Consumer 1 finished, receiving 1000000 messages (cycles per message 1480) (PASSED)
+Consumer 2 finished, receiving 1000000 messages (cycles per message 1480) (PASSED)
+Consumer 3 finished, receiving 1000000 messages (cycles per message 1480) (PASSED)
+Consumer 0 time : (1868 / 1480605062)
+Consumer 1 time : (1520 / 1480606120)
+Consumer 2 time : (1698 / 1480606918)
+Consumer 3 time : (1600 / 1480607206)
+Producer 0 time : (1546 / 1480598024)
+Producer 1 time : (1862 / 1478151804)
+Producer 2 time : (1390 / 1477729822)
+Producer 3 time : (3806 / 1477289696)
+Global time : (26938958410521318 / 26938959897233836)
+Test finished

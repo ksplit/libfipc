@@ -11,14 +11,19 @@ p = re.compile('[0-9]+')
 class Extractor:
 
 	@classmethod
-	def __new__(cls, self, directory, date):
+	def __new__(cls, self, directory, date, hyper_option):
 		root_list, file_list = cls.checkValidDirectory(directory)
-		all_data = cls.parsingDirectory(root_list, file_list)
-		file_name = cls.makeResultFileName(date)
-		return cls.extract(all_data, file_name)
+		all_data = cls.parsingDirectory(root_list, file_list, hyper_option)
+		file_name = cls.makeResultFileName(directory, date)
+		return cls.extract(all_data, file_name, hyper_option)
 
 	@classmethod
 	def checkValidDirectory(cls, test_directory):
+
+		'''
+		Verifying that the directory contains result files.
+		'''
+
 		root_list = []
 		file_list = []
 		finish = 0
@@ -34,15 +39,21 @@ class Extractor:
 							file_list.append(sub_files)
 			else:
 				if finish == 0:
-					root_list.append(sub_root)
-					file_list.append(sub_files)
+					root_list.append(root)
+					file_list.append(files)
 
 		return root_list, file_list
 
 	@classmethod
-	def parsingDirectory(cls, root_list, file_list):
+	def parsingDirectory(cls, root_list, file_list, hyper_option):
+
+		'''
+		Make dictionary which contains all data based on queues and locks.
+		'''
+
+
 		all_data = [[[[ {} for test in range(Config.test)]
-						for number in range(Config.numbers)] 
+						for number in range(Config.numbers[hyper_option])] 
 						for lock in range(len(Config.lock_value))] 
 						for queue in range(len(Config.queue_value))]
 		
@@ -77,7 +88,8 @@ class Extractor:
 					m = p.findall(line)
 					i += 1
 
-					if "try" in line:
+					# Checking the test number and initialize each information dictionary
+					if "try" in line:						
 						test_case = int(m[0])+1
 						
 						global_time = 0
@@ -88,12 +100,14 @@ class Extractor:
 						consumer_start_time_dict = {}
 						consumer_end_time_dict = {}
 
+					# Checking the tid of producers and consumers
 					elif "tid" in line:
 						if "Producer" in line:
 							producer_pin_dict[int(m[0])] = int(m[1])
 						if "Consumer" in line:
 							consumer_pin_dict[int(m[0])] = int(m[1])
                     
+					# Checking the time of producers,consumers and global
 					elif "/" in line:
 						if "Producer" in line:
 							producer_start_time_dict[int(m[0])] = int(m[1])
@@ -104,6 +118,7 @@ class Extractor:
 						if "Global" in line:
 							global_time = int(m[1]) - int(m[0])
 
+					# Test finished 
 					elif "finished" in line:
 						if "Producer" in line:
 							producer_cycle_list.append(int(m[2]))
@@ -117,7 +132,10 @@ class Extractor:
 							all_data[queue_idx][lock_idx][number_case][test_case][Config.information_value[5]] = consumer_end_time_dict
 							all_data[queue_idx][lock_idx][number_case][test_case][Config.information_value[6]] = producer_pin_dict
 							all_data[queue_idx][lock_idx][number_case][test_case][Config.information_value[7]] = consumer_pin_dict
+
+				# While loop end...
                 
+				# Each result file has only one action_plot_value so put the data in the 0th of the test case
 				action_plot_dic = {}
 
 				action_plot_dic["transaction_count"] = trans_cnt
@@ -128,5 +146,4 @@ class Extractor:
 				
 				all_data[queue_idx][lock_idx][number_case][0][Config.information_value[0]] = action_plot_dic
 
-		#print(json.dumps(all_data, indent=4))
 		return all_data

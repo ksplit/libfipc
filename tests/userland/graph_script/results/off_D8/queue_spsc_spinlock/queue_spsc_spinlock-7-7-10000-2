@@ -1,0 +1,67 @@
+try 0
+Starting test with prod count 7, cons count 7, [2] policy
+Pinning thread 140235828565760 to core 9...
+Allocating 1073741824 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 1073741824 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 1073741824 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 1073741824 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 1073741824 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 1073741824 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 1073741824 bytes for the pool of 67108864 objects (pool order:26)
+Pinning thread 140235820173056 to core 0...
+Pinning thread 140235811780352 to core 4...
+Pinning thread 140235803387648 to core 8...
+Producer 0 (tid: 140235820173056) starting
+Pinning thread 140235794994944 to core 12...
+Producer 1 (tid: 140235811780352) starting
+Producer 2 (tid: 140235803387648) starting
+Pinning thread 140228199155456 to core 1...
+Producer 3 (tid: 140235794994944) starting
+Pinning thread 140228190762752 to core 5...
+Producer 4 (tid: 140228199155456) starting
+Pinning thread 140228182370048 to core 16...
+Producer 5 (tid: 140228190762752) starting
+Pinning thread 140228173977344 to core 20...
+Consumer 0 (tid: 140228182370048) starting
+Pinning thread 140228165584640 to core 24...
+Consumer 1 (tid: 140228173977344) starting
+Pinning thread 140228157191936 to core 28...
+Consumer 2 (tid: 140228165584640) starting
+Pinning thread 140228148799232 to core 17...
+Consumer 3 (tid: 140228157191936) starting
+Pinning thread 140228064966400 to core 21...
+Consumer 4 (tid: 140228148799232) starting
+Pinning thread 140228056573696 to core 25...
+Consumer 5 (tid: 140228064966400) starting
+Consumer 6 (tid: 140228056573696) starting
+Producer 6 (tid: 140235828565760) starting
+Producer 0 finished, sending 10000 messages (cycles per message 1361) (prod_sum:0)
+Producer 1 finished, sending 10000 messages (cycles per message 1722) (prod_sum:0)
+Producer 2 finished, sending 10000 messages (cycles per message 1744) (prod_sum:0)
+Producer 3 finished, sending 10000 messages (cycles per message 1876) (prod_sum:0)
+Producer 4 finished, sending 10000 messages (cycles per message 3082) (prod_sum:0)
+Producer 6 finished, sending 10000 messages (cycles per message 3778) (prod_sum:0)
+Consumer 0 finished, receiving 10003 messages (cycles per message 10667) (cons sum:0)
+Consumer 1 finished, receiving 10003 messages (cycles per message 10742) (cons sum:0)
+Consumer 2 finished, receiving 10003 messages (cycles per message 10746) (cons sum:0)
+Consumer 3 finished, receiving 10003 messages (cycles per message 10800) (cons sum:0)
+Consumer 4 finished, receiving 9996 messages (cycles per message 14880) (cons sum:0)
+Producer 5 finished, sending 10000 messages (cycles per message 10665) (prod_sum:0)
+Consumer 6 finished, receiving 9996 messages (cycles per message 15146) (cons sum:0)
+Consumer 5 finished, receiving 9996 messages (cycles per message 15145) (cons sum:0)
+Consumer 0 time : (33623 / 106744535)
+Consumer 1 time : (23752 / 107485231)
+Consumer 2 time : (16617 / 107513120)
+Consumer 3 time : (12540 / 108054041)
+Consumer 4 time : (30250 / 148779686)
+Consumer 5 time : (2882 / 151395566)
+Consumer 6 time : (2911 / 151410820)
+Producer 0 time : (3410 / 13621373)
+Producer 1 time : (3234 / 17231903)
+Producer 2 time : (24750 / 17471402)
+Producer 3 time : (8286 / 18778217)
+Producer 4 time : (30220 / 30854142)
+Producer 5 time : (37634 / 106690767)
+Producer 6 time : (10076 / 37798134)
+Global time : (577023612866302 / 577023765260368)
+Test finished

@@ -17,6 +17,7 @@ from time import localtime, strftime
 def main(argv=None):
 
     draw_flag = False
+    hyper_option = True
     draw_option = 2
 
     # get arguments
@@ -42,24 +43,17 @@ def main(argv=None):
         usage()
         sys.exit()
 
-    date = strftime("%Y%m%d-%H%M", localtime())
+    if 'off' in test_directory:
+        hyper_option = False
 
-    CSVExtractor(test_directory, date)
-    #graph_data_result, graph_file_name = GraphDataExtractor(test_directory, date)
-    time_data_result, time_file_name = TimeDataExtractor(test_directory, date)
+    date = strftime("%m%d_%H%M", localtime())
+
+    CSVExtractor(test_directory, date, hyper_option)
+    graph_data_result, graph_file_name = GraphDataExtractor(test_directory, date, hyper_option)
+    #time_data_result, time_file_name = TimeDataExtractor(test_directory, date, hyper_option)
     
-    #TopologyGraph(graph_data_result, graph_file_name)
-    TimeGraph(time_data_result, time_file_name)
+    TopologyGraph(graph_data_result, graph_file_name, hyper_option)
+    #TimeGraph(time_data_result, time_file_name, hyper_option)
     
-
-
-    '''
-    #lock_dic = CSV.checkDirectory(test_directory, csv_file_name)
-    queue_dic = CSV.makeEntireDict(lock_dic)
-                
-    if draw_flag == True:
-        graph_data = Graph.extractGraphData(queue_dic)
-        Graph.drawGraph(graph_data, graph_file_name, draw_option)
-    '''
 if __name__ == "__main__":
     sys.exit(main())

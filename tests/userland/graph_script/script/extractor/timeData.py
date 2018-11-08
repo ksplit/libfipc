@@ -7,16 +7,16 @@ from script.extractor import Extractor
 class TimeDataExtractor(Extractor):
 
     @classmethod
-    def makeResultFileName(cls, date):
-        file_name = "./graph/%s/time" % date
+    def makeResultFileName(cls, directory, date):
+        file_name = "./graph/%s/time" % ( directory.split('/')[1]+'-'+date )
         if not os.path.isdir(file_name):
             os.makedirs(file_name)
 
         return file_name
 
     @classmethod
-    def extract(cls, objs, file_name):
-        time_data = [[[ {}  for number in range(Config.numbers)] 
+    def extract(cls, objs, file_name, hyper_option):
+        time_data = [[[ {}  for number in range(Config.numbers[hyper_option])] 
                     for lock in range(len(Config.lock_value))] 
                     for queue in range(len(Config.queue_value))]
 
@@ -25,7 +25,7 @@ class TimeDataExtractor(Extractor):
                 queue_idx = Config.queue_value.index(queue)
                 lock_idx = Config.lock_value.index(lock)
                 
-                for number in range(Config.numbers):
+                for number in range(Config.numbers[hyper_option]):
                     if number == 0:
                         continue
     

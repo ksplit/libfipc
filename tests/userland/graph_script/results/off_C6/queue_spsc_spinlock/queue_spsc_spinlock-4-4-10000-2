@@ -1,0 +1,40 @@
+try 0
+Starting test with prod count 4, cons count 4, [2] policy
+Pinning thread 140235213027072 to core 6...
+Allocating 1073741824 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 1073741824 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 1073741824 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 1073741824 bytes for the pool of 67108864 objects (pool order:26)
+Pinning thread 140235204634368 to core 0...
+Pinning thread 140235196241664 to core 2...
+Producer 0 (tid: 140235204634368) starting
+Producer 1 (tid: 140235196241664) starting
+Pinning thread 140235187848960 to core 4...
+Producer 2 (tid: 140235187848960) starting
+Pinning thread 140230816413440 to core 16...
+Consumer 0 (tid: 140230816413440) starting
+Pinning thread 140230808020736 to core 18...
+Consumer 1 (tid: 140230808020736) starting
+Pinning thread 140230799628032 to core 20...
+Consumer 2 (tid: 140230799628032) starting
+Pinning thread 140230791235328 to core 22...
+Consumer 3 (tid: 140230791235328) starting
+Producer 3 (tid: 140235213027072) starting
+Producer 0 finished, sending 10000 messages (cycles per message 653) (prod_sum:0)
+Producer 3 finished, sending 10000 messages (cycles per message 680) (prod_sum:0)
+Producer 2 finished, sending 10000 messages (cycles per message 784) (prod_sum:0)
+Producer 1 finished, sending 10000 messages (cycles per message 864) (prod_sum:0)
+Consumer 0 finished, receiving 10000 messages (cycles per message 1028) (cons sum:0)
+Consumer 2 finished, receiving 10000 messages (cycles per message 1046) (cons sum:0)
+Consumer 3 finished, receiving 10000 messages (cycles per message 1062) (cons sum:0)
+Consumer 1 finished, receiving 10000 messages (cycles per message 1072) (cons sum:0)
+Consumer 0 time : (1600 / 10291358)
+Consumer 1 time : (1574 / 10730612)
+Consumer 2 time : (1294 / 10464548)
+Consumer 3 time : (1462 / 10627320)
+Producer 0 time : (1528 / 6535054)
+Producer 1 time : (1500 / 8648798)
+Producer 2 time : (1340 / 7848132)
+Producer 3 time : (4178 / 6808164)
+Global time : (497919342207796 / 497919353154854)
+Test finished

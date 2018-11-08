@@ -1,0 +1,75 @@
+try 0Starting test with prod count 8, cons count 8, [2] policy
+Pinning thread 139759311865600 to core 14...
+Allocating 2147483648 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 2147483648 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 2147483648 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 2147483648 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 2147483648 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 2147483648 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 2147483648 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 2147483648 bytes for the pool of 67108864 objects (pool order:26)
+Pinning thread 139759303472896 to core 0...
+Pinning thread 139759295080192 to core 2...
+Producer 0 (tid: 139759303472896) starting
+Producer 1 (tid: 139759295080192) starting
+Pinning thread 139759286687488 to core 4...
+Pinning thread 139759278294784 to core 6...
+Producer 2 (tid: 139759286687488) starting
+Pinning thread 139759269902080 to core 8...
+Producer 3 (tid: 139759278294784) starting
+Pinning thread 139759261509376 to core 10...
+Producer 4 (tid: 139759269902080) starting
+Producer 5 (tid: 139759261509376) starting
+Pinning thread 139759253116672 to core 12...
+Producer 6 (tid: 139759253116672) starting
+Pinning thread 139741995431680 to core 16...
+Consumer 0 (tid: 139741995431680) starting
+Pinning thread 139741987038976 to core 18...
+Consumer 1 (tid: 139741987038976) starting
+Pinning thread 139741978646272 to core 20...
+Consumer 2 (tid: 139741978646272) starting
+Pinning thread 139741970253568 to core 22...
+Consumer 3 (tid: 139741970253568) starting
+Pinning thread 139741961860864 to core 24...
+Consumer 4 (tid: 139741961860864) starting
+Pinning thread 139741953468160 to core 26...
+Consumer 5 (tid: 139741953468160) starting
+Pinning thread 139741945075456 to core 28...
+Consumer 6 (tid: 139741945075456) starting
+Pinning thread 139741458593536 to core 30...
+Consumer 7 (tid: 139741458593536) starting
+Producer 7 (tid: 139759311865600) starting
+Producer 0 finished, sending 1000000 messages (cycles per message 608) (prod_sum:0)
+Producer 2 finished, sending 1000000 messages (cycles per message 682) (prod_sum:0)
+Producer 1 finished, sending 1000000 messages (cycles per message 685) (prod_sum:0)
+Producer 3 finished, sending 1000000 messages (cycles per message 702) (prod_sum:0)
+Producer 4 finished, sending 1000000 messages (cycles per message 729) (prod_sum:0)
+Producer 5 finished, sending 1000000 messages (cycles per message 734) (prod_sum:0)
+Producer 6 finished, sending 1000000 messages (cycles per message 852) (prod_sum:0)
+Consumer 1 finished, receiving 1000000 messages (cycles per message 910) (cons sum:0)
+Producer 7 finished, sending 1000000 messages (cycles per message 910) (prod_sum:0)
+Consumer 7 finished, receiving 1000000 messages (cycles per message 936) (cons sum:0)
+Consumer 0 finished, receiving 1000000 messages (cycles per message 937) (cons sum:0)
+Consumer 3 finished, receiving 1000000 messages (cycles per message 937) (cons sum:0)
+Consumer 4 finished, receiving 1000000 messages (cycles per message 938) (cons sum:0)
+Consumer 6 finished, receiving 1000000 messages (cycles per message 961) (cons sum:0)
+Consumer 2 finished, receiving 1000000 messages (cycles per message 1125) (cons sum:0)
+Consumer 5 finished, receiving 1000000 messages (cycles per message 1131) (cons sum:0)
+Consumer 0 time : (2010 / 937627718)
+Consumer 1 time : (2252 / 910318154)
+Consumer 2 time : (2406 / 1125349014)
+Consumer 3 time : (2798 / 937857428)
+Consumer 4 time : (2054 / 938696238)
+Consumer 5 time : (2332 / 1131080266)
+Consumer 6 time : (2126 / 961187844)
+Consumer 7 time : (2620 / 936336540)
+Producer 0 time : (2522 / 608950454)
+Producer 1 time : (1946 / 685628488)
+Producer 2 time : (2364 / 682008590)
+Producer 3 time : (1870 / 702999338)
+Producer 4 time : (2596 / 729872510)
+Producer 5 time : (2486 / 734919558)
+Producer 6 time : (2574 / 852965086)
+Producer 7 time : (4602 / 910310256)
+Global time : (14415226230692 / 14416376978008)
+Test finished

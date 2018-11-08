@@ -1,0 +1,80 @@
+try 0
+Starting test with prod count 4, cons count 4, [2] policy
+Pinning thread 140398573922048 to core 12...
+Allocating 1073741824 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 1073741824 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 1073741824 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 1073741824 bytes for the pool of 67108864 objects (pool order:26)
+Pinning thread 140398565529344 to core 0...
+Pinning thread 140398557136640 to core 4...
+Producer 0 (tid: 140398565529344) starting
+Pinning thread 140398548743936 to core 8...
+Producer 1 (tid: 140398557136640) starting
+Pinning thread 140398540351232 to core 32...
+Consumer 0 (tid: 140398540351232) starting
+Producer 2 (tid: 140398548743936) starting
+Pinning thread 140398531958528 to core 36...
+Consumer 1 (tid: 140398531958528) starting
+Pinning thread 140394159388416 to core 40...
+Consumer 2 (tid: 140394159388416) starting
+Pinning thread 140394150995712 to core 44...
+Consumer 3 (tid: 140394150995712) starting
+Producer 3 (tid: 140398573922048) starting
+Producer 3 finished, sending 10000 messages (cycles per message 3603)
+Producer 2 finished, sending 10000 messages (cycles per message 3735)
+Producer 1 finished, sending 10000 messages (cycles per message 3743)
+Producer 0 finished, sending 10000 messages (cycles per message 3781)
+Consumer 0 finished, receiving 10000 messages (cycles per message 3783) (PASSED)
+Consumer 1 finished, receiving 10000 messages (cycles per message 3783) (PASSED)
+Consumer 2 finished, receiving 10000 messages (cycles per message 3922) (PASSED)
+Consumer 3 finished, receiving 10000 messages (cycles per message 4018) (PASSED)
+Consumer 0 time : (1151 / 37832586)
+Consumer 1 time : (1225 / 37833649)
+Consumer 2 time : (1115 / 39226843)
+Consumer 3 time : (924 / 40185259)
+Producer 0 time : (1107 / 37820405)
+Producer 1 time : (1181 / 37432604)
+Producer 2 time : (1071 / 37354306)
+Producer 3 time : (5265 / 36043311)
+Global time : (258418206138789 / 258418246818901)
+Test finished
+try 1
+Starting test with prod count 4, cons count 4, [2] policy
+Pinning thread 140552630454016 to core 12...
+Allocating 1073741824 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 1073741824 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 1073741824 bytes for the pool of 67108864 objects (pool order:26)
+Allocating 1073741824 bytes for the pool of 67108864 objects (pool order:26)
+Pinning thread 140552622061312 to core 0...
+Pinning thread 140552613668608 to core 4...
+Producer 0 (tid: 140552622061312) starting
+Pinning thread 140548241340160 to core 8...
+Producer 1 (tid: 140552613668608) starting
+Pinning thread 140548232947456 to core 32...
+Consumer 0 (tid: 140548232947456) starting
+Producer 2 (tid: 140548241340160) starting
+Pinning thread 140548224554752 to core 36...
+Consumer 1 (tid: 140548224554752) starting
+Pinning thread 140548216162048 to core 40...
+Consumer 2 (tid: 140548216162048) starting
+Pinning thread 140548207769344 to core 44...
+Consumer 3 (tid: 140548207769344) starting
+Producer 3 (tid: 140552630454016) starting
+Producer 1 finished, sending 10000 messages (cycles per message 3669)
+Producer 3 finished, sending 10000 messages (cycles per message 3698)
+Producer 0 finished, sending 10000 messages (cycles per message 3733)
+Producer 2 finished, sending 10000 messages (cycles per message 3763)
+Consumer 0 finished, receiving 10000 messages (cycles per message 3765) (PASSED)
+Consumer 1 finished, receiving 10000 messages (cycles per message 3765) (PASSED)
+Consumer 3 finished, receiving 10000 messages (cycles per message 3873) (PASSED)
+Consumer 2 finished, receiving 10000 messages (cycles per message 3912) (PASSED)
+Consumer 0 time : (1122 / 37652692)
+Consumer 1 time : (1071 / 37654115)
+Consumer 2 time : (1261 / 39130549)
+Consumer 3 time : (865 / 38739668)
+Producer 0 time : (1159 / 37339867)
+Producer 1 time : (1093 / 36698259)
+Producer 2 time : (1225 / 37640152)
+Producer 3 time : (4151 / 36987830)
+Global time : (258506366485921 / 258506406246008)
+Test finished
