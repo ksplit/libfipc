@@ -16,14 +16,17 @@ class Config:
 						'consumer_average', 
 						'consumer_stddev']
 
-	information_value = ['action_plot_value', 
-						'global_time', 
-						'producer_start_time_dict', 
-						'producer_end_time_dict', 
-						'consumer_start_time_dict', 
-						'consumer_end_time_dict', 
-						'producer_pin_dict', 
-						'consumer_pin_dict']
+	information_value = ['transaction_count',
+						'producer_cycle_list', 
+						'consumer_cycle_list',
+						'producer_start_time_list', 
+						'producer_end_time_list', 
+						'consumer_start_time_list', 
+						'consumer_end_time_list',
+						'global_time'
+						]
+
+	time_test_number = 1
 
 	'''
 	Topology Graph Option 

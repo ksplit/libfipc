@@ -5,6 +5,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
+import os
 
 from matplotlib.lines import Line2D
 
@@ -14,7 +15,15 @@ from script.graph import Graph
 class TopologyGraph(Graph):
 
     @classmethod
-    def drawGraph(cls, objs, file, hyper_option):
+    def makeGraphDirectoryName(cls, directory, date):
+        graph_directory = "./graph/topology/%s" % ( directory.split('/')[1]+'-'+date )
+        if not os.path.isdir(graph_directory):
+            os.makedirs(graph_directory)
+
+        return graph_directory
+
+    @classmethod
+    def drawGraph(cls, objs, directory, hyper_option):
 
         '''
         
@@ -37,7 +46,7 @@ class TopologyGraph(Graph):
             second_option = Config.topology_draw_option[(opt+1)%2]
 
             for first in range(len(first_option)):
-                result_file_name = file + "/" + first_option[first]
+                result_file_name = directory + "/" + first_option[first]
                 graph_name = first_option[first].upper()
                 
                 fig = plt.figure(figsize=(Config.topology_fig_width,Config.topology_fig_height))

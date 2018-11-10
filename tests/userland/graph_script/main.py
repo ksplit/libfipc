@@ -4,9 +4,13 @@ import sys
 import json
 
 from script.config import Config
-from script.extractor.csv import CSVExtractor
+
+from script.csv.topologyCSV import TopologyCSV
+from script.csv.timeCSV import TimeCSV
+
+from script.extractor.topologyData import TopologyDataExtractor
 from script.extractor.timeData import TimeDataExtractor
-from script.extractor.graphData import GraphDataExtractor
+
 from script.graph.timeGraph import TimeGraph
 from script.graph.topologyGraph import TopologyGraph
 
@@ -48,12 +52,14 @@ def main(argv=None):
 
     date = strftime("%m%d_%H%M", localtime())
 
-    CSVExtractor(test_directory, date, hyper_option)
-    graph_data_result, graph_file_name = GraphDataExtractor(test_directory, date, hyper_option)
-    #time_data_result, time_file_name = TimeDataExtractor(test_directory, date, hyper_option)
+    topology_csv_files = TopologyCSV(test_directory, date, hyper_option)
+    time_csv_files = TimeCSV(test_directory, date, hyper_option)
+
+    topology_data = TopologyDataExtractor(topology_csv_files, hyper_option)
+    time_data = TimeDataExtractor(time_csv_files, hyper_option)
     
-    TopologyGraph(graph_data_result, graph_file_name, hyper_option)
-    #TimeGraph(time_data_result, time_file_name, hyper_option)
+    TopologyGraph(topology_data, test_directory, date, hyper_option)
+    TimeGraph(time_data, test_directory, date, hyper_option)
     
 if __name__ == "__main__":
     sys.exit(main())

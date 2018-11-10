@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import numpy as np
 import json
+import os
 
 from matplotlib.collections import PolyCollection
 from matplotlib.lines import Line2D
@@ -14,11 +15,18 @@ from script.graph import Graph
 class TimeGraph(Graph):
 
 	@classmethod
-	def drawGraph(cls, objs, file, hyper_option):
+	def makeGraphDirectoryName(cls, directory, date):
+		graph_directory = "./graph/time/%s" % ( directory.split('/')[1]+'-'+date )
+		if not os.path.isdir(graph_directory):
+			os.makedirs(graph_directory)
 
+		return graph_directory
+
+	@classmethod
+	def drawGraph(cls, objs, directory, hyper_option):
 		'''
         Drawing Time(Starvation) Graph
-        '''
+		'''
 
 		for queue in Config.queue_value:
 			for lock in Config.lock_value:
@@ -26,11 +34,11 @@ class TimeGraph(Graph):
 				lock_idx = Config.lock_value.index(lock)
 				
 				for number in Config.time_number_dict[hyper_option]:
-					if Config.information_value[1] not in objs[queue_idx][lock_idx][number].keys():
+					if Config.information_value[7] not in objs[queue_idx][lock_idx][number].keys():
 						continue
 
 					graph_name = queue+"_"+lock+"_"+str(number)
-					result_file_name = file + "/" + graph_name
+					result_file_name = directory + "/" + graph_name
 					graph_name = graph_name.upper()		
 
 					producer = ["P{}".format(i) for i in range(number, 0, -1)]
@@ -43,8 +51,9 @@ class TimeGraph(Graph):
 					end_list : Producer and Consumer end time List
 					event_list : Producer and Consumer Number List
 					'''
-					begin_list = list(objs[queue_idx][lock_idx][number][Config.information_value[4]].values())[::-1] + list(objs[queue_idx][lock_idx][number][Config.information_value[2]].values())[::-1]
-					end_list = list(objs[queue_idx][lock_idx][number][Config.information_value[5]].values())[::-1]+ list(objs[queue_idx][lock_idx][number][Config.information_value[3]].values())[::-1]
+					
+					begin_list = objs[queue_idx][lock_idx][number][Config.information_value[5]][::-1] + objs[queue_idx][lock_idx][number][Config.information_value[3]][::-1]
+					end_list = objs[queue_idx][lock_idx][number][Config.information_value[6]][::-1]+ objs[queue_idx][lock_idx][number][Config.information_value[4]][::-1]
 					event_list = consumer + producer
 
 					min_begin_time = np.min(begin_list)
