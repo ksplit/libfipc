@@ -87,6 +87,11 @@ int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy)
 	
 		if( i == (num_nodes/2 - 1)  && cpu == half - 1 ) i = num_nodes; 
 	    }
+	    else if ( policy == SAME_NODE )
+	    {
+		(*producer_cpus)[prod_id++] = nodes[n].cpu_list[cpu];
+                (*consumer_cpus)[cons_id++] = nodes[n].cpu_list[cpu + half];
+	    }
             else if( policy == SAME_NODE_NON_SIBLING ) // only hyper on
  	    {
 	        int temp = cpu >= num_cpus/4 ? num_cpus/4 : 0 ;
@@ -94,11 +99,6 @@ int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy)
 		
 		(*producer_cpus)[prod_id++] = nodes[n].cpu_list[cpu + temp];
                 (*consumer_cpus)[cons_id++] = nodes[n].cpu_list[cpu + temp + hop];
-	    }
-	    else if ( policy == SAME_NODE_SIBLING )
-	    {
-		(*producer_cpus)[prod_id++] = nodes[n].cpu_list[cpu];
-                (*consumer_cpus)[cons_id++] = nodes[n].cpu_list[cpu + half];
 	    }
 	}
     }
