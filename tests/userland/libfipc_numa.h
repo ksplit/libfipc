@@ -8,6 +8,9 @@
 #define SAME_NODE_NON_SIBLING   2
 #define SAME_NODE_SIBLING       3
 
+#define D820  0
+#define C6420 1
+
 struct node {
         unsigned long cpu_bitmask;
         unsigned int num_cpus;
