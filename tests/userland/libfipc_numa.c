@@ -74,29 +74,31 @@ int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy)
 	int n = node_order[order_type][i]; 
         int num_cpus = nodes[n].num_cpus;
 	int half = policy == DIFF_NODE ? num_cpus : num_cpus / 2;
+	int machine = num_nodes == 4 ? D820 : C6420;
 
         for ( cpu = 0; cpu < half; cpu++ )
 	{
-	    if ( policy == DIFF_NODE) 
+	    if ( policy == DIFF_NODE ) 
 	    {
-		int next_node = node_order[1][i+2];
+		int next_node = machine == D820? node_order[1][i+2] : 1;
 
 		(*producer_cpus)[prod_id++] = nodes[n].cpu_list[cpu];
                 (*consumer_cpus)[cons_id++] = nodes[next_node].cpu_list[cpu];
 	
-		if( i == 1 && cpu == half - 1 ) i = num_nodes; 
+		if( i == (num_nodes/2 - 1)  && cpu == half - 1 ) i = num_nodes; 
 	    }
-            else if( policy == SAME_NODE_NON_SIBLING )
- 	    {
-	        int temp = cpu >= num_cpus/4 ? num_cpus/4 : 0 ;
-		
-		(*producer_cpus)[prod_id++] = nodes[n].cpu_list[cpu + temp];
-                (*consumer_cpus)[cons_id++] = nodes[n].cpu_list[cpu + temp + 4];
-	    }
-	    else if ( policy == SAME_NODE_SIBLING ) //only hyper on
+	    else if ( policy == SAME_NODE )
 	    {
 		(*producer_cpus)[prod_id++] = nodes[n].cpu_list[cpu];
                 (*consumer_cpus)[cons_id++] = nodes[n].cpu_list[cpu + half];
+	    }
+            else if( policy == SAME_NODE_NON_SIBLING ) // only hyper on
+ 	    {
+	        int temp = cpu >= num_cpus/4 ? num_cpus/4 : 0 ;
+		int hop = machine == D820 ? 4 : 8 ;
+		
+		(*producer_cpus)[prod_id++] = nodes[n].cpu_list[cpu + temp];
+                (*consumer_cpus)[cons_id++] = nodes[n].cpu_list[cpu + temp + hop];
 	    }
 	}
     }

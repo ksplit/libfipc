@@ -4,7 +4,11 @@
  */
 
 #include <stdio.h>
-#include <inttypes.h>
+#include <stdint.h>
+
+#ifndef LIBFIPC_TEST
+#include "../libfipc_test.h"
+#endif
 
 typedef unsigned int uint;
 

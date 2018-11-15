@@ -5,8 +5,11 @@
 
 // CPUS Placement Policy
 #define DIFF_NODE        	1
-#define SAME_NODE_NON_SIBLING   2
-#define SAME_NODE_SIBLING       3
+#define SAME_NODE	   	2
+#define SAME_NODE_NON_SIBLING   3
+
+#define D820  0
+#define C6420 1
 
 struct node {
         unsigned long cpu_bitmask;

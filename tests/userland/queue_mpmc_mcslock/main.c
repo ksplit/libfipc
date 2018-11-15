@@ -160,13 +160,13 @@ void * controller(void* data)
 	node_t* haltMsg = (node_t*)vmalloc(consumer_count * sizeof(node_t));
 
 	// Node Table Allocation
-	node_tables = (node_t**)vmalloc(producer_count * sizeof(node_t*));
+	node_tables = (node_t**)numa_alloc_onnode(producer_count * sizeof(node_t*), 0);
 
 	for (i = 0; i < producer_count; ++i) 
 	{
 		pr_err("Allocating %lu bytes for the pool of %lu objects (pool order:%lu)\n",
 			mem_pool_size * sizeof(node_t), mem_pool_size, mem_pool_order);
-		node_tables[i] = (node_t*)vmalloc(mem_pool_size * sizeof(node_t));
+		node_tables[i] = (node_t*)numa_alloc_onnode(mem_pool_size * sizeof(node_t), 0);
 	}
 
 	fipc_test_mfence();
@@ -271,9 +271,9 @@ void * controller(void* data)
 		vfree(prod_threads);
 
 	for (i = 0; i < producer_count; ++i)
-		vfree(node_tables[i]);
+		numa_free(node_tables[i], mem_pool_size * sizeof(node_t));
 
-	vfree(node_tables);
+	numa_free(node_tables, producer_count * sizeof(node_t*));
 
 	free_queue(&queue);
 
