@@ -1,0 +1,40 @@
+try 0
+Starting test with prod count 4, cons count 4, [2] policy
+Pinning thread 140209360156416 to core 12...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 140209351763712 to core 0...
+Pinning thread 140207127000832 to core 4...
+Producer 0 (tid: 140209351763712) starting
+Pinning thread 140207118608128 to core 8...
+Producer 1 (tid: 140207127000832) starting
+Producer 2 (tid: 140207118608128) starting
+Pinning thread 140207110215424 to core 16...
+Pinning thread 140207101822720 to core 20...
+Consumer 0 (tid: 140207110215424) starting
+Consumer 1 (tid: 140207101822720) starting
+Pinning thread 140207093430016 to core 24...
+Pinning thread 140207085037312 to core 28...
+Consumer 2 (tid: 140207093430016) starting
+Consumer 3 (tid: 140207085037312) starting
+Producer 3 (tid: 140209360156416) starting
+Producer 1 finished, sending 10000 messages (cycles per message 3391)
+Producer 3 finished, sending 10000 messages (cycles per message 3463)
+Producer 2 finished, sending 10000 messages (cycles per message 3465)
+Producer 0 finished, sending 10000 messages (cycles per message 3473)
+Consumer 0 finished, receiving 10000 messages (cycles per message 3473) (PASSED)
+Consumer 1 finished, receiving 10000 messages (cycles per message 3473) (PASSED)
+Consumer 3 finished, receiving 10000 messages (cycles per message 3474) (PASSED)
+Consumer 2 finished, receiving 10000 messages (cycles per message 3474) (PASSED)
+Consumer 0 time : (626 / 34739154)
+Consumer 1 time : (642 / 34739770)
+Consumer 2 time : (560 / 34741580)
+Consumer 3 time : (590 / 34742126)
+Producer 0 time : (576 / 34730716)
+Producer 1 time : (864 / 33919844)
+Producer 2 time : (606 / 34660326)
+Producer 3 time : (3468 / 34642864)
+Global time : (47885872168264 / 47885907416724)
+Test finished

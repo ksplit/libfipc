@@ -1,0 +1,40 @@
+try 0
+Starting test with prod count 4, cons count 4, [3] policy
+Pinning thread 139627217078016 to core 12...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 139627208685312 to core 0...
+Pinning thread 139627200292608 to core 4...
+Producer 0 (tid: 139627208685312) starting
+Producer 1 (tid: 139627200292608) starting
+Pinning thread 139627191899904 to core 8...
+Pinning thread 139627183507200 to core 16...
+Producer 2 (tid: 139627191899904) starting
+Consumer 0 (tid: 139627183507200) starting
+Pinning thread 139624957605632 to core 20...
+Pinning thread 139624949212928 to core 24...
+Consumer 1 (tid: 139624957605632) starting
+Pinning thread 139624940820224 to core 28...
+Consumer 2 (tid: 139624949212928) starting
+Consumer 3 (tid: 139624940820224) starting
+Producer 3 (tid: 139627217078016) starting
+Producer 1 finished, sending 1000000 messages (cycles per message 2550)
+Producer 2 finished, sending 1000000 messages (cycles per message 2777)
+Producer 3 finished, sending 1000000 messages (cycles per message 2859)
+Producer 0 finished, sending 1000000 messages (cycles per message 3032)
+Consumer 1 finished, receiving 960637 messages (cycles per message 3156) (PASSED)
+Consumer 0 finished, receiving 958029 messages (cycles per message 3165) (PASSED)
+Consumer 3 finished, receiving 1083052 messages (cycles per message 2799) (PASSED)
+Consumer 2 finished, receiving 998282 messages (cycles per message 3037) (PASSED)
+Consumer 0 time : (606 / 3032472713)
+Consumer 1 time : (541 / 3032473470)
+Consumer 2 time : (618 / 3032473986)
+Consumer 3 time : (566 / 3032473200)
+Producer 0 time : (574 / 3032409994)
+Producer 1 time : (521 / 2550503119)
+Producer 2 time : (505 / 2777987482)
+Producer 3 time : (3741 / 2859719627)
+Global time : (105404908425051 / 105407947640292)
+Test finished

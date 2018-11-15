@@ -1,0 +1,40 @@
+try 0
+Starting test with prod count 4, cons count 4, [2] policy
+Pinning thread 140659683677952 to core 12...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 140659675285248 to core 0...
+Pinning thread 140659666892544 to core 4...
+Producer 0 (tid: 140659675285248) starting
+Pinning thread 140659658499840 to core 8...
+Producer 1 (tid: 140659666892544) starting
+Pinning thread 140657427478272 to core 32...
+Producer 2 (tid: 140659658499840) starting
+Consumer 0 (tid: 140657427478272) starting
+Pinning thread 140657419085568 to core 36...
+Consumer 1 (tid: 140657419085568) starting
+Pinning thread 140657410692864 to core 40...
+Consumer 2 (tid: 140657410692864) starting
+Pinning thread 140657402300160 to core 44...
+Consumer 3 (tid: 140657402300160) starting
+Producer 3 (tid: 140659683677952) starting
+Producer 3 finished, sending 10000 messages (cycles per message 27503)
+Producer 2 finished, sending 10000 messages (cycles per message 29328)
+Producer 0 finished, sending 10000 messages (cycles per message 47225)
+Producer 1 finished, sending 10000 messages (cycles per message 126059)
+Consumer 2 finished, receiving 6215 messages (cycles per message 206590) (PASSED)
+Consumer 0 finished, receiving 14260 messages (cycles per message 90040) (PASSED)
+Consumer 1 finished, receiving 13030 messages (cycles per message 98540) (PASSED)
+Consumer 3 finished, receiving 6495 messages (cycles per message 197684) (PASSED)
+Consumer 0 time : (1056 / 1283975500)
+Consumer 1 time : (1122 / 1283979729)
+Consumer 2 time : (1188 / 1283964030)
+Consumer 3 time : (902 / 1283964463)
+Producer 0 time : (1100 / 472258153)
+Producer 1 time : (1078 / 1260591793)
+Producer 2 time : (1152 / 293289803)
+Producer 3 time : (5794 / 275041705)
+Global time : (87224847199820 / 87226131539690)
+Test finished

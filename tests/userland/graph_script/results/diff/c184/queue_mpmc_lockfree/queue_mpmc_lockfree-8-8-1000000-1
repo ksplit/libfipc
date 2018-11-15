@@ -1,0 +1,76 @@
+try 0
+Starting test with prod count 8, cons count 8, [1] policy
+Pinning thread 140455325042432 to core 14...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 140455316649728 to core 0...
+Producer 0 (tid: 140455316649728) starting
+Pinning thread 140455308257024 to core 2...
+Producer 1 (tid: 140455308257024) starting
+Pinning thread 140450933503744 to core 4...
+Producer 2 (tid: 140450933503744) starting
+Pinning thread 140450925111040 to core 6...
+Producer 3 (tid: 140450925111040) starting
+Pinning thread 140450916718336 to core 8...
+Producer 4 (tid: 140450916718336) starting
+Pinning thread 140450908325632 to core 10...
+Producer 5 (tid: 140450908325632) starting
+Pinning thread 140450899932928 to core 12...
+Producer 6 (tid: 140450899932928) starting
+Pinning thread 140450891540224 to core 1...
+Consumer 0 (tid: 140450891540224) starting
+Pinning thread 140450883147520 to core 3...
+Consumer 1 (tid: 140450883147520) starting
+Pinning thread 140450874754816 to core 5...
+Consumer 2 (tid: 140450874754816) starting
+Pinning thread 140450866362112 to core 7...
+Consumer 3 (tid: 140450866362112) starting
+Pinning thread 140450857969408 to core 9...
+Consumer 4 (tid: 140450857969408) starting
+Pinning thread 140450849576704 to core 11...
+Consumer 5 (tid: 140450849576704) starting
+Pinning thread 140450841184000 to core 13...
+Consumer 6 (tid: 140450841184000) starting
+Pinning thread 140450832791296 to core 15...
+Consumer 7 (tid: 140450832791296) starting
+Producer 7 (tid: 140455325042432) starting
+Producer 6 finished, sending 1000000 messages (cycles per message 14489)
+Producer 7 finished, sending 1000000 messages (cycles per message 14644)
+Producer 0 finished, sending 1000000 messages (cycles per message 14660)
+Producer 5 finished, sending 1000000 messages (cycles per message 14668)
+Producer 3 finished, sending 1000000 messages (cycles per message 14698)
+Producer 2 finished, sending 1000000 messages (cycles per message 14743)
+Producer 1 finished, sending 1000000 messages (cycles per message 14747)
+Producer 4 finished, sending 1000000 messages (cycles per message 14756)
+Consumer 1 finished, receiving 978495 messages (cycles per message 15081) (PASSED)
+Consumer 6 finished, receiving 1023715 messages (cycles per message 14414) (PASSED)
+Consumer 5 finished, receiving 989783 messages (cycles per message 14909) (PASSED)
+Consumer 3 finished, receiving 1023679 messages (cycles per message 14415) (PASSED)
+Consumer 4 finished, receiving 987075 messages (cycles per message 14949) (PASSED)
+Consumer 2 finished, receiving 978321 messages (cycles per message 15083) (PASSED)
+Consumer 7 finished, receiving 986169 messages (cycles per message 14963) (PASSED)
+Consumer 0 finished, receiving 1032763 messages (cycles per message 14288) (PASSED)
+Consumer 0 time : (2576 / 14756750762)
+Consumer 1 time : (2714 / 14756756722)
+Consumer 2 time : (2604 / 14756757902)
+Consumer 3 time : (2674 / 14756751818)
+Consumer 4 time : (2822 / 14756753744)
+Consumer 5 time : (2766 / 14756754596)
+Consumer 6 time : (2854 / 14756752710)
+Consumer 7 time : (2390 / 14756758088)
+Producer 0 time : (1772 / 14660876350)
+Producer 1 time : (2068 / 14747922762)
+Producer 2 time : (1738 / 14743962718)
+Producer 3 time : (1888 / 14698164972)
+Producer 4 time : (1928 / 14756733858)
+Producer 5 time : (1968 / 14668801068)
+Producer 6 time : (1838 / 14489550424)
+Producer 7 time : (4828 / 14644728284)
+Global time : (53960639461182 / 53975407470254)
+Test finished

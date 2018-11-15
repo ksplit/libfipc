@@ -1,0 +1,40 @@
+try 0
+Starting test with prod count 4, cons count 4, [1] policy
+Pinning thread 139884878763776 to core 12...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 139882655643392 to core 0...
+Pinning thread 139882647250688 to core 4...
+Producer 0 (tid: 139882655643392) starting
+Producer 1 (tid: 139882647250688) starting
+Pinning thread 139882638857984 to core 8...
+Producer 2 (tid: 139882638857984) starting
+Pinning thread 139882630465280 to core 1...
+Pinning thread 139882622072576 to core 5...
+Pinning thread 139882613679872 to core 9...
+Consumer 0 (tid: 139882630465280) starting
+Consumer 1 (tid: 139882622072576) starting
+Pinning thread 139882605287168 to core 13...
+Consumer 2 (tid: 139882613679872) starting
+Consumer 3 (tid: 139882605287168) starting
+Producer 3 (tid: 139884878763776) starting
+Producer 0 finished, sending 1000000 messages (cycles per message 9335)
+Producer 3 finished, sending 1000000 messages (cycles per message 9497)
+Producer 1 finished, sending 1000000 messages (cycles per message 9573)
+Producer 2 finished, sending 1000000 messages (cycles per message 9658)
+Consumer 2 finished, receiving 950266 messages (cycles per message 10164) (PASSED)
+Consumer 3 finished, receiving 1014809 messages (cycles per message 9517) (PASSED)
+Consumer 0 finished, receiving 1050714 messages (cycles per message 9192) (PASSED)
+Consumer 1 finished, receiving 984211 messages (cycles per message 9813) (PASSED)
+Consumer 0 time : (2058 / 9658698647)
+Consumer 1 time : (1948 / 9658699056)
+Consumer 2 time : (2175 / 9658700417)
+Consumer 3 time : (2109 / 9658699509)
+Producer 0 time : (1242 / 9335598694)
+Producer 1 time : (1208 / 9573627504)
+Producer 2 time : (1246 / 9658366150)
+Producer 3 time : (8290 / 9497313772)
+Global time : (28806428466020 / 28816093813012)
+Test finished

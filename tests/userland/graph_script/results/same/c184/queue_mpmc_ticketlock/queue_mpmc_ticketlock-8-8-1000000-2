@@ -1,0 +1,76 @@
+try 0
+Starting test with prod count 8, cons count 8, [2] policy
+Pinning thread 140197768718080 to core 14...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 140197760325376 to core 0...
+Producer 0 (tid: 140197760325376) starting
+Pinning thread 140197751932672 to core 2...
+Producer 1 (tid: 140197751932672) starting
+Pinning thread 140197743539968 to core 4...
+Producer 2 (tid: 140197743539968) starting
+Pinning thread 140193369683712 to core 6...
+Producer 3 (tid: 140193369683712) starting
+Pinning thread 140193361291008 to core 8...
+Producer 4 (tid: 140193361291008) starting
+Pinning thread 140193352898304 to core 10...
+Producer 5 (tid: 140193352898304) starting
+Pinning thread 140193344505600 to core 12...
+Producer 6 (tid: 140193344505600) starting
+Pinning thread 140193336112896 to core 16...
+Consumer 0 (tid: 140193336112896) starting
+Pinning thread 140193327720192 to core 18...
+Consumer 1 (tid: 140193327720192) starting
+Pinning thread 140193319327488 to core 20...
+Consumer 2 (tid: 140193319327488) starting
+Pinning thread 140193310934784 to core 22...
+Consumer 3 (tid: 140193310934784) starting
+Pinning thread 140193302542080 to core 24...
+Consumer 4 (tid: 140193302542080) starting
+Pinning thread 140193294149376 to core 26...
+Consumer 5 (tid: 140193294149376) starting
+Pinning thread 140193285756672 to core 28...
+Consumer 6 (tid: 140193285756672) starting
+Pinning thread 140193277363968 to core 30...
+Consumer 7 (tid: 140193277363968) starting
+Producer 7 (tid: 140197768718080) starting
+Producer 7 finished, sending 1000000 messages (cycles per message 24282)
+Producer 1 finished, sending 1000000 messages (cycles per message 24286)
+Producer 6 finished, sending 1000000 messages (cycles per message 24288)
+Producer 3 finished, sending 1000000 messages (cycles per message 24289)
+Producer 5 finished, sending 1000000 messages (cycles per message 24293)
+Producer 0 finished, sending 1000000 messages (cycles per message 24298)
+Producer 2 finished, sending 1000000 messages (cycles per message 24300)
+Producer 4 finished, sending 1000000 messages (cycles per message 24303)
+Consumer 4 finished, receiving 1000623 messages (cycles per message 24288) (PASSED)
+Consumer 5 finished, receiving 1000541 messages (cycles per message 24290) (PASSED)
+Consumer 7 finished, receiving 1000151 messages (cycles per message 24299) (PASSED)
+Consumer 1 finished, receiving 1000136 messages (cycles per message 24299) (PASSED)
+Consumer 0 finished, receiving 998898 messages (cycles per message 24330) (PASSED)
+Consumer 3 finished, receiving 1000161 messages (cycles per message 24299) (PASSED)
+Consumer 6 finished, receiving 1000593 messages (cycles per message 24288) (PASSED)
+Consumer 2 finished, receiving 998897 messages (cycles per message 24330) (PASSED)
+Consumer 0 time : (1910 / 24303261660)
+Consumer 1 time : (2032 / 24303258892)
+Consumer 2 time : (1896 / 24303260618)
+Consumer 3 time : (2460 / 24303261998)
+Consumer 4 time : (2186 / 24303259666)
+Consumer 5 time : (1732 / 24303260038)
+Consumer 6 time : (2362 / 24303262288)
+Consumer 7 time : (2564 / 24303261178)
+Producer 0 time : (2610 / 24298795150)
+Producer 1 time : (2416 / 24286111332)
+Producer 2 time : (2332 / 24300222210)
+Producer 3 time : (2484 / 24289687034)
+Producer 4 time : (1800 / 24303238724)
+Producer 5 time : (2262 / 24293709926)
+Producer 6 time : (2104 / 24288516308)
+Producer 7 time : (5146 / 24282711430)
+Global time : (74943275194124 / 74967589984648)
+Test finished

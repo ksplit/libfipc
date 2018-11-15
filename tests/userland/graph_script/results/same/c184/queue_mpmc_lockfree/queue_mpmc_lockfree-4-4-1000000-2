@@ -1,0 +1,40 @@
+try 0
+Starting test with prod count 4, cons count 4, [2] policy
+Pinning thread 140234062448384 to core 6...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 140234054055680 to core 0...
+Producer 0 (tid: 140234054055680) starting
+Pinning thread 140231823062784 to core 2...
+Producer 1 (tid: 140231823062784) starting
+Pinning thread 140231814670080 to core 4...
+Producer 2 (tid: 140231814670080) starting
+Pinning thread 140231806277376 to core 16...
+Consumer 0 (tid: 140231806277376) starting
+Pinning thread 140231797884672 to core 18...
+Consumer 1 (tid: 140231797884672) starting
+Pinning thread 140231789491968 to core 20...
+Consumer 2 (tid: 140231789491968) starting
+Pinning thread 140231781099264 to core 22...
+Consumer 3 (tid: 140231781099264) starting
+Producer 3 (tid: 140234062448384) starting
+Producer 2 finished, sending 1000000 messages (cycles per message 3902)
+Producer 3 finished, sending 1000000 messages (cycles per message 3926)
+Producer 0 finished, sending 1000000 messages (cycles per message 3929)
+Producer 1 finished, sending 1000000 messages (cycles per message 3935)
+Consumer 1 finished, receiving 988357 messages (cycles per message 3981) (PASSED)
+Consumer 3 finished, receiving 999269 messages (cycles per message 3938) (PASSED)
+Consumer 2 finished, receiving 1001892 messages (cycles per message 3928) (PASSED)
+Consumer 0 finished, receiving 1010482 messages (cycles per message 3894) (PASSED)
+Consumer 0 time : (1404 / 3935465278)
+Consumer 1 time : (1580 / 3935463856)
+Consumer 2 time : (28380 / 3935465706)
+Consumer 3 time : (1284 / 3935464382)
+Producer 0 time : (1362 / 3929023770)
+Producer 1 time : (1538 / 3935444160)
+Producer 2 time : (1640 / 3902511436)
+Producer 3 time : (4506 / 3926403490)
+Global time : (74403068565942 / 74407009884480)
+Test finished

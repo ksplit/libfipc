@@ -1,0 +1,49 @@
+try 0
+Starting test with prod count 5, cons count 5, [1] policy
+Pinning thread 139885298550528 to core 8...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 139885290157824 to core 0...
+Producer 0 (tid: 139885290157824) starting
+Pinning thread 139885281765120 to core 2...
+Producer 1 (tid: 139885281765120) starting
+Pinning thread 139882521425664 to core 4...
+Producer 2 (tid: 139882521425664) starting
+Pinning thread 139882513032960 to core 6...
+Producer 3 (tid: 139882513032960) starting
+Pinning thread 139882504640256 to core 1...
+Consumer 0 (tid: 139882504640256) starting
+Pinning thread 139882496247552 to core 3...
+Consumer 1 (tid: 139882496247552) starting
+Pinning thread 139882487854848 to core 5...
+Consumer 2 (tid: 139882487854848) starting
+Pinning thread 139882479462144 to core 7...
+Consumer 3 (tid: 139882479462144) starting
+Pinning thread 139882471069440 to core 9...
+Consumer 4 (tid: 139882471069440) starting
+Producer 4 (tid: 139885298550528) starting
+Producer 2 finished, sending 1000000 messages (cycles per message 3545)
+Producer 3 finished, sending 1000000 messages (cycles per message 3547)
+Producer 1 finished, sending 1000000 messages (cycles per message 3547)
+Producer 4 finished, sending 1000000 messages (cycles per message 3548)
+Producer 0 finished, sending 1000000 messages (cycles per message 3549)
+Consumer 2 finished, receiving 1000000 messages (cycles per message 3549) (PASSED)
+Consumer 1 finished, receiving 1000000 messages (cycles per message 3549) (PASSED)
+Consumer 3 finished, receiving 1000000 messages (cycles per message 3549) (PASSED)
+Consumer 0 finished, receiving 1000000 messages (cycles per message 3549) (PASSED)
+Consumer 4 finished, receiving 1000000 messages (cycles per message 3614) (PASSED)
+Consumer 0 time : (2406 / 3549228198)
+Consumer 1 time : (1784 / 3549228504)
+Consumer 2 time : (32864 / 3549228958)
+Consumer 3 time : (33176 / 3549231220)
+Consumer 4 time : (2528 / 3614711800)
+Producer 0 time : (1936 / 3549216968)
+Producer 1 time : (2248 / 3547854390)
+Producer 2 time : (2200 / 3545982312)
+Producer 3 time : (2108 / 3547377110)
+Producer 4 time : (4564 / 3548806850)
+Global time : (2052078098581484 / 2052081720259472)
+Test finished

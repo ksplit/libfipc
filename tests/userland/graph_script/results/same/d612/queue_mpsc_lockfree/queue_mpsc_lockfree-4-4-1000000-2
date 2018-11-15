@@ -1,0 +1,40 @@
+try 0
+Starting test with prod count 4, cons count 4, [2] policy
+Pinning thread 139790659790592 to core 12...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 139788434798336 to core 0...
+Pinning thread 139788426405632 to core 4...
+Producer 0 (tid: 139788434798336) starting
+Producer 1 (tid: 139788426405632) starting
+Pinning thread 139788418012928 to core 8...
+Pinning thread 139788409620224 to core 32...
+Producer 2 (tid: 139788418012928) starting
+Consumer 0 (tid: 139788409620224) starting
+Pinning thread 139788401227520 to core 36...
+Consumer 1 (tid: 139788401227520) starting
+Pinning thread 139788392834816 to core 40...
+Consumer 2 (tid: 139788392834816) starting
+Pinning thread 139788384442112 to core 44...
+Consumer 3 (tid: 139788384442112) starting
+Producer 3 (tid: 139790659790592) starting
+Producer 1 finished, sending 1000000 messages (cycles per message 730)
+Producer 2 finished, sending 1000000 messages (cycles per message 732)
+Producer 0 finished, sending 1000000 messages (cycles per message 738)
+Producer 3 finished, sending 1000000 messages (cycles per message 740)
+Consumer 3 finished, receiving 1000000 messages (cycles per message 740) (PASSED)
+Consumer 0 finished, receiving 1000000 messages (cycles per message 740) (PASSED)
+Consumer 1 finished, receiving 1000000 messages (cycles per message 740) (PASSED)
+Consumer 2 finished, receiving 1000000 messages (cycles per message 740) (PASSED)
+Consumer 0 time : (537 / 740071463)
+Consumer 1 time : (506 / 740071678)
+Consumer 2 time : (535 / 740071840)
+Consumer 3 time : (425 / 740071788)
+Producer 0 time : (552 / 738680760)
+Producer 1 time : (524 / 730191839)
+Producer 2 time : (544 / 732474627)
+Producer 3 time : (3362 / 740049418)
+Global time : (95083473041802 / 95084219656008)
+Test finished

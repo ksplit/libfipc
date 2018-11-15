@@ -1,0 +1,40 @@
+try 0
+Starting test with prod count 4, cons count 4, [2] policy
+Pinning thread 140640254895872 to core 12...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 140640246503168 to core 0...
+Pinning thread 140640238110464 to core 4...
+Pinning thread 140640229717760 to core 8...
+Producer 1 (tid: 140640238110464) starting
+Pinning thread 140640221325056 to core 32...
+Producer 2 (tid: 140640229717760) starting
+Producer 0 (tid: 140640246503168) starting
+Consumer 0 (tid: 140640221325056) starting
+Pinning thread 140640212932352 to core 36...
+Consumer 1 (tid: 140640212932352) starting
+Pinning thread 140640204539648 to core 40...
+Consumer 2 (tid: 140640204539648) starting
+Pinning thread 140640196146944 to core 44...
+Consumer 3 (tid: 140640196146944) starting
+Producer 3 (tid: 140640254895872) starting
+Producer 0 finished, sending 10000 messages (cycles per message 945) (prod_sum:0)
+Producer 1 finished, sending 10000 messages (cycles per message 1115) (prod_sum:0)
+Producer 3 finished, sending 10000 messages (cycles per message 1156) (prod_sum:0)
+Producer 2 finished, sending 10000 messages (cycles per message 1251) (prod_sum:0)
+Consumer 0 finished, receiving 10000 messages (cycles per message 1286) (cons sum:0)
+Consumer 2 finished, receiving 10000 messages (cycles per message 1322) (cons sum:0)
+Consumer 3 finished, receiving 10000 messages (cycles per message 1329) (cons sum:0)
+Consumer 1 finished, receiving 10000 messages (cycles per message 1332) (cons sum:0)
+Consumer 0 time : (1144 / 12862124)
+Consumer 1 time : (1085 / 13322474)
+Consumer 2 time : (1085 / 13222044)
+Consumer 3 time : (865 / 13297196)
+Producer 0 time : (1115 / 9454016)
+Producer 1 time : (1049 / 11157241)
+Producer 2 time : (1115 / 12516101)
+Producer 3 time : (6695 / 11576385)
+Global time : (95838515090817 / 95838528885396)
+Test finished

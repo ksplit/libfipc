@@ -1,0 +1,40 @@
+try 0
+Starting test with prod count 4, cons count 4, [2] policy
+Pinning thread 139915814074112 to core 6...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 139915805681408 to core 0...
+Producer 0 (tid: 139915805681408) starting
+Pinning thread 139915797288704 to core 2...
+Producer 1 (tid: 139915797288704) starting
+Pinning thread 139915788896000 to core 4...
+Producer 2 (tid: 139915788896000) starting
+Pinning thread 139915780503296 to core 16...
+Consumer 0 (tid: 139915780503296) starting
+Pinning thread 139915772110592 to core 18...
+Consumer 1 (tid: 139915772110592) starting
+Pinning thread 139915763717888 to core 20...
+Consumer 2 (tid: 139915763717888) starting
+Pinning thread 139915755325184 to core 22...
+Consumer 3 (tid: 139915755325184) starting
+Producer 3 (tid: 139915814074112) starting
+Producer 0 finished, sending 10000 messages (cycles per message 36498)
+Producer 1 finished, sending 10000 messages (cycles per message 36599)
+Producer 3 finished, sending 10000 messages (cycles per message 38368)
+Producer 2 finished, sending 10000 messages (cycles per message 41768)
+Consumer 1 finished, receiving 8209 messages (cycles per message 50911) (PASSED)
+Consumer 0 finished, receiving 10668 messages (cycles per message 39176) (PASSED)
+Consumer 2 finished, receiving 11590 messages (cycles per message 36059) (PASSED)
+Consumer 3 finished, receiving 9533 messages (cycles per message 43840) (PASSED)
+Consumer 0 time : (1592 / 417936410)
+Consumer 1 time : (1420 / 417932258)
+Consumer 2 time : (1632 / 417933280)
+Consumer 3 time : (1520 / 417934432)
+Producer 0 time : (1548 / 364983636)
+Producer 1 time : (1344 / 365993186)
+Producer 2 time : (1376 / 417683744)
+Producer 3 time : (4586 / 383687558)
+Global time : (74363954900660 / 74364373076936)
+Test finished

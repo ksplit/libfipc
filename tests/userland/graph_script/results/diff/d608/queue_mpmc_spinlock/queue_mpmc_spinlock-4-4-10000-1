@@ -1,0 +1,40 @@
+try 0
+Starting test with prod count 4, cons count 4, [1] policy
+Pinning thread 140504118572800 to core 12...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 140504110180096 to core 0...
+Pinning thread 140504101787392 to core 4...
+Producer 0 (tid: 140504110180096) starting
+Pinning thread 140504093394688 to core 8...
+Producer 1 (tid: 140504101787392) starting
+Pinning thread 140501869131520 to core 1...
+Producer 2 (tid: 140504093394688) starting
+Pinning thread 140501860738816 to core 5...
+Consumer 0 (tid: 140501869131520) starting
+Pinning thread 140501852346112 to core 9...
+Consumer 1 (tid: 140501860738816) starting
+Pinning thread 140501843953408 to core 13...
+Consumer 2 (tid: 140501852346112) starting
+Consumer 3 (tid: 140501843953408) starting
+Producer 3 (tid: 140504118572800) starting
+Producer 0 finished, sending 10000 messages (cycles per message 23566)
+Producer 1 finished, sending 10000 messages (cycles per message 32619)
+Producer 2 finished, sending 10000 messages (cycles per message 39099)
+Producer 3 finished, sending 10000 messages (cycles per message 39855)
+Consumer 2 finished, receiving 10249 messages (cycles per message 47963) (PASSED)
+Consumer 0 finished, receiving 10581 messages (cycles per message 46459) (PASSED)
+Consumer 1 finished, receiving 11802 messages (cycles per message 41652) (PASSED)
+Consumer 3 finished, receiving 7368 messages (cycles per message 66718) (PASSED)
+Consumer 0 time : (2698 / 491594114)
+Consumer 1 time : (2618 / 491589714)
+Consumer 2 time : (2662 / 491583114)
+Consumer 3 time : (2200 / 491585937)
+Producer 0 time : (3072 / 235670702)
+Producer 1 time : (3182 / 326194161)
+Producer 2 time : (1672 / 391000463)
+Producer 3 time : (9042 / 398564210)
+Global time : (28750040952674 / 28750533331322)
+Test finished

@@ -1,0 +1,76 @@
+try 0
+Starting test with prod count 8, cons count 8, [1] policy
+Pinning thread 139876133537536 to core 14...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 139876125144832 to core 0...
+Producer 0 (tid: 139876125144832) starting
+Pinning thread 139876116752128 to core 2...
+Producer 1 (tid: 139876116752128) starting
+Pinning thread 139876108359424 to core 4...
+Producer 2 (tid: 139876108359424) starting
+Pinning thread 139876099966720 to core 6...
+Producer 3 (tid: 139876099966720) starting
+Pinning thread 139876091574016 to core 8...
+Producer 4 (tid: 139876091574016) starting
+Pinning thread 139871716898560 to core 10...
+Producer 5 (tid: 139871716898560) starting
+Pinning thread 139871708505856 to core 12...
+Producer 6 (tid: 139871708505856) starting
+Pinning thread 139871700113152 to core 1...
+Consumer 0 (tid: 139871700113152) starting
+Pinning thread 139871691720448 to core 3...
+Consumer 1 (tid: 139871691720448) starting
+Pinning thread 139871683327744 to core 5...
+Consumer 2 (tid: 139871683327744) starting
+Pinning thread 139871674935040 to core 7...
+Consumer 3 (tid: 139871674935040) starting
+Pinning thread 139871666542336 to core 9...
+Consumer 4 (tid: 139871666542336) starting
+Pinning thread 139871658149632 to core 11...
+Consumer 5 (tid: 139871658149632) starting
+Pinning thread 139871649756928 to core 13...
+Consumer 6 (tid: 139871649756928) starting
+Pinning thread 139871641364224 to core 15...
+Consumer 7 (tid: 139871641364224) starting
+Producer 7 (tid: 139876133537536) starting
+Producer 5 finished, sending 1000000 messages (cycles per message 15119)
+Producer 0 finished, sending 1000000 messages (cycles per message 15119)
+Producer 2 finished, sending 1000000 messages (cycles per message 15120)
+Producer 3 finished, sending 1000000 messages (cycles per message 15120)
+Producer 6 finished, sending 1000000 messages (cycles per message 15120)
+Producer 4 finished, sending 1000000 messages (cycles per message 15120)
+Producer 1 finished, sending 1000000 messages (cycles per message 15120)
+Producer 7 finished, sending 1000000 messages (cycles per message 15121)
+Consumer 7 finished, receiving 1000001 messages (cycles per message 15121) (PASSED)
+Consumer 6 finished, receiving 1000216 messages (cycles per message 15118) (PASSED)
+Consumer 5 finished, receiving 999950 messages (cycles per message 15122) (PASSED)
+Consumer 4 finished, receiving 999853 messages (cycles per message 15124) (PASSED)
+Consumer 2 finished, receiving 999895 messages (cycles per message 15123) (PASSED)
+Consumer 0 finished, receiving 1000073 messages (cycles per message 15120) (PASSED)
+Consumer 1 finished, receiving 1000056 messages (cycles per message 15120) (PASSED)
+Consumer 3 finished, receiving 999956 messages (cycles per message 15122) (PASSED)
+Consumer 0 time : (20226 / 15121828758)
+Consumer 1 time : (20436 / 15121828502)
+Consumer 2 time : (20484 / 15121829090)
+Consumer 3 time : (20748 / 15121829378)
+Consumer 4 time : (20634 / 15121829962)
+Consumer 5 time : (20596 / 15121829640)
+Consumer 6 time : (22354 / 15121828454)
+Consumer 7 time : (20328 / 15121827892)
+Producer 0 time : (19684 / 15119817074)
+Producer 1 time : (19788 / 15120961252)
+Producer 2 time : (19822 / 15120094336)
+Producer 3 time : (19912 / 15120490116)
+Producer 4 time : (19606 / 15120609062)
+Producer 5 time : (19652 / 15119564660)
+Producer 6 time : (19858 / 15120596072)
+Producer 7 time : (22892 / 15121806206)
+Global time : (54226839200266 / 54241971949832)
+Test finished
