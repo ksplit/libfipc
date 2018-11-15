@@ -8,8 +8,8 @@ from subprocess import *
 from time import localtime, strftime
 
 # Default profiling options
-RUN_BASE = "/users/ji1/revert/tests/userland"
-TEST_LIST = [ 'queue_mpsc_mcslock' ]
+RUN_BASE = "/users/ji1/fast-ipc-module/tests/userland"
+TEST_LIST = [ 'queue_mpmc_spinlock' ]
 expInfoFName = 'exp.info'
 iterCnt = 1
 opt = [ 1 ]
@@ -132,7 +132,11 @@ def main(argv=None):
 					print("------------------------------\n")
 					print "\n[ (%d) try ] %s" % (t, cmd)
 					p = Popen( cmd, stdout=PIPE,  shell=True )
+					
+					tryCnt = "try %d\n" % t
+					print tryCnt
 
+					outputFile.write(tryCnt)
 					for line in p.stdout.readlines():
 						print line
 						outputFile.write(line)
