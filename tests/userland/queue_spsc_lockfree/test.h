@@ -22,7 +22,7 @@ static uint8_t consumer_count = 1;
 
 uint64_t batch_size = 1;
 
-uint64_t mem_pool_order = 28;
+uint64_t mem_pool_order = 25;
 uint64_t mem_pool_size;
 
 #ifdef __KERNEL__
