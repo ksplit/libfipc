@@ -31,8 +31,7 @@ thread_spin_lock(struct thread_spinlock *lk)
 {
 	// The xchg is atomic.
 	while(xchg(&lk->locked, 1) != 0)
-//		fipc_test_pause();
-		;
+		fipc_test_pause();
 
 	__sync_synchronize();
 }

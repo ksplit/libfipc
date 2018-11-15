@@ -16,7 +16,8 @@ thread_ticket_spin_lock(struct thread_ticketlock *lk)
 {
   int myticket = __sync_fetch_and_add(&lk->next_ticket, 1);
   while(myticket != lk->current_ticket)
-    ;
+    fipc_test_pause();
+
   __sync_synchronize();
 }
 
