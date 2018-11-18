@@ -103,8 +103,8 @@ class Config:
 
 	# font size
 	time_fontsize = 120
-	time_xtick_fontsize = 80
-	time_ytick_fontsize = 80
+	time_xtick_fontsize = 50
+	time_ytick_fontsize = 40
 
 	# legend position
 	time_bbox_x = 1.01

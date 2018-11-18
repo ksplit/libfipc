@@ -16,7 +16,13 @@ class TimeGraph(Graph):
 
 	@classmethod
 	def makeGraphDirectoryName(cls, directory, date):
-		graph_directory = "./graph/time/%s" % ( directory.split('/')[1]+'-'+date )
+		directory_info = directory.split('/')
+
+		if len(directory_info) == 2:
+			graph_directory = "./graph/time/%s" % ( directory.split('/')[1]+'-'+date )
+		elif len(directory_info) == 3:
+			graph_directory = "./graph/time/%s/%s" % ( directory.split('/')[1], directory.split('/')[2]+'-'+date )
+		
 		if not os.path.isdir(graph_directory):
 			os.makedirs(graph_directory)
 

@@ -10,7 +10,13 @@ class TimeCSV(CSV):
 
     @classmethod
     def makeCSVDirectoryName(cls, directory, date):
-        csv_directory = "./csv/time/%s" % ( directory.split('/')[1]+'-'+date )
+        directory_info = directory.split('/')
+
+        if len(directory_info) == 2:
+            csv_directory = "./csv/time/%s" % ( directory.split('/')[1]+'-'+date )
+        elif len(directory_info) == 3:
+            csv_directory = "./csv/time/%s/%s" % ( directory.split('/')[1], directory.split('/')[2]+'-'+date )
+        
         if not os.path.isdir(csv_directory):
             os.makedirs(csv_directory)
 

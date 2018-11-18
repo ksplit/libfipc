@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
 import os
+import sys
 
 from matplotlib.lines import Line2D
 
@@ -16,7 +17,13 @@ class TopologyGraph(Graph):
 
     @classmethod
     def makeGraphDirectoryName(cls, directory, date):
-        graph_directory = "./graph/topology/%s" % ( directory.split('/')[1]+'-'+date )
+        directory_info = directory.split('/')
+
+        if len(directory_info) == 2:
+            graph_directory = "./graph/topology/%s" % ( directory.split('/')[1]+'-'+date )
+        elif len(directory_info) == 3:
+            graph_directory = "./graph/topology/%s/%s" % ( directory.split('/')[1], directory.split('/')[2]+'-'+date )
+
         if not os.path.isdir(graph_directory):
             os.makedirs(graph_directory)
 
@@ -53,6 +60,7 @@ class TopologyGraph(Graph):
                 ax = fig.subplots(1, 1)
                 
                 upper_y = 0
+
                 topology_plt_list = []
 
                 for second in range(len(second_option)):
@@ -105,8 +113,11 @@ class TopologyGraph(Graph):
 
                         # Find max Y value and insert in upper_y
                         max_y = np.max(objs[queue_idx][lock_idx][action_plot_idx])
+
                         if max_y > upper_y:
                             upper_y = int(max_y)
+
+
                 
                 # Setting Y range
                 if upper_y != 0:
@@ -114,8 +125,8 @@ class TopologyGraph(Graph):
                 else:
                     continue
                 
-                ax_xtick = [i for i in range(0, Config.numbers[hyper_option], Config.topology_xrange_size)]
-                ax.set_xlim(0, Config.numbers[hyper_option]-1)
+                ax_xtick = [i if i != 0 else i+1 for i in range(0, Config.numbers[hyper_option], Config.topology_xrange_size)]
+                ax.set_xlim(1, Config.numbers[hyper_option]-1)
                 ax.set_xticks(ax_xtick)
                 ax.set_xticklabels(ax_xtick, fontsize=Config.topology_xtick_fontsize)
 
@@ -127,6 +138,8 @@ class TopologyGraph(Graph):
                 ax.tick_params(pad=Config.topology_tick_pad)
                 '''
                 
+                ax_ytick = [i for i in range(0, ax_ylimit, ax_yrange)]
+                ax.set_yticks(ax_ytick)
                 ax.set_yscale('log')
                 ax.tick_params(labelsize=Config.topology_ytick_fontsize, pad=Config.topology_tick_pad)
 
