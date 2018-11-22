@@ -7,8 +7,8 @@ from script.config import Config
 class Graph:
     
 	@classmethod
-	def __new__(cls, self, objs, directory, date, hyper_option):
-		graph_directory = cls.makeGraphDirectoryName(directory, date)
-		cls.drawGraph(objs, graph_directory, hyper_option)
+	def __new__(cls, self, objs, directory, draw_opts):
+		graph_directory = cls.makeGraphDirectoryName(directory)
+		cls.drawGraph(objs, graph_directory, draw_opts)
 		return True
         

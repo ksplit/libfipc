@@ -9,13 +9,16 @@ from script.csv import CSV
 class TopologyCSV(CSV):
 
     @classmethod
-    def makeCSVDirectoryName(cls, directory, date):
+    def makeCSVDirectoryName(cls, directory):
         directory_info = directory.split('/')
 
-        if len(directory_info) == 2:
-            csv_directory = "./csv/topology/%s" % ( directory.split('/')[1]+'-'+date )
-        elif len(directory_info) == 3:
-            csv_directory = "./csv/topology/%s/%s" % ( directory.split('/')[1], directory.split('/')[2]+'-'+date )
+        machine_hyper = directory_info[1]
+        policy = directory_info[2]
+
+        if "csv" not in directory:
+            csv_directory = "./csv/%s/%s/topology" % (machine_hyper, policy)
+        else:
+            csv_directory = "./%s/topology" % (directory)
 
         if not os.path.isdir(csv_directory):
             os.makedirs(csv_directory)
@@ -24,7 +27,6 @@ class TopologyCSV(CSV):
 
     @classmethod
     def makeCSV(cls, objs, csv_directory, hyper_option):
-        csv_file_list = []
         
         for queue in Config.queue_value:
             for lock in Config.lock_value:
@@ -90,7 +92,6 @@ class TopologyCSV(CSV):
                     except:
                         continue
 
-                csv_file_list.append(f)
                 f.close()
 
-        return csv_file_list
+        return csv_directory

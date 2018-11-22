@@ -11,11 +11,14 @@ p = re.compile('[0-9]+')
 class CSV:
 
 	@classmethod
-	def __new__(cls, self, directory, date, hyper_option):
-		root_list, file_list = cls.checkValidDirectory(directory)
-		all_data = cls.parsingDirectory(root_list, file_list, hyper_option)
-		csv_directory = cls.makeCSVDirectoryName(directory, date)
-		return cls.makeCSV(all_data, csv_directory, hyper_option)
+	def __new__(cls, self, directory, hyper_option):
+		if "csv" not in directory:		
+			root_list, file_list = cls.checkValidDirectory(directory)
+			all_data = cls.parsingDirectory(root_list, file_list, hyper_option)
+			csv_directory = cls.makeCSVDirectoryName(directory)
+			return cls.makeCSV(all_data, csv_directory, hyper_option)
+		else:
+			return cls.makeCSVDirectoryName(directory)
 
 	@classmethod
 	def checkValidDirectory(cls, test_directory):
