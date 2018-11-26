@@ -1,0 +1,76 @@
+try 0
+Starting test with prod count 8, cons count 8, [2] policy
+Pinning thread 140567585920768 to core 14...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 140567577528064 to core 0...
+Producer 0 (tid: 140567577528064) starting
+Pinning thread 140563206633216 to core 2...
+Producer 1 (tid: 140563206633216) starting
+Pinning thread 140563198240512 to core 4...
+Producer 2 (tid: 140563198240512) starting
+Pinning thread 140563189847808 to core 6...
+Producer 3 (tid: 140563189847808) starting
+Pinning thread 140563181455104 to core 8...
+Producer 4 (tid: 140563181455104) starting
+Pinning thread 140563173062400 to core 10...
+Producer 5 (tid: 140563173062400) starting
+Pinning thread 140563164669696 to core 12...
+Pinning thread 140563156276992 to core 16...
+Consumer 0 (tid: 140563156276992) starting
+Pinning thread 140563147884288 to core 18...
+Consumer 1 (tid: 140563147884288) starting
+Pinning thread 140563139491584 to core 20...
+Consumer 2 (tid: 140563139491584) starting
+Pinning thread 140563131098880 to core 22...
+Consumer 3 (tid: 140563131098880) starting
+Pinning thread 140563122706176 to core 24...
+Consumer 4 (tid: 140563122706176) starting
+Pinning thread 140563114313472 to core 26...
+Consumer 5 (tid: 140563114313472) starting
+Pinning thread 140563105920768 to core 28...
+Consumer 6 (tid: 140563105920768) starting
+Pinning thread 140563097528064 to core 30...
+Consumer 7 (tid: 140563097528064) starting
+Producer 6 (tid: 140563164669696) starting
+Producer 7 (tid: 140567585920768) starting
+Producer 7 finished, sending 1000000 messages (cycles per message 9931)
+Producer 5 finished, sending 1000000 messages (cycles per message 9968)
+Producer 6 finished, sending 1000000 messages (cycles per message 10023)
+Producer 2 finished, sending 1000000 messages (cycles per message 10046)
+Producer 0 finished, sending 1000000 messages (cycles per message 10102)
+Producer 3 finished, sending 1000000 messages (cycles per message 10114)
+Producer 1 finished, sending 1000000 messages (cycles per message 10120)
+Producer 4 finished, sending 1000000 messages (cycles per message 10122)
+Consumer 5 finished, receiving 996406 messages (cycles per message 10159) (PASSED)
+Consumer 0 finished, receiving 991129 messages (cycles per message 10213) (PASSED)
+Consumer 4 finished, receiving 1001299 messages (cycles per message 10109) (PASSED)
+Consumer 7 finished, receiving 1036783 messages (cycles per message 9763) (PASSED)
+Consumer 2 finished, receiving 990914 messages (cycles per message 10215) (PASSED)
+Consumer 1 finished, receiving 990391 messages (cycles per message 10220) (PASSED)
+Consumer 3 finished, receiving 993125 messages (cycles per message 10192) (PASSED)
+Consumer 6 finished, receiving 999953 messages (cycles per message 10123) (PASSED)
+Consumer 0 time : (1980 / 10122648336)
+Consumer 1 time : (2108 / 10122649860)
+Consumer 2 time : (1610 / 10122648246)
+Consumer 3 time : (1460 / 10122650772)
+Consumer 4 time : (1694 / 10122648502)
+Consumer 5 time : (1370 / 10122646588)
+Consumer 6 time : (1534 / 10122648192)
+Consumer 7 time : (1834 / 10122647846)
+Producer 0 time : (1716 / 10102802426)
+Producer 1 time : (1892 / 10120947326)
+Producer 2 time : (2136 / 10046092388)
+Producer 3 time : (2250 / 10114806586)
+Producer 4 time : (2020 / 10122630890)
+Producer 5 time : (146652 / 9968841822)
+Producer 6 time : (1938 / 10023866856)
+Producer 7 time : (4108 / 9931443240)
+Global time : (74427545491966 / 74437679539864)
+Test finished

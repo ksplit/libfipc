@@ -1,0 +1,85 @@
+try 0
+Starting test with prod count 9, cons count 9, [1] policy
+Pinning thread 140544119441152 to core 16...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 140544111048448 to core 0...
+Producer 0 (tid: 140544111048448) starting
+Pinning thread 140544102655744 to core 2...
+Producer 1 (tid: 140544102655744) starting
+Pinning thread 140544094263040 to core 4...
+Producer 2 (tid: 140544094263040) starting
+Pinning thread 140539181659904 to core 6...
+Producer 3 (tid: 140539181659904) starting
+Pinning thread 140539173267200 to core 8...
+Producer 4 (tid: 140539173267200) starting
+Pinning thread 140539164874496 to core 10...
+Producer 5 (tid: 140539164874496) starting
+Pinning thread 140539156481792 to core 12...
+Producer 6 (tid: 140539156481792) starting
+Pinning thread 140539148089088 to core 14...
+Producer 7 (tid: 140539148089088) starting
+Pinning thread 140539139696384 to core 1...
+Consumer 0 (tid: 140539139696384) starting
+Pinning thread 140539131303680 to core 3...
+Consumer 1 (tid: 140539131303680) starting
+Pinning thread 140539122910976 to core 5...
+Consumer 2 (tid: 140539122910976) starting
+Pinning thread 140539114518272 to core 7...
+Consumer 3 (tid: 140539114518272) starting
+Pinning thread 140539106125568 to core 9...
+Consumer 4 (tid: 140539106125568) starting
+Pinning thread 140539097732864 to core 11...
+Consumer 5 (tid: 140539097732864) starting
+Pinning thread 140539089340160 to core 13...
+Consumer 6 (tid: 140539089340160) starting
+Pinning thread 140539080947456 to core 15...
+Consumer 7 (tid: 140539080947456) starting
+Pinning thread 140539072554752 to core 17...
+Consumer 8 (tid: 140539072554752) starting
+Producer 8 (tid: 140544119441152) starting
+Producer 5 finished, sending 1000000 messages (cycles per message 10006)
+Producer 7 finished, sending 1000000 messages (cycles per message 10011)
+Producer 0 finished, sending 1000000 messages (cycles per message 10013)
+Producer 3 finished, sending 1000000 messages (cycles per message 10014)
+Producer 4 finished, sending 1000000 messages (cycles per message 10016)
+Producer 8 finished, sending 1000000 messages (cycles per message 10020)
+Producer 6 finished, sending 1000000 messages (cycles per message 10021)
+Producer 2 finished, sending 1000000 messages (cycles per message 10021)
+Producer 1 finished, sending 1000000 messages (cycles per message 10029)
+Consumer 0 finished, receiving 1000008 messages (cycles per message 10029) (PASSED)
+Consumer 8 finished, receiving 999999 messages (cycles per message 10029) (PASSED)
+Consumer 7 finished, receiving 999999 messages (cycles per message 10029) (PASSED)
+Consumer 6 finished, receiving 999999 messages (cycles per message 10029) (PASSED)
+Consumer 4 finished, receiving 999999 messages (cycles per message 10029) (PASSED)
+Consumer 3 finished, receiving 999999 messages (cycles per message 10029) (PASSED)
+Consumer 1 finished, receiving 999999 messages (cycles per message 10029) (PASSED)
+Consumer 2 finished, receiving 999999 messages (cycles per message 10119) (PASSED)
+Consumer 5 finished, receiving 999999 messages (cycles per message 10225) (PASSED)
+Consumer 0 time : (3094 / 10029423058)
+Consumer 1 time : (2734 / 10029424158)
+Consumer 2 time : (3022 / 10119575242)
+Consumer 3 time : (3308 / 10029436430)
+Consumer 4 time : (3186 / 10029442656)
+Consumer 5 time : (4028 / 10225661914)
+Consumer 6 time : (3948 / 10029454888)
+Consumer 7 time : (3212 / 10029456776)
+Consumer 8 time : (2788 / 10029458068)
+Producer 0 time : (3050 / 10013281858)
+Producer 1 time : (2390 / 10029410110)
+Producer 2 time : (2116 / 10021996760)
+Producer 3 time : (2098 / 10014933534)
+Producer 4 time : (2332 / 10016540318)
+Producer 5 time : (2172 / 10006287522)
+Producer 6 time : (2286 / 10021919436)
+Producer 7 time : (2248 / 10011716610)
+Producer 8 time : (5218 / 10020785910)
+Global time : (2052248014185358 / 2052258252196188)
+Test finished

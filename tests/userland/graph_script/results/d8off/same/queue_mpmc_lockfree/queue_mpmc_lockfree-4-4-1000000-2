@@ -1,0 +1,40 @@
+try 0
+Starting test with prod count 4, cons count 4, [2] policy
+Pinning thread 140435725362944 to core 12...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 140435716970240 to core 0...
+Pinning thread 140435708577536 to core 4...
+Producer 0 (tid: 140435716970240) starting
+Pinning thread 140433485199104 to core 8...
+Producer 1 (tid: 140435708577536) starting
+Pinning thread 140433476806400 to core 16...
+Producer 2 (tid: 140433485199104) starting
+Pinning thread 140433468413696 to core 20...
+Consumer 0 (tid: 140433476806400) starting
+Pinning thread 140433460020992 to core 24...
+Consumer 1 (tid: 140433468413696) starting
+Pinning thread 140433451628288 to core 28...
+Consumer 2 (tid: 140433460020992) starting
+Consumer 3 (tid: 140433451628288) starting
+Producer 3 (tid: 140435725362944) starting
+Producer 3 finished, sending 1000000 messages (cycles per message 2155)
+Producer 2 finished, sending 1000000 messages (cycles per message 2771)
+Producer 1 finished, sending 1000000 messages (cycles per message 3144)
+Producer 0 finished, sending 1000000 messages (cycles per message 3197)
+Consumer 3 finished, receiving 924125 messages (cycles per message 3460) (PASSED)
+Consumer 0 finished, receiving 1144690 messages (cycles per message 2793) (PASSED)
+Consumer 2 finished, receiving 921477 messages (cycles per message 3470) (PASSED)
+Consumer 1 finished, receiving 1009708 messages (cycles per message 3166) (PASSED)
+Consumer 0 time : (527 / 3197741939)
+Consumer 1 time : (549 / 3197742581)
+Consumer 2 time : (608 / 3197742889)
+Consumer 3 time : (586 / 3197741409)
+Producer 0 time : (527 / 3197638727)
+Producer 1 time : (480 / 3144539739)
+Producer 2 time : (508 / 2771666301)
+Producer 3 time : (3441 / 2155715986)
+Global time : (45989986989981 / 45993191911882)
+Test finished

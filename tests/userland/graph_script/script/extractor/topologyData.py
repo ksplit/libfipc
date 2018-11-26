@@ -17,10 +17,10 @@ class TopologyDataExtractor(Extractor):
                     for queue in range(len(Config.queue_value))]
 
         for file in files:
-            f = open(file.name, mode='r')
+            f = open(file, mode='r')
             reader = csv.reader(f)
 
-            file_info_list = file.name.split('/')
+            file_info_list = file.split('/')
             queue_lock_info = file_info_list[len(file_info_list)-1]
             
             queue, lock = queue_lock_info.split('.')[0].split('-')

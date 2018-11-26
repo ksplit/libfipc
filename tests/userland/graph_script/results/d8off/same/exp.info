@@ -1,0 +1,1022 @@
+Machine Information
+--------------------------------------------------
+Architecture:          x86_64
+CPU op-mode(s):        32-bit, 64-bit
+Byte Order:            Little Endian
+CPU(s):                32
+On-line CPU(s) list:   0-31
+Thread(s) per core:    1
+Core(s) per socket:    8
+Socket(s):             4
+NUMA node(s):          4
+Vendor ID:             GenuineIntel
+CPU family:            6
+Model:                 45
+Model name:            Intel(R) Xeon(R) CPU E5-4620 0 @ 2.20GHz
+Stepping:              7
+CPU MHz:               2200.032
+BogoMIPS:              4402.76
+Virtualization:        VT-x
+L1d cache:             32K
+L1i cache:             32K
+L2 cache:              256K
+L3 cache:              16384K
+NUMA node0 CPU(s):     0,4,8,12,16,20,24,28
+NUMA node1 CPU(s):     1,5,9,13,17,21,25,29
+NUMA node2 CPU(s):     2,6,10,14,18,22,26,30
+NUMA node3 CPU(s):     3,7,11,15,19,23,27,31
+Flags:                 fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 cx16 xtpr pdcm pcid dca sse4_1 sse4_2 x2apic popcnt tsc_deadline_timer aes xsave avx lahf_lm ssbd ibrs ibpb stibp kaiser tpr_shadow vnmi flexpriority ept vpid xsaveopt dtherm ida arat pln pts flush_l1d
+
+Expreriment Information
+--------------------------------------------------
+1. Expreriment List
+
+[1] queue_mpmc_spinlock
+
+[2] queue_mpmc_lockfree
+
+[3] queue_mpmc_mcslock
+
+[4] queue_mpmc_ticketlock
+
+[5] queue_mpsc_spinlock
+
+[6] queue_mpsc_lockfree
+
+[7] queue_mpsc_mcslock
+
+[8] queue_mpsc_ticketlock
+
+[9] queue_spsc_spinlock
+
+[10] queue_spsc_lockfree
+
+[11] queue_spsc_mcslock
+
+[12] queue_spsc_ticketlock
+
+2. Node allocate option: 2
+
+3. Iterate Count: 1
+
+4. Experiment detail info
+[1] queue_mpmc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_spinlock
+  * Time elapsed
+ 0.1279311180114746s
+[1] queue_mpmc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_spinlock
+  * Time elapsed
+ 0.04127001762390137s
+[1] queue_mpmc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_spinlock
+  * Time elapsed
+ 0.8181519508361816s
+[1] queue_mpmc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_spinlock
+  * Time elapsed
+ 0.12848401069641113s
+[1] queue_mpmc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_spinlock
+  * Time elapsed
+ 1.1113321781158447s
+[1] queue_mpmc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_spinlock
+  * Time elapsed
+ 0.7159268856048584s
+[1] queue_mpmc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_spinlock
+  * Time elapsed
+ 1.0888149738311768s
+[1] queue_mpmc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_spinlock
+  * Time elapsed
+ 1.506476879119873s
+[1] queue_mpmc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_spinlock
+  * Time elapsed
+ 2.0096099376678467s
+[1] queue_mpmc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_spinlock
+  * Time elapsed
+ 2.9232420921325684s
+[1] queue_mpmc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_spinlock
+  * Time elapsed
+ 1.862311840057373s
+[1] queue_mpmc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_spinlock
+  * Time elapsed
+ 3.943721055984497s
+[1] queue_mpmc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_spinlock
+  * Time elapsed
+ 2.533007860183716s
+[1] queue_mpmc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_spinlock
+  * Time elapsed
+ 3.305939197540283s
+[1] queue_mpmc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_spinlock
+  * Time elapsed
+ 5.115871906280518s
+[1] queue_mpmc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_spinlock
+  * Time elapsed
+ 4.222670078277588s
+[1] queue_mpmc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpmc_lockfree
+  * Time elapsed
+ 0.15121197700500488s
+[1] queue_mpmc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpmc_lockfree
+  * Time elapsed
+ 0.49265193939208984s
+[1] queue_mpmc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpmc_lockfree
+  * Time elapsed
+ 0.9067339897155762s
+[1] queue_mpmc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpmc_lockfree
+  * Time elapsed
+ 1.465635061264038s
+[1] queue_mpmc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpmc_lockfree
+  * Time elapsed
+ 6.385068893432617s
+[1] queue_mpmc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpmc_lockfree
+  * Time elapsed
+ 6.7818639278411865s
+[1] queue_mpmc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpmc_lockfree
+  * Time elapsed
+ 7.7027599811553955s
+[1] queue_mpmc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpmc_lockfree
+  * Time elapsed
+ 8.839967966079712s
+[1] queue_mpmc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpmc_lockfree
+  * Time elapsed
+ 17.22896099090576s
+[1] queue_mpmc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpmc_lockfree
+  * Time elapsed
+ 18.63866400718689s
+[1] queue_mpmc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpmc_lockfree
+  * Time elapsed
+ 20.701190948486328s
+[1] queue_mpmc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpmc_lockfree
+  * Time elapsed
+ 22.163570880889893s
+[1] queue_mpmc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpmc_lockfree
+  * Time elapsed
+ 30.174845933914185s
+[1] queue_mpmc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpmc_lockfree
+  * Time elapsed
+ 33.01786017417908s
+[1] queue_mpmc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpmc_lockfree
+  * Time elapsed
+ 36.08232283592224s
+[1] queue_mpmc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpmc_lockfree
+  * Time elapsed
+ 38.1846981048584s
+[1] queue_mpmc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_mcslock
+  * Time elapsed
+ 0.3985130786895752s
+[1] queue_mpmc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_mcslock
+  * Time elapsed
+ 0.7701821327209473s
+[1] queue_mpmc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_mcslock
+  * Time elapsed
+ 1.2216789722442627s
+[1] queue_mpmc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_mcslock
+  * Time elapsed
+ 1.723660945892334s
+[1] queue_mpmc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_mcslock
+  * Time elapsed
+ 4.467019081115723s
+[1] queue_mpmc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_mcslock
+  * Time elapsed
+ 5.987354040145874s
+[1] queue_mpmc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_mcslock
+  * Time elapsed
+ 7.029345989227295s
+[1] queue_mpmc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_mcslock
+  * Time elapsed
+ 7.804589033126831s
+[1] queue_mpmc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_mcslock
+  * Time elapsed
+ 10.79495882987976s
+[1] queue_mpmc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_mcslock
+  * Time elapsed
+ 13.347908020019531s
+[1] queue_mpmc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_mcslock
+  * Time elapsed
+ 15.06852388381958s
+[1] queue_mpmc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_mcslock
+  * Time elapsed
+ 16.52641987800598s
+[1] queue_mpmc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_mcslock
+  * Time elapsed
+ 18.923115968704224s
+[1] queue_mpmc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_mcslock
+  * Time elapsed
+ 20.169559001922607s
+[1] queue_mpmc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_mcslock
+  * Time elapsed
+ 22.364383935928345s
+[1] queue_mpmc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_mcslock
+  * Time elapsed
+ 23.940192937850952s
+[1] queue_mpmc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_ticketlock
+  * Time elapsed
+ 0.3605918884277344s
+[1] queue_mpmc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_ticketlock
+  * Time elapsed
+ 0.9311408996582031s
+[1] queue_mpmc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_ticketlock
+  * Time elapsed
+ 1.5724999904632568s
+[1] queue_mpmc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_ticketlock
+  * Time elapsed
+ 2.4510011672973633s
+[1] queue_mpmc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_ticketlock
+  * Time elapsed
+ 12.180106163024902s
+[1] queue_mpmc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_ticketlock
+  * Time elapsed
+ 14.63915491104126s
+[1] queue_mpmc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_ticketlock
+  * Time elapsed
+ 17.26931405067444s
+[1] queue_mpmc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_ticketlock
+  * Time elapsed
+ 19.827539920806885s
+[1] queue_mpmc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_ticketlock
+  * Time elapsed
+ 30.802517890930176s
+[1] queue_mpmc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_ticketlock
+  * Time elapsed
+ 32.26988887786865s
+[1] queue_mpmc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_ticketlock
+  * Time elapsed
+ 35.937291860580444s
+[1] queue_mpmc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_ticketlock
+  * Time elapsed
+ 41.10496497154236s
+[1] queue_mpmc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_ticketlock
+  * Time elapsed
+ 51.36879801750183s
+[1] queue_mpmc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_ticketlock
+  * Time elapsed
+ 54.76090097427368s
+[1] queue_mpmc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_ticketlock
+  * Time elapsed
+ 61.37245583534241s
+[1] queue_mpmc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpmc_ticketlock
+  * Time elapsed
+ 66.94689917564392s
+[1] queue_mpsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_spinlock
+  * Time elapsed
+ 0.010967016220092773s
+[1] queue_mpsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_spinlock
+  * Time elapsed
+ 0.019311189651489258s
+[1] queue_mpsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_spinlock
+  * Time elapsed
+ 0.020682096481323242s
+[1] queue_mpsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_spinlock
+  * Time elapsed
+ 0.021870851516723633s
+[1] queue_mpsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_spinlock
+  * Time elapsed
+ 0.08011698722839355s
+[1] queue_mpsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_spinlock
+  * Time elapsed
+ 0.17407512664794922s
+[1] queue_mpsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_spinlock
+  * Time elapsed
+ 0.989948034286499s
+[1] queue_mpsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_spinlock
+  * Time elapsed
+ 0.25757288932800293s
+[1] queue_mpsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_spinlock
+  * Time elapsed
+ 0.40391111373901367s
+[1] queue_mpsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_spinlock
+  * Time elapsed
+ 1.021239995956421s
+[1] queue_mpsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_spinlock
+  * Time elapsed
+ 1.0545291900634766s
+[1] queue_mpsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_spinlock
+  * Time elapsed
+ 1.2955310344696045s
+[1] queue_mpsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_spinlock
+  * Time elapsed
+ 1.4307270050048828s
+[1] queue_mpsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_spinlock
+  * Time elapsed
+ 1.0155339241027832s
+[1] queue_mpsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_spinlock
+  * Time elapsed
+ 0.9028720855712891s
+[1] queue_mpsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_spinlock
+  * Time elapsed
+ 0.44684600830078125s
+[1] queue_mpsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpsc_lockfree
+  * Time elapsed
+ 0.17808198928833008s
+[1] queue_mpsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpsc_lockfree
+  * Time elapsed
+ 0.3084390163421631s
+[1] queue_mpsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpsc_lockfree
+  * Time elapsed
+ 0.35893678665161133s
+[1] queue_mpsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpsc_lockfree
+  * Time elapsed
+ 0.4741358757019043s
+[1] queue_mpsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpsc_lockfree
+  * Time elapsed
+ 1.7909059524536133s
+[1] queue_mpsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpsc_lockfree
+  * Time elapsed
+ 1.8710780143737793s
+[1] queue_mpsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpsc_lockfree
+  * Time elapsed
+ 1.833150863647461s
+[1] queue_mpsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpsc_lockfree
+  * Time elapsed
+ 1.9715869426727295s
+[1] queue_mpsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpsc_lockfree
+  * Time elapsed
+ 3.115800142288208s
+[1] queue_mpsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpsc_lockfree
+  * Time elapsed
+ 2.9824280738830566s
+[1] queue_mpsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpsc_lockfree
+  * Time elapsed
+ 3.037471055984497s
+[1] queue_mpsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpsc_lockfree
+  * Time elapsed
+ 3.6094260215759277s
+[1] queue_mpsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpsc_lockfree
+  * Time elapsed
+ 3.8535499572753906s
+[1] queue_mpsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpsc_lockfree
+  * Time elapsed
+ 4.440928936004639s
+[1] queue_mpsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpsc_lockfree
+  * Time elapsed
+ 4.618674993515015s
+[1] queue_mpsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_mpsc_lockfree
+  * Time elapsed
+ 4.544080972671509s
+[1] queue_mpsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_mcslock
+  * Time elapsed
+ 0.35631895065307617s
+[1] queue_mpsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_mcslock
+  * Time elapsed
+ 0.46682095527648926s
+[1] queue_mpsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_mcslock
+  * Time elapsed
+ 0.4784049987792969s
+[1] queue_mpsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_mcslock
+  * Time elapsed
+ 0.5279049873352051s
+[1] queue_mpsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_mcslock
+  * Time elapsed
+ 1.643860101699829s
+[1] queue_mpsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_mcslock
+  * Time elapsed
+ 1.629249095916748s
+[1] queue_mpsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_mcslock
+  * Time elapsed
+ 1.7067821025848389s
+[1] queue_mpsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_mcslock
+  * Time elapsed
+ 1.8176629543304443s
+[1] queue_mpsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_mcslock
+  * Time elapsed
+ 2.561224937438965s
+[1] queue_mpsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_mcslock
+  * Time elapsed
+ 2.937941074371338s
+[1] queue_mpsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_mcslock
+  * Time elapsed
+ 3.001970052719116s
+[1] queue_mpsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_mcslock
+  * Time elapsed
+ 3.3214259147644043s
+[1] queue_mpsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_mcslock
+  * Time elapsed
+ 3.910578966140747s
+[1] queue_mpsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_mcslock
+  * Time elapsed
+ 3.7684950828552246s
+[1] queue_mpsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_mcslock
+  * Time elapsed
+ 3.543056011199951s
+[1] queue_mpsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_mcslock
+  * Time elapsed
+ 3.6282670497894287s
+[1] queue_mpsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_ticketlock
+  * Time elapsed
+ 0.39851903915405273s
+[1] queue_mpsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_ticketlock
+  * Time elapsed
+ 0.7368240356445312s
+[1] queue_mpsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_ticketlock
+  * Time elapsed
+ 0.8728330135345459s
+[1] queue_mpsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_ticketlock
+  * Time elapsed
+ 0.9240798950195312s
+[1] queue_mpsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_ticketlock
+  * Time elapsed
+ 3.7862300872802734s
+[1] queue_mpsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_ticketlock
+  * Time elapsed
+ 3.9984419345855713s
+[1] queue_mpsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_ticketlock
+  * Time elapsed
+ 4.177824020385742s
+[1] queue_mpsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_ticketlock
+  * Time elapsed
+ 4.777889013290405s
+[1] queue_mpsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_ticketlock
+  * Time elapsed
+ 7.323223114013672s
+[1] queue_mpsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_ticketlock
+  * Time elapsed
+ 7.213123083114624s
+[1] queue_mpsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_ticketlock
+  * Time elapsed
+ 7.238991022109985s
+[1] queue_mpsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_ticketlock
+  * Time elapsed
+ 7.204535007476807s
+[1] queue_mpsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_ticketlock
+  * Time elapsed
+ 8.498729944229126s
+[1] queue_mpsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_ticketlock
+  * Time elapsed
+ 8.569372177124023s
+[1] queue_mpsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_ticketlock
+  * Time elapsed
+ 8.442744970321655s
+[1] queue_mpsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_mpsc_ticketlock
+  * Time elapsed
+ 8.617613077163696s
+[1] queue_spsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_spinlock
+  * Time elapsed
+ 0.011044025421142578s
+[1] queue_spsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_spinlock
+  * Time elapsed
+ 0.008841991424560547s
+[1] queue_spsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_spinlock
+  * Time elapsed
+ 80.62430095672607s
+[1] queue_spsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_spinlock
+  * Time elapsed
+ 0.012303829193115234s
+[1] queue_spsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_spinlock
+  * Time elapsed
+ 0.07838582992553711s
+[1] queue_spsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_spinlock
+  * Time elapsed
+ 0.025427818298339844s
+[1] queue_spsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_spinlock
+  * Time elapsed
+ 0.34654879570007324s
+[1] queue_spsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_spinlock
+  * Time elapsed
+ 34.817007064819336s
+[1] queue_spsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_spinlock
+  * Time elapsed
+ 0.7196609973907471s
+[1] queue_spsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_spinlock
+  * Time elapsed
+ 0.017071008682250977s
+[1] queue_spsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_spinlock
+  * Time elapsed
+ 0.07953691482543945s
+[1] queue_spsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_spinlock
+  * Time elapsed
+ 0.018494129180908203s
+[1] queue_spsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_spinlock
+  * Time elapsed
+ 0.2796630859375s
+[1] queue_spsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_spinlock
+  * Time elapsed
+ 0.5540390014648438s
+[1] queue_spsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_spinlock
+  * Time elapsed
+ 0.02094578742980957s
+[1] queue_spsc_spinlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_spinlock
+  * Time elapsed
+ 0.1255500316619873s
+[1] queue_spsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_spsc_lockfree
+  * Time elapsed
+ 0.13641595840454102s
+[1] queue_spsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_spsc_lockfree
+  * Time elapsed
+ 0.13735103607177734s
+[1] queue_spsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_spsc_lockfree
+  * Time elapsed
+ 0.21420812606811523s
+[1] queue_spsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_spsc_lockfree
+  * Time elapsed
+ 0.22079896926879883s
+[1] queue_spsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_spsc_lockfree
+  * Time elapsed
+ 1.0221500396728516s
+[1] queue_spsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_spsc_lockfree
+  * Time elapsed
+ 1.1218080520629883s
+[1] queue_spsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_spsc_lockfree
+  * Time elapsed
+ 0.8388240337371826s
+[1] queue_spsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_spsc_lockfree
+  * Time elapsed
+ 0.7056069374084473s
+[1] queue_spsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_spsc_lockfree
+  * Time elapsed
+ 0.7775459289550781s
+[1] queue_spsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_spsc_lockfree
+  * Time elapsed
+ 0.8287529945373535s
+[1] queue_spsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_spsc_lockfree
+  * Time elapsed
+ 1.3436241149902344s
+[1] queue_spsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_spsc_lockfree
+  * Time elapsed
+ 1.1542270183563232s
+[1] queue_spsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_spsc_lockfree
+  * Time elapsed
+ 1.7102739810943604s
+[1] queue_spsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_spsc_lockfree
+  * Time elapsed
+ 0.637786865234375s
+[1] queue_spsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_spsc_lockfree
+  * Time elapsed
+ 0.9074759483337402s
+[1] queue_spsc_lockfree
+  * Output path
+ ./results/20181114-2141/queue_spsc_lockfree
+  * Time elapsed
+ 0.6768488883972168s
+[1] queue_spsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_spsc_mcslock
+  * Time elapsed
+ 0.4613959789276123s
+[1] queue_spsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_spsc_mcslock
+  * Time elapsed
+ 0.3165709972381592s
+[1] queue_spsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_spsc_mcslock
+  * Time elapsed
+ 0.2772979736328125s
+[1] queue_spsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_spsc_mcslock
+  * Time elapsed
+ 0.31146693229675293s
+[1] queue_spsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_spsc_mcslock
+  * Time elapsed
+ 1.5873169898986816s
+[1] queue_spsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_spsc_mcslock
+  * Time elapsed
+ 0.8382728099822998s
+[1] queue_spsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_spsc_mcslock
+  * Time elapsed
+ 0.513801097869873s
+[1] queue_spsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_spsc_mcslock
+  * Time elapsed
+ 0.5658910274505615s
+[1] queue_spsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_spsc_mcslock
+  * Time elapsed
+ 1.2118828296661377s
+[1] queue_spsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_spsc_mcslock
+  * Time elapsed
+ 0.7427139282226562s
+[1] queue_spsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_spsc_mcslock
+  * Time elapsed
+ 0.8028650283813477s
+[1] queue_spsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_spsc_mcslock
+  * Time elapsed
+ 0.9661760330200195s
+[1] queue_spsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_spsc_mcslock
+  * Time elapsed
+ 1.6941359043121338s
+[1] queue_spsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_spsc_mcslock
+  * Time elapsed
+ 0.7553601264953613s
+[1] queue_spsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_spsc_mcslock
+  * Time elapsed
+ 1.1737749576568604s
+[1] queue_spsc_mcslock
+  * Output path
+ ./results/20181114-2141/queue_spsc_mcslock
+  * Time elapsed
+ 1.5955798625946045s
+[1] queue_spsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_ticketlock
+  * Time elapsed
+ 0.3821070194244385s
+[1] queue_spsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_ticketlock
+  * Time elapsed
+ 0.44247889518737793s
+[1] queue_spsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_ticketlock
+  * Time elapsed
+ 0.6219489574432373s
+[1] queue_spsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_ticketlock
+  * Time elapsed
+ 0.4346280097961426s
+[1] queue_spsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_ticketlock
+  * Time elapsed
+ 1.6974060535430908s
+[1] queue_spsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_ticketlock
+  * Time elapsed
+ 1.0917410850524902s
+[1] queue_spsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_ticketlock
+  * Time elapsed
+ 1.0822060108184814s
+[1] queue_spsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_ticketlock
+  * Time elapsed
+ 1.1881330013275146s
+[1] queue_spsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_ticketlock
+  * Time elapsed
+ 1.8735029697418213s
+[1] queue_spsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_ticketlock
+  * Time elapsed
+ 1.2853820323944092s
+[1] queue_spsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_ticketlock
+  * Time elapsed
+ 1.3466160297393799s
+[1] queue_spsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_ticketlock
+  * Time elapsed
+ 1.242995023727417s
+[1] queue_spsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_ticketlock
+  * Time elapsed
+ 1.5768349170684814s
+[1] queue_spsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_ticketlock
+  * Time elapsed
+ 1.3929078578948975s
+[1] queue_spsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_ticketlock
+  * Time elapsed
+ 1.3095040321350098s
+[1] queue_spsc_ticketlock
+  * Output path
+ ./results/20181114-2141/queue_spsc_ticketlock
+  * Time elapsed
+ 1.4548559188842773s

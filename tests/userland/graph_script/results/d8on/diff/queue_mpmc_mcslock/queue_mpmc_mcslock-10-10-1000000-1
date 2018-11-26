@@ -1,0 +1,94 @@
+try 0
+Starting test with prod count 10, cons count 10, [1] policy
+Pinning thread 140546013419264 to core 36...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 140546005026560 to core 0...
+Pinning thread 140545996633856 to core 4...
+Producer 0 (tid: 140546005026560) starting
+Producer 1 (tid: 140545996633856) starting
+Pinning thread 140545988241152 to core 8...
+Producer 2 (tid: 140545988241152) starting
+Pinning thread 140545979848448 to core 12...
+Pinning thread 140545971455744 to core 16...
+Producer 3 (tid: 140545979848448) starting
+Pinning thread 140540523837184 to core 20...
+Producer 4 (tid: 140545971455744) starting
+Pinning thread 140540515444480 to core 24...
+Producer 5 (tid: 140540523837184) starting
+Producer 6 (tid: 140540515444480) starting
+Producer 7 (tid: 140540507051776) starting
+Pinning thread 140540507051776 to core 28...
+Pinning thread 140540498659072 to core 32...
+Producer 8 (tid: 140540498659072) starting
+Pinning thread 140540490266368 to core 1...
+Pinning thread 140540481873664 to core 5...
+Pinning thread 140540473480960 to core 9...
+Consumer 0 (tid: 140540490266368) starting
+Consumer 1 (tid: 140540481873664) starting
+Pinning thread 140540465088256 to core 13...
+Consumer 2 (tid: 140540473480960) starting
+Consumer 3 (tid: 140540465088256) starting
+Pinning thread 140540456695552 to core 17...
+Pinning thread 140540448302848 to core 21...
+Consumer 4 (tid: 140540456695552) starting
+Pinning thread 140540439910144 to core 25...
+Consumer 5 (tid: 140540448302848) starting
+Pinning thread 140540431517440 to core 29...
+Consumer 6 (tid: 140540439910144) starting
+Pinning thread 140540423124736 to core 33...
+Consumer 7 (tid: 140540431517440) starting
+Consumer 8 (tid: 140540423124736) starting
+Pinning thread 140540414732032 to core 37...
+Consumer 9 (tid: 140540414732032) starting
+Producer 9 (tid: 140546013419264) starting
+Producer 2 finished, sending 1000000 messages (cycles per message 22400)
+Producer 3 finished, sending 1000000 messages (cycles per message 22400)
+Producer 5 finished, sending 1000000 messages (cycles per message 22400)
+Producer 7 finished, sending 1000000 messages (cycles per message 22400)
+Producer 6 finished, sending 1000000 messages (cycles per message 22400)
+Producer 4 finished, sending 1000000 messages (cycles per message 22400)
+Producer 8 finished, sending 1000000 messages (cycles per message 22401)
+Producer 0 finished, sending 1000000 messages (cycles per message 22401)
+Producer 1 finished, sending 1000000 messages (cycles per message 22401)
+Producer 9 finished, sending 1000000 messages (cycles per message 22403)
+Consumer 2 finished, receiving 1000045 messages (cycles per message 22402) (PASSED)
+Consumer 6 finished, receiving 1000153 messages (cycles per message 22400) (PASSED)
+Consumer 3 finished, receiving 1000060 messages (cycles per message 22402) (PASSED)
+Consumer 5 finished, receiving 1000049 messages (cycles per message 22402) (PASSED)
+Consumer 8 finished, receiving 999776 messages (cycles per message 22408) (PASSED)
+Consumer 1 finished, receiving 999872 messages (cycles per message 22406) (PASSED)
+Consumer 0 finished, receiving 999997 messages (cycles per message 22403) (PASSED)
+Consumer 7 finished, receiving 1000035 messages (cycles per message 22402) (PASSED)
+Consumer 9 finished, receiving 999967 messages (cycles per message 22404) (PASSED)
+Consumer 4 finished, receiving 1000046 messages (cycles per message 22402) (PASSED)
+Consumer 0 time : (1676 / 22403600837)
+Consumer 1 time : (2042 / 22403601297)
+Consumer 2 time : (2017 / 22403600571)
+Consumer 3 time : (2046 / 22403601061)
+Consumer 4 time : (1960 / 22403599719)
+Consumer 5 time : (1940 / 22403601611)
+Consumer 6 time : (2003 / 22403600403)
+Consumer 7 time : (2071 / 22403602154)
+Consumer 8 time : (1661 / 22403601793)
+Consumer 9 time : (2060 / 22403600047)
+Producer 0 time : (2449 / 22401948091)
+Producer 1 time : (1177 / 22401953123)
+Producer 2 time : (1188 / 22400585587)
+Producer 3 time : (2434 / 22400597779)
+Producer 4 time : (2354 / 22400643859)
+Producer 5 time : (2346 / 22400664610)
+Producer 6 time : (2402 / 22400647391)
+Producer 7 time : (2386 / 22400576769)
+Producer 8 time : (2461 / 22401936446)
+Producer 9 time : (8159 / 22403492296)
+Global time : (72623441780563 / 72645861904580)
+Test finished

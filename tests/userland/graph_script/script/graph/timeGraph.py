@@ -15,18 +15,25 @@ from script.graph import Graph
 class TimeGraph(Graph):
 
 	@classmethod
-	def makeGraphDirectoryName(cls, directory, date):
-		graph_directory = "./graph/time/%s" % ( directory.split('/')[1]+'-'+date )
+	def makeGraphDirectoryName(cls, directory):
+		directory_info = directory.split('/')
+
+		machine_hyper = directory_info[1]
+		policy = directory_info[2]
+
+		graph_directory = "./graph/%s/%s/time" % (machine_hyper, policy)
+
 		if not os.path.isdir(graph_directory):
 			os.makedirs(graph_directory)
 
 		return graph_directory
 
 	@classmethod
-	def drawGraph(cls, objs, directory, hyper_option):
+	def drawGraph(cls, objs, directory, draw_opts):
 		'''
         Drawing Time(Starvation) Graph
 		'''
+		hyper_option = draw_opts[0]
 
 		for queue in Config.queue_value:
 			for lock in Config.lock_value:

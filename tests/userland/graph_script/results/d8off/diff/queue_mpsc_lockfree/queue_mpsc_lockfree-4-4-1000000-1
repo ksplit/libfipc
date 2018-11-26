@@ -1,0 +1,40 @@
+try 0
+Starting test with prod count 4, cons count 4, [1] policy
+Pinning thread 140258336577280 to core 12...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 140258328184576 to core 0...
+Pinning thread 140258319791872 to core 4...
+Producer 0 (tid: 140258328184576) starting
+Pinning thread 140258311399168 to core 8...
+Producer 1 (tid: 140258319791872) starting
+Producer 2 (tid: 140258311399168) starting
+Pinning thread 140258303006464 to core 1...
+Pinning thread 140258294613760 to core 5...
+Pinning thread 140258286221056 to core 9...
+Consumer 0 (tid: 140258303006464) starting
+Consumer 1 (tid: 140258294613760) starting
+Pinning thread 140258277828352 to core 13...
+Consumer 2 (tid: 140258286221056) starting
+Consumer 3 (tid: 140258277828352) starting
+Producer 3 (tid: 140258336577280) starting
+Producer 3 finished, sending 1000000 messages (cycles per message 3472)
+Producer 2 finished, sending 1000000 messages (cycles per message 3481)
+Producer 0 finished, sending 1000000 messages (cycles per message 3485)
+Producer 1 finished, sending 1000000 messages (cycles per message 3489)
+Consumer 2 finished, receiving 1000000 messages (cycles per message 3489) (PASSED)
+Consumer 1 finished, receiving 1000000 messages (cycles per message 3489) (PASSED)
+Consumer 3 finished, receiving 1000000 messages (cycles per message 3489) (PASSED)
+Consumer 0 finished, receiving 1000000 messages (cycles per message 3489) (PASSED)
+Consumer 0 time : (1985 / 3489324149)
+Consumer 1 time : (1933 / 3489325733)
+Consumer 2 time : (1958 / 3489328110)
+Consumer 3 time : (1939 / 3489329229)
+Producer 0 time : (1643 / 3485400468)
+Producer 1 time : (1664 / 3489286194)
+Producer 2 time : (1625 / 3481601153)
+Producer 3 time : (8490 / 3472215030)
+Global time : (30867019603593 / 30870515685178)
+Test finished

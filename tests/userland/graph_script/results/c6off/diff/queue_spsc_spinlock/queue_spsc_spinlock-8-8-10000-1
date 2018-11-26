@@ -1,0 +1,76 @@
+try 0
+Starting test with prod count 8, cons count 8, [1] policy
+Pinning thread 139828104181504 to core 14...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 139828095788800 to core 0...
+Pinning thread 139828087396096 to core 2...
+Producer 0 (tid: 139828095788800) starting
+Producer 1 (tid: 139828087396096) starting
+Pinning thread 139828079003392 to core 4...
+Producer 2 (tid: 139828079003392) starting
+Pinning thread 139828070610688 to core 6...
+Producer 3 (tid: 139828070610688) starting
+Pinning thread 139828062217984 to core 8...
+Producer 4 (tid: 139828062217984) starting
+Pinning thread 139828053825280 to core 10...
+Producer 5 (tid: 139828053825280) starting
+Pinning thread 139828045432576 to core 12...
+Producer 6 (tid: 139828045432576) starting
+Pinning thread 139823264298752 to core 1...
+Consumer 0 (tid: 139823264298752) starting
+Pinning thread 139823255906048 to core 3...
+Consumer 1 (tid: 139823255906048) starting
+Pinning thread 139823247513344 to core 5...
+Consumer 2 (tid: 139823247513344) starting
+Pinning thread 139823239120640 to core 7...
+Consumer 3 (tid: 139823239120640) starting
+Pinning thread 139823230727936 to core 9...
+Consumer 4 (tid: 139823230727936) starting
+Pinning thread 139823222335232 to core 11...
+Consumer 5 (tid: 139823222335232) starting
+Pinning thread 139823213942528 to core 13...
+Consumer 6 (tid: 139823213942528) starting
+Pinning thread 139823130081024 to core 15...
+Consumer 7 (tid: 139823130081024) starting
+Producer 7 (tid: 139828104181504) starting
+Producer 2 finished, sending 10000 messages (cycles per message 666) (prod_sum:0)
+Producer 0 finished, sending 10000 messages (cycles per message 745) (prod_sum:0)
+Producer 3 finished, sending 10000 messages (cycles per message 766) (prod_sum:0)
+Producer 1 finished, sending 10000 messages (cycles per message 779) (prod_sum:0)
+Producer 4 finished, sending 10000 messages (cycles per message 948) (prod_sum:0)
+Producer 5 finished, sending 10000 messages (cycles per message 1152) (prod_sum:0)
+Producer 6 finished, sending 10000 messages (cycles per message 1488) (prod_sum:0)
+Consumer 0 finished, receiving 10000 messages (cycles per message 2399022) (cons sum:0)
+Consumer 1 finished, receiving 10000 messages (cycles per message 2399028) (cons sum:0)
+Consumer 2 finished, receiving 10000 messages (cycles per message 2399424) (cons sum:0)
+Consumer 4 finished, receiving 10000 messages (cycles per message 2399427) (cons sum:0)
+Consumer 3 finished, receiving 10000 messages (cycles per message 2399426) (cons sum:0)
+Consumer 5 finished, receiving 10000 messages (cycles per message 2404204) (cons sum:0)
+Consumer 6 finished, receiving 10000 messages (cycles per message 2404205) (cons sum:0)
+Consumer 7 finished, receiving 10000 messages (cycles per message 2404207) (cons sum:0)
+Producer 7 finished, sending 10000 messages (cycles per message 2399017) (prod_sum:0)
+Consumer 0 time : (2450 / 23990224148)
+Consumer 1 time : (2322 / 23990283552)
+Consumer 2 time : (2526 / 23994251894)
+Consumer 3 time : (2380 / 23994267644)
+Consumer 4 time : (2186 / 23994272732)
+Consumer 5 time : (2236 / 24042048706)
+Consumer 6 time : (2490 / 24042056696)
+Consumer 7 time : (2404 / 24042073018)
+Producer 0 time : (3048 / 7461800)
+Producer 1 time : (2848 / 7793576)
+Producer 2 time : (1760 / 6671086)
+Producer 3 time : (2992 / 7669106)
+Producer 4 time : (3014 / 9485644)
+Producer 5 time : (3208 / 11526052)
+Producer 6 time : (3124 / 14892384)
+Producer 7 time : (5414 / 23990183184)
+Global time : (55562069830448 / 55586112319538)
+Test finished

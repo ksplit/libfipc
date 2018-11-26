@@ -1,0 +1,40 @@
+try 0
+Starting test with prod count 4, cons count 4, [1] policy
+Pinning thread 140188648761088 to core 6...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 140188640368384 to core 0...
+Producer 0 (tid: 140188640368384) starting
+Pinning thread 140188631975680 to core 2...
+Producer 1 (tid: 140188631975680) starting
+Pinning thread 140188623582976 to core 4...
+Producer 2 (tid: 140188623582976) starting
+Pinning thread 140188615190272 to core 1...
+Consumer 0 (tid: 140188615190272) starting
+Pinning thread 140186390361856 to core 3...
+Consumer 1 (tid: 140186390361856) starting
+Pinning thread 140186381969152 to core 5...
+Consumer 2 (tid: 140186381969152) starting
+Pinning thread 140186373576448 to core 7...
+Consumer 3 (tid: 140186373576448) starting
+Producer 3 (tid: 140188648761088) starting
+Producer 2 finished, sending 1000000 messages (cycles per message 6229)
+Producer 3 finished, sending 1000000 messages (cycles per message 6286)
+Producer 0 finished, sending 1000000 messages (cycles per message 6293)
+Producer 1 finished, sending 1000000 messages (cycles per message 6299)
+Consumer 2 finished, receiving 1030518 messages (cycles per message 6113) (PASSED)
+Consumer 3 finished, receiving 966918 messages (cycles per message 6515) (PASSED)
+Consumer 1 finished, receiving 1020693 messages (cycles per message 6172) (PASSED)
+Consumer 0 finished, receiving 981871 messages (cycles per message 6416) (PASSED)
+Consumer 0 time : (1670 / 6300192898)
+Consumer 1 time : (1920 / 6300193708)
+Consumer 2 time : (1732 / 6300193816)
+Consumer 3 time : (1832 / 6300191460)
+Producer 0 time : (2318 / 6293769754)
+Producer 1 time : (2154 / 6299485808)
+Producer 2 time : (2258 / 6229912046)
+Producer 3 time : (4488 / 6286905640)
+Global time : (53923758278684 / 53930064031316)
+Test finished

@@ -1,0 +1,40 @@
+try 0
+Starting test with prod count 4, cons count 4, [1] policy
+Pinning thread 140305269339904 to core 12...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 140305260947200 to core 0...
+Pinning thread 140305252554496 to core 4...
+Producer 0 (tid: 140305260947200) starting
+Pinning thread 140303025567488 to core 8...
+Producer 1 (tid: 140305252554496) starting
+Pinning thread 140303017174784 to core 1...
+Producer 2 (tid: 140303025567488) starting
+Pinning thread 140303008782080 to core 5...
+Consumer 0 (tid: 140303017174784) starting
+Pinning thread 140303000389376 to core 9...
+Consumer 1 (tid: 140303008782080) starting
+Consumer 2 (tid: 140303000389376) starting
+Pinning thread 140302991996672 to core 13...
+Consumer 3 (tid: 140302991996672) starting
+Producer 3 (tid: 140305269339904) starting
+Producer 3 finished, sending 10000 messages (cycles per message 13972)
+Producer 1 finished, sending 10000 messages (cycles per message 14225)
+Producer 2 finished, sending 10000 messages (cycles per message 14359)
+Producer 0 finished, sending 10000 messages (cycles per message 14692)
+Consumer 0 finished, receiving 10000 messages (cycles per message 14693) (PASSED)
+Consumer 3 finished, receiving 10000 messages (cycles per message 14694) (PASSED)
+Consumer 2 finished, receiving 10000 messages (cycles per message 14694) (PASSED)
+Consumer 1 finished, receiving 10000 messages (cycles per message 14693) (PASSED)
+Consumer 0 time : (1642 / 146938923)
+Consumer 1 time : (1715 / 146940155)
+Consumer 2 time : (1693 / 146944956)
+Consumer 3 time : (1549 / 146948794)
+Producer 0 time : (2288 / 146924910)
+Producer 1 time : (2368 / 142260756)
+Producer 2 time : (2390 / 143599551)
+Producer 3 time : (7047 / 139736256)
+Global time : (78304634015352 / 78304781765819)
+Test finished

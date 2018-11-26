@@ -1,0 +1,40 @@
+try 0
+Starting test with prod count 4, cons count 4, [1] policy
+Pinning thread 140578352371456 to core 6...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 140578343978752 to core 0...
+Pinning thread 140578335586048 to core 2...
+Producer 0 (tid: 140578343978752) starting
+Producer 1 (tid: 140578335586048) starting
+Pinning thread 140578327193344 to core 4...
+Producer 2 (tid: 140578327193344) starting
+Pinning thread 140578318800640 to core 1...
+Consumer 0 (tid: 140578318800640) starting
+Pinning thread 140575957317376 to core 3...
+Consumer 1 (tid: 140575957317376) starting
+Pinning thread 140575948924672 to core 5...
+Consumer 2 (tid: 140575948924672) starting
+Pinning thread 140575940531968 to core 7...
+Consumer 3 (tid: 140575940531968) starting
+Producer 3 (tid: 140578352371456) starting
+Producer 0 finished, sending 10000 messages (cycles per message 823) (prod_sum:0)
+Producer 3 finished, sending 10000 messages (cycles per message 1112) (prod_sum:0)
+Producer 1 finished, sending 10000 messages (cycles per message 1204) (prod_sum:0)
+Consumer 0 finished, receiving 10000 messages (cycles per message 2477) (cons sum:0)
+Consumer 3 finished, receiving 10000 messages (cycles per message 2477) (cons sum:0)
+Consumer 1 finished, receiving 10000 messages (cycles per message 2477) (cons sum:0)
+Consumer 2 finished, receiving 10000 messages (cycles per message 2477) (cons sum:0)
+Producer 2 finished, sending 10000 messages (cycles per message 2475) (prod_sum:0)
+Consumer 0 time : (2382 / 24773054)
+Consumer 1 time : (2278 / 24773304)
+Consumer 2 time : (2494 / 24777272)
+Consumer 3 time : (2468 / 24777736)
+Producer 0 time : (2870 / 8242308)
+Producer 1 time : (2776 / 12042862)
+Producer 2 time : (1942 / 24756408)
+Producer 3 time : (5800 / 11126408)
+Global time : (55560267956658 / 55560293018014)
+Test finished

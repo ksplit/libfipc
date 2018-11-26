@@ -1,0 +1,31 @@
+try 0
+Starting test with prod count 3, cons count 3, [2] policy
+Pinning thread 139877149206272 to core 8...
+Allocating 1073741824 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 1073741824 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 1073741824 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 139877140813568 to core 0...
+Pinning thread 139877132420864 to core 4...
+Pinning thread 139877124028160 to core 32...
+Consumer 0 (tid: 139877124028160) starting
+Producer 1 (tid: 139877132420864) starting
+Producer 0 (tid: 139877140813568) starting
+Pinning thread 139877115635456 to core 36...
+Consumer 1 (tid: 139877115635456) starting
+Pinning thread 139877107242752 to core 40...
+Consumer 2 (tid: 139877107242752) starting
+Producer 2 (tid: 139877149206272) starting
+Producer 0 finished, sending 1000000 messages (cycles per message 499) (prod_sum:0)
+Producer 2 finished, sending 1000000 messages (cycles per message 672) (prod_sum:0)
+Producer 1 finished, sending 1000000 messages (cycles per message 983) (prod_sum:0)
+Consumer 0 finished, receiving 1000002 messages (cycles per message 983) (cons sum:0)
+Consumer 1 finished, receiving 999999 messages (cycles per message 983) (cons sum:0)
+Consumer 2 finished, receiving 999999 messages (cycles per message 983) (cons sum:0)
+Consumer 0 time : (469 / 983521311)
+Consumer 1 time : (513 / 983521113)
+Consumer 2 time : (413 / 983522067)
+Producer 0 time : (1316 / 499544473)
+Producer 1 time : (498 / 983518506)
+Producer 2 time : (4039 / 672697015)
+Global time : (95976320392735 / 95977313819540)
+Test finished

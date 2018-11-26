@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
 import os
+import sys
 
 from matplotlib.lines import Line2D
 
@@ -15,15 +16,21 @@ from script.graph import Graph
 class TopologyGraph(Graph):
 
     @classmethod
-    def makeGraphDirectoryName(cls, directory, date):
-        graph_directory = "./graph/topology/%s" % ( directory.split('/')[1]+'-'+date )
+    def makeGraphDirectoryName(cls, directory):
+        directory_info = directory.split('/')
+
+        machine_hyper = directory_info[1]
+        policy = directory_info[2]
+
+        graph_directory = "./graph/%s/%s/topology" % (machine_hyper, policy)
+
         if not os.path.isdir(graph_directory):
             os.makedirs(graph_directory)
 
         return graph_directory
 
     @classmethod
-    def drawGraph(cls, objs, directory, hyper_option):
+    def drawGraph(cls, objs, directory, draw_opts):
 
         '''
         
@@ -34,6 +41,9 @@ class TopologyGraph(Graph):
         topology_option = 2 : Drawing both graph
 
         '''
+
+        hyper_option = draw_opts[0]
+        log_option = draw_opts[1]
         
         opts = Config.topology_option
         if opts == 2:
@@ -53,6 +63,7 @@ class TopologyGraph(Graph):
                 ax = fig.subplots(1, 1)
                 
                 upper_y = 0
+
                 topology_plt_list = []
 
                 for second in range(len(second_option)):
@@ -105,8 +116,11 @@ class TopologyGraph(Graph):
 
                         # Find max Y value and insert in upper_y
                         max_y = np.max(objs[queue_idx][lock_idx][action_plot_idx])
+
                         if max_y > upper_y:
                             upper_y = int(max_y)
+
+
                 
                 # Setting Y range
                 if upper_y != 0:
@@ -114,22 +128,23 @@ class TopologyGraph(Graph):
                 else:
                     continue
                 
-                ax_xtick = [i for i in range(0, Config.numbers[hyper_option], Config.topology_xrange_size)]
-                ax.set_xlim(0, Config.numbers[hyper_option]-1)
+                ax_xtick = [i if i != 0 else i+1 for i in range(0, Config.numbers[hyper_option], Config.topology_xrange_size)]
+                ax.set_xlim(1, Config.numbers[hyper_option]-1)
                 ax.set_xticks(ax_xtick)
                 ax.set_xticklabels(ax_xtick, fontsize=Config.topology_xtick_fontsize)
 
-                '''
                 ax_ytick = [i for i in range(0, ax_ylimit, ax_yrange)]
-                ax.set_ylim(0, ax_ylimit)
                 ax.set_yticks(ax_ytick)
-                ax.set_yticklabels(ax_ytick, fontsize=Config.topology_ytick_fontsize)
-                ax.tick_params(pad=Config.topology_tick_pad)
-                '''
-                
-                ax.set_yscale('log')
-                ax.tick_params(labelsize=Config.topology_ytick_fontsize, pad=Config.topology_tick_pad)
 
+                if log_option == True:
+                    ax.set_yscale('log')
+                    ax.tick_params(labelsize=Config.topology_ytick_fontsize, pad=Config.topology_tick_pad)
+                else:
+                    ax.set_ylim(0, ax_ylimit)
+                    ax_ytick = cls.setYtickFormating(ax_ytick)
+                    ax.set_yticklabels(ax_ytick, fontsize=Config.topology_ytick_fontsize)
+                    ax.tick_params(pad=Config.topology_tick_pad)
+                
                 ax.set_xlabel('Producer(Consumer) Num', fontSize=Config.topology_fontsize, labelpad=Config.topology_label_pad)
                 ax.set_ylabel('Average of Cycle per message', fontSize=Config.topology_fontsize, labelpad=Config.topology_label_pad)
                 ax.set_title(graph_name, fontSize=Config.topology_fontsize, pad=Config.topology_title_pad)
@@ -165,6 +180,30 @@ class TopologyGraph(Graph):
         y_range_new = int(y_limit / 5)
         
         return y_range_new, y_limit
+
+    @classmethod
+    def setYtickFormating(cls, yticks):
+        '''
+        Formatting Y tick long number to string
+        '''
+        new_yticks = []
+        for ytick in yticks:
+            magnitude = 0
+            while abs(ytick) >= 1000:
+                magnitude += 1
+                ytick /= 1000.0
+            
+            split_ytick = str(ytick).split('.')
+            if len(split_ytick) != 1:
+                first_decimal = split_ytick[1]
+                if first_decimal[0] == '0':
+                    new_yticks.append('%d%s' % (int(ytick), ['', 'K', 'M', 'G', 'T', 'P'][magnitude]))
+                else:
+                    new_yticks.append('%.1f%s' % (ytick, ['', 'K', 'M', 'G', 'T', 'P'][magnitude]))
+            else:
+                new_yticks.append('%.1f%s' % (ytick, ['', 'K', 'M', 'G', 'T', 'P'][magnitude]))
+
+        return new_yticks
 
     @classmethod
     def buildLegendData(cls):

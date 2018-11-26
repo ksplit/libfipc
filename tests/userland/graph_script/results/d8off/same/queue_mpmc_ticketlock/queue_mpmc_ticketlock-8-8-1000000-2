@@ -1,0 +1,76 @@
+try 0
+Starting test with prod count 8, cons count 8, [2] policy
+Pinning thread 140151780390656 to core 13...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 140151771997952 to core 0...
+Pinning thread 140147400111872 to core 4...
+Pinning thread 140147391719168 to core 8...
+Pinning thread 140147383326464 to core 12...
+Producer 0 (tid: 140151771997952) starting
+Producer 1 (tid: 140147400111872) starting
+Pinning thread 140147374933760 to core 1...
+Producer 2 (tid: 140147391719168) starting
+Pinning thread 140147366541056 to core 5...
+Producer 3 (tid: 140147383326464) starting
+Producer 4 (tid: 140147374933760) starting
+Producer 5 (tid: 140147366541056) starting
+Pinning thread 140147358148352 to core 9...
+Pinning thread 140147349755648 to core 16...
+Producer 6 (tid: 140147358148352) starting
+Pinning thread 140147341362944 to core 20...
+Consumer 0 (tid: 140147349755648) starting
+Pinning thread 140147332970240 to core 24...
+Consumer 1 (tid: 140147341362944) starting
+Pinning thread 140147324577536 to core 28...
+Consumer 2 (tid: 140147332970240) starting
+Pinning thread 140147316184832 to core 17...
+Consumer 3 (tid: 140147324577536) starting
+Pinning thread 140147307792128 to core 21...
+Consumer 4 (tid: 140147316184832) starting
+Pinning thread 140147299399424 to core 25...
+Consumer 5 (tid: 140147307792128) starting
+Pinning thread 140147291006720 to core 29...
+Consumer 6 (tid: 140147299399424) starting
+Consumer 7 (tid: 140147291006720) starting
+Producer 7 (tid: 140151780390656) starting
+Producer 3 finished, sending 1000000 messages (cycles per message 43546)
+Producer 1 finished, sending 1000000 messages (cycles per message 43582)
+Producer 7 finished, sending 1000000 messages (cycles per message 43582)
+Producer 0 finished, sending 1000000 messages (cycles per message 43582)
+Producer 4 finished, sending 1000000 messages (cycles per message 43582)
+Producer 6 finished, sending 1000000 messages (cycles per message 43582)
+Producer 5 finished, sending 1000000 messages (cycles per message 43587)
+Producer 2 finished, sending 1000000 messages (cycles per message 43587)
+Consumer 7 finished, receiving 999871 messages (cycles per message 43593) (PASSED)
+Consumer 6 finished, receiving 999790 messages (cycles per message 43597) (PASSED)
+Consumer 4 finished, receiving 1000051 messages (cycles per message 43585) (PASSED)
+Consumer 1 finished, receiving 1000081 messages (cycles per message 43584) (PASSED)
+Consumer 2 finished, receiving 1000263 messages (cycles per message 43576) (PASSED)
+Consumer 0 finished, receiving 999940 messages (cycles per message 43590) (PASSED)
+Consumer 3 finished, receiving 1000106 messages (cycles per message 43583) (PASSED)
+Consumer 5 finished, receiving 999898 messages (cycles per message 43592) (PASSED)
+Consumer 0 time : (1435 / 43587874828)
+Consumer 1 time : (1419 / 43587876170)
+Consumer 2 time : (1304 / 43587881698)
+Consumer 3 time : (1435 / 43587873212)
+Consumer 4 time : (972 / 43587870695)
+Consumer 5 time : (1030 / 43587872276)
+Consumer 6 time : (1691 / 43587877455)
+Consumer 7 time : (1669 / 43587868495)
+Producer 0 time : (1246 / 43582597948)
+Producer 1 time : (1418 / 43582608952)
+Producer 2 time : (1320 / 43587720969)
+Producer 3 time : (1485 / 43546960223)
+Producer 4 time : (999 / 43582624552)
+Producer 5 time : (1650 / 43587728682)
+Producer 6 time : (1021 / 43582664453)
+Producer 7 time : (4075 / 43582623164)
+Global time : (47018095252275 / 47061697218964)
+Test finished

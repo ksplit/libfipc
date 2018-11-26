@@ -2,6 +2,7 @@
 * @File     : main.c
 * @Author   : Abdullah Younis
 */
+
 #ifdef __KERNEL__
 #include <linux/module.h>
 #endif
@@ -26,7 +27,7 @@ int halt = 0;
 
 int null_invocation(void)
 {
-	asm volatile ("nop");
+	asm volatile ("");
 	return 0;
 }
 
@@ -37,20 +38,18 @@ void *
 #endif
 producer(void* data)
 {
-	queue_t*   q = &queue;	
 	uint64_t rank = *(uint64_t*)data;
+	queue_t*   q = &queue;	
 	node_t*   t = node_tables[rank];
 	
 	uint64_t transaction_id;
-	uint64_t start;
-	uint64_t end;
 	int i;
 
 	// We have a fixed size object pool, we pick one object 
 	// from that pool as transaction_id mod pool_size
 	uint64_t obj_id_mask = ((1UL << mem_pool_order) - 1);
 
-	pr_err("Producer %lu (tid: %lu) starting...\n", rank, pthread_self());
+	pr_err("Producer %lu (tid: %lu) starting\n", rank, pthread_self());
 	
 	fipc_test_FAI(ready_producers);
 
@@ -59,32 +58,30 @@ producer(void* data)
 
 	fipc_test_mfence();
 
-	start = RDTSC_START();
+	prod_starts[rank] = RDTSC_START();
 
 	for ( transaction_id = 0; transaction_id < transactions; )
 	{
 		for( i = 0; i < batch_size; i++ )
 		{
 			node_t *node = &t[transaction_id & obj_id_mask];
-
 			node->data = transaction_id;
 
 			if( enqueue(q, node) != SUCCESS )
 			{
 				break;
 			}
-
 			transaction_id++;
 		}
 	}
 
-	end = RDTSCP();
+	prod_ends[rank] = RDTSCP();
 
 	// End test
 	pr_err("Producer %lu finished, sending %lu messages (cycles per message %lu)\n",
 		rank,
 		transaction_id,
-		(end - start) / transaction_id);
+		(prod_ends[rank] - prod_starts[rank]) / transaction_id);
 
 	fipc_test_thread_release_control_of_CPU();
 	fipc_test_FAI(completed_producers);
@@ -98,21 +95,15 @@ void *
 #endif
 consumer(void* data)
 {
-
-	queue_t* q = &queue;
 	uint64_t rank = *(uint64_t*)data;
+	queue_t* q = &queue;
 
-	uint64_t start;
-	uint64_t end;
+	uint64_t transaction_id = 0;
 	uint64_t request;
 	int i;
-	uint64_t transaction_id = 0;
 
-	pr_err("Consumer %llu (tid: %lu) starting\n", (unsigned long long)rank, pthread_self());
-
-	// Begin test
-	// fipc_test_thread_take_control_of_CPU();
-
+	pr_err("Consumer %lu (tid: %lu) starting\n", rank, pthread_self());
+	
 	// Wait for everyone to be ready
 	fipc_test_FAI(ready_consumers);
 
@@ -121,13 +112,12 @@ consumer(void* data)
 
 	fipc_test_mfence();
 
-	start = RDTSC_START();
+	cons_starts[rank] = RDTSC_START();
 
 	while (!halt)
 	{
 		for (i = 0; i < batch_size; i++) 
 		{
-
 			// Receive and unmarshall 
 			if (dequeue(q, &request) != SUCCESS) 
 			{
@@ -138,21 +128,21 @@ consumer(void* data)
 				halt = 1;
                         	break;
                         }
-
                         transaction_id++;
 		}
 	}
 
-	end = RDTSCP();
+	cons_ends[rank] = RDTSCP();
 
 	// End test
 	fipc_test_mfence();
-	pr_err("Consumer %lu finished, receiving %lu messages (cycles per message %lu) (%s)\n",
-		rank,
-		transaction_id,
-		(end - start) / transaction_id,
-		prod_sum == cons_sum ? "PASSED" : "FAILED");
-
+	if(transaction_id){
+		pr_err("Consumer %lu finished, receiving %lu messages (cycles per message %lu) (%s)\n",
+			rank,
+			transaction_id,
+			(cons_ends[rank] - cons_starts[rank]) / transaction_id,
+			prod_sum == cons_sum ? "PASSED" : "FAILED");
+	}
 	fipc_test_thread_release_control_of_CPU();
 	fipc_test_FAI(completed_consumers);
 	return 0;
@@ -170,13 +160,13 @@ void * controller(void* data)
 	node_t* haltMsg = (node_t*)vmalloc(consumer_count * sizeof(node_t));
 
 	// Node Table Allocation
-	node_tables = (node_t**)vmalloc(producer_count * sizeof(node_t*));
+	node_tables = (node_t**)numa_alloc_onnode(producer_count * sizeof(node_t*), 0);
 
 	for (i = 0; i < producer_count; ++i) 
 	{
 		pr_err("Allocating %lu bytes for the pool of %lu objects (pool order:%lu)\n",
 			mem_pool_size * sizeof(node_t), mem_pool_size, mem_pool_order);
-		node_tables[i] = (node_t*)vmalloc(mem_pool_size * sizeof(node_t));
+		node_tables[i] = (node_t*)numa_alloc_onnode(mem_pool_size * sizeof(node_t), 0);
 	}
 
 	fipc_test_mfence();
@@ -236,6 +226,7 @@ void * controller(void* data)
 
 	// Begin Test
 	test_ready = 1;
+	global_start = RDTSCP();
 
 	fipc_test_mfence();
 
@@ -248,7 +239,6 @@ void * controller(void* data)
 		fipc_test_pause();
 
 	fipc_test_mfence();
-
 
 	// Tell consumers to halt
 	for (i = 0; i < consumer_count; ++i)
@@ -281,15 +271,29 @@ void * controller(void* data)
 		vfree(prod_threads);
 
 	for (i = 0; i < producer_count; ++i)
-		vfree(node_tables[i]);
+		numa_free(node_tables[i], mem_pool_size * sizeof(node_t));
 
-	vfree(node_tables);
+	numa_free(node_tables, producer_count * sizeof(node_t*));
 
 	free_queue(&queue);
 
+	vfree(haltMsg);
+
 	// End Experiment
 	fipc_test_mfence();
-	test_finished = 1;
+	
+	global_end = RDTSCP();
+
+	test_finished = 1;	
+	
+	for(int i = 0; i < consumer_count; ++i)
+		printf("Consumer %d time : (%lu / %lu)\n", i, cons_starts[i] - global_start, cons_ends[i] - global_start);
+
+	for(int i = 0; i < producer_count; ++i)
+		printf("Producer %d time : (%lu / %lu)\n", i, prod_starts[i] - global_start, prod_ends[i] - global_start);
+
+	printf("Global time : (%lu / %lu)\n", global_start, global_end);
+
 	return 0;
 }
 

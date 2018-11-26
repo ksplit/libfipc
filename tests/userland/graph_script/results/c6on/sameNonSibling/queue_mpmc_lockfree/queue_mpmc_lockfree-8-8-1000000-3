@@ -1,0 +1,76 @@
+try 0
+Starting test with prod count 8, cons count 8, [3] policy
+Pinning thread 139953772750592 to core 14...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 139953764357888 to core 0...
+Producer 0 (tid: 139953764357888) starting
+Pinning thread 139953755965184 to core 2...
+Producer 1 (tid: 139953755965184) starting
+Pinning thread 139953747572480 to core 4...
+Producer 2 (tid: 139953747572480) starting
+Pinning thread 139953739179776 to core 6...
+Producer 3 (tid: 139953739179776) starting
+Pinning thread 139949361854208 to core 8...
+Producer 4 (tid: 139949361854208) starting
+Pinning thread 139949353461504 to core 10...
+Producer 5 (tid: 139949353461504) starting
+Pinning thread 139949345068800 to core 12...
+Producer 6 (tid: 139949345068800) starting
+Pinning thread 139949336676096 to core 16...
+Consumer 0 (tid: 139949336676096) starting
+Pinning thread 139949328283392 to core 18...
+Consumer 1 (tid: 139949328283392) starting
+Pinning thread 139949319890688 to core 20...
+Consumer 2 (tid: 139949319890688) starting
+Pinning thread 139949311497984 to core 22...
+Consumer 3 (tid: 139949311497984) starting
+Pinning thread 139949303105280 to core 24...
+Consumer 4 (tid: 139949303105280) starting
+Pinning thread 139949294712576 to core 26...
+Consumer 5 (tid: 139949294712576) starting
+Pinning thread 139949286319872 to core 28...
+Consumer 6 (tid: 139949286319872) starting
+Pinning thread 139949277927168 to core 30...
+Consumer 7 (tid: 139949277927168) starting
+Producer 7 (tid: 139953772750592) starting
+Producer 2 finished, sending 1000000 messages (cycles per message 10157)
+Producer 3 finished, sending 1000000 messages (cycles per message 10158)
+Producer 0 finished, sending 1000000 messages (cycles per message 10191)
+Producer 6 finished, sending 1000000 messages (cycles per message 10201)
+Producer 4 finished, sending 1000000 messages (cycles per message 10213)
+Producer 7 finished, sending 1000000 messages (cycles per message 10223)
+Producer 5 finished, sending 1000000 messages (cycles per message 10230)
+Producer 1 finished, sending 1000000 messages (cycles per message 10252)
+Consumer 4 finished, receiving 1005897 messages (cycles per message 10192) (PASSED)
+Consumer 5 finished, receiving 998652 messages (cycles per message 10266) (PASSED)
+Consumer 1 finished, receiving 996879 messages (cycles per message 10284) (PASSED)
+Consumer 6 finished, receiving 1008342 messages (cycles per message 10167) (PASSED)
+Consumer 7 finished, receiving 1005211 messages (cycles per message 10199) (PASSED)
+Consumer 2 finished, receiving 974699 messages (cycles per message 10518) (PASSED)
+Consumer 3 finished, receiving 1002939 messages (cycles per message 10222) (PASSED)
+Consumer 0 finished, receiving 1007381 messages (cycles per message 10177) (PASSED)
+Consumer 0 time : (2212 / 10252258080)
+Consumer 1 time : (1770 / 10252258004)
+Consumer 2 time : (2252 / 10252257720)
+Consumer 3 time : (1844 / 10252257492)
+Consumer 4 time : (1988 / 10252257168)
+Consumer 5 time : (2132 / 10252256458)
+Consumer 6 time : (2348 / 10252255966)
+Consumer 7 time : (2302 / 10252257522)
+Producer 0 time : (1876 / 10191539022)
+Producer 1 time : (2076 / 10252240626)
+Producer 2 time : (1458 / 10157492018)
+Producer 3 time : (1578 / 10158420740)
+Producer 4 time : (2178 / 10213389190)
+Producer 5 time : (2108 / 10230210012)
+Producer 6 time : (1684 / 10201857364)
+Producer 7 time : (4766 / 10223811206)
+Global time : (2073960070939104 / 2073970335557866)
+Test finished
