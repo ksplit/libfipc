@@ -84,45 +84,49 @@ int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy, i
 	    {
 		int next_node = machine == D820? node_order[1][i+2] : 1;
 
-		(*producer_cpus)[prod_id++] = nodes[n].cpu_list[cpu];
-                (*consumer_cpus)[cons_id++] = nodes[next_node].cpu_list[cpu];
+		prod_cpus[prod_id++] = nodes[n].cpu_list[cpu];
+                cons_cpus[cons_id++] = nodes[next_node].cpu_list[cpu];
 	
 		if( i == (num_nodes/2 - 1)  && cpu == half - 1 ) i = num_nodes; 
 	    }
 	    else if ( policy == SAME_NODE )
 	    {
-		(*producer_cpus)[prod_id++] = nodes[n].cpu_list[cpu];
-                (*consumer_cpus)[cons_id++] = nodes[n].cpu_list[cpu + half];
+		prod_cpus[prod_id++] = nodes[n].cpu_list[cpu];
+                cons_cpus[cons_id++] = nodes[n].cpu_list[cpu + half];
 	    }
             else if( policy == SAME_NODE_NON_SIBLING ) // only hyper on
  	    {
 	        int temp = cpu >= num_cpus/4 ? num_cpus/4 : 0 ;
 		int hop = machine == D820 ? 4 : 8 ;
 		
-		(*producer_cpus)[prod_id++] = nodes[n].cpu_list[cpu + temp];
-                (*consumer_cpus)[cons_id++] = nodes[n].cpu_list[cpu + temp + hop];
+		prod_cpus[prod_id++] = nodes[n].cpu_list[cpu + temp];
+                cons_cpus[cons_id++] = nodes[n].cpu_list[cpu + temp + hop];
 	    }
 	}
     }
-/*
+
     prod_id = 0; cons_id = 0;
-    for(i = num_nodes-1; i >= 0; i--)
+    int times = policy == DIFF_NODE ? 1 : num_nodes - 1;
+    int divide = policy == DIFF_NODE ? 1 : 2;
+    for(i = times; i >= 0; i--)
     {
-	if( producer_count*2 > i * num_cpus )
+	if( producer_count > i * num_cpus / divide )
 	{
-printf("%d<<<", i);
-	    for( j = 0; j < num_cpus/2 ; j++)
+	printf("%d<<\n",i);
+	    for( j = 0; j < num_cpus / divide ; j++)
 	    { 
-    	        for( n = 0; n < i; n++)
+    	        for( n = 0; n <= i; n++)
 	        {
-		    (*producer_cpus)[prod_id++] = prod_cpus[ j + n*num_cpus/2 ];
-		    (*consumer_cpus)[cons_id++] = cons_cpus[ j + n*num_cpus/2 ];   
+		printf("%d/ ",j + (n*num_cpus / divide) );
+		    (*producer_cpus)[prod_id++] = prod_cpus[ j + (n * num_cpus / divide) ];
+		    (*consumer_cpus)[cons_id++] = cons_cpus[ j + (n * num_cpus / divide) ];   
     	        }
+		printf("\n");
 	    }
 	    break;
 	}
     }
-*/
+
 /*
     for (n = 0; n < num_nodes; n++)
     {
