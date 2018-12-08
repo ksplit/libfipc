@@ -1,17 +1,19 @@
 #include "libfipc_numa.h"
 
 
-int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy)
+int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy, int producer_count, int consumer_count)
 {
     struct bitmask *cm;
     int num_nodes;
-    int n, i;
+    int n, i, j;
     unsigned long cpu_bmap;
     int numa_present;
     int ret = 0;
     int prod_id = 0;
     int cons_id = 0;
     int possible_cpus = numa_num_configured_cpus();
+    int prod_cpus[possible_cpus];
+    int cons_cpus[possible_cpus];
 
     struct numa_config *config;
     struct node *nodes;
@@ -67,12 +69,12 @@ int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy)
 */
     int node_order[2][4] = {{0,1,2,3},{0,3,1,2}};
     int order_type = policy == DIFF_NODE ? 1 : 0;
- 
+    int num_cpus = nodes[0].num_cpus;
+  
     for (i = 0; i < num_nodes; i++)
     {
         int cpu;
 	int n = node_order[order_type][i]; 
-        int num_cpus = nodes[n].num_cpus;
 	int half = policy == DIFF_NODE ? num_cpus : num_cpus / 2;
 	int machine = num_nodes == 4 ? D820 : C6420;
 
@@ -82,26 +84,49 @@ int match_cpus(uint32_t** producer_cpus, uint32_t** consumer_cpus, int policy)
 	    {
 		int next_node = machine == D820? node_order[1][i+2] : 1;
 
-		(*producer_cpus)[prod_id++] = nodes[n].cpu_list[cpu];
-                (*consumer_cpus)[cons_id++] = nodes[next_node].cpu_list[cpu];
+		prod_cpus[prod_id++] = nodes[n].cpu_list[cpu];
+                cons_cpus[cons_id++] = nodes[next_node].cpu_list[cpu];
 	
 		if( i == (num_nodes/2 - 1)  && cpu == half - 1 ) i = num_nodes; 
 	    }
 	    else if ( policy == SAME_NODE )
 	    {
-		(*producer_cpus)[prod_id++] = nodes[n].cpu_list[cpu];
-                (*consumer_cpus)[cons_id++] = nodes[n].cpu_list[cpu + half];
+		prod_cpus[prod_id++] = nodes[n].cpu_list[cpu];
+                cons_cpus[cons_id++] = nodes[n].cpu_list[cpu + half];
 	    }
             else if( policy == SAME_NODE_NON_SIBLING ) // only hyper on
  	    {
 	        int temp = cpu >= num_cpus/4 ? num_cpus/4 : 0 ;
 		int hop = machine == D820 ? 4 : 8 ;
 		
-		(*producer_cpus)[prod_id++] = nodes[n].cpu_list[cpu + temp];
-                (*consumer_cpus)[cons_id++] = nodes[n].cpu_list[cpu + temp + hop];
+		prod_cpus[prod_id++] = nodes[n].cpu_list[cpu + temp];
+                cons_cpus[cons_id++] = nodes[n].cpu_list[cpu + temp + hop];
 	    }
 	}
     }
+
+    prod_id = 0; cons_id = 0;
+    int times = policy == DIFF_NODE ? 1 : num_nodes - 1;
+    int divide = policy == DIFF_NODE ? 1 : 2;
+    for(i = times; i >= 0; i--)
+    {
+	if( producer_count > i * num_cpus / divide )
+	{
+	printf("%d<<\n",i);
+	    for( j = 0; j < num_cpus / divide ; j++)
+	    { 
+    	        for( n = 0; n <= i; n++)
+	        {
+		printf("%d/ ",j + (n*num_cpus / divide) );
+		    (*producer_cpus)[prod_id++] = prod_cpus[ j + (n * num_cpus / divide) ];
+		    (*consumer_cpus)[cons_id++] = cons_cpus[ j + (n * num_cpus / divide) ];   
+    	        }
+		printf("\n");
+	    }
+	    break;
+	}
+    }
+
 /*
     for (n = 0; n < num_nodes; n++)
     {

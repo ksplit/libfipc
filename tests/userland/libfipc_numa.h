@@ -23,5 +23,5 @@ struct numa_config {
         struct node *nodes;
 };
 
-int match_cpus(uint32_t** p, uint32_t** c, int policy);
+int match_cpus(uint32_t** p, uint32_t** c, int policy, int producer_count, int consumer_count);
 

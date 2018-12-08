@@ -394,7 +394,7 @@ int init_module(void)
 	}
 
 #endif
-	match_cpus(&producer_cpus, &consumer_cpus, policy);
+	match_cpus(&producer_cpus, &consumer_cpus, policy, producer_count, consumer_count);
         fipc_test_mfence();
 
 	kthread_t* controller_thread = fipc_test_thread_spawn_on_CPU ( controller, NULL, producer_cpus[producer_count-1] );
