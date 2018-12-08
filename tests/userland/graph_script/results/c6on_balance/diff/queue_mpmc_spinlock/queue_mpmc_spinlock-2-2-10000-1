@@ -1,0 +1,110 @@
+try 0
+Starting test with prod count 2, cons count 2, [1] policy
+0<<
+0/ 
+1/ 
+2/ 
+3/ 
+4/ 
+5/ 
+6/ 
+7/ 
+8/ 
+9/ 
+10/ 
+11/ 
+12/ 
+13/ 
+14/ 
+15/ 
+16/ 
+17/ 
+18/ 
+19/ 
+20/ 
+21/ 
+22/ 
+23/ 
+24/ 
+25/ 
+26/ 
+27/ 
+28/ 
+29/ 
+30/ 
+31/ 
+Pinning thread 139794356475648 to core 2...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 139793199527680 to core 0...
+Producer 0 (tid: 139793199527680) starting
+Pinning thread 139793191134976 to core 1...
+Consumer 0 (tid: 139793191134976) starting
+Pinning thread 139793182742272 to core 3...
+Consumer 1 (tid: 139793182742272) starting
+Producer 1 (tid: 139794356475648) starting
+Producer 0 finished, sending 10000 messages (cycles per message 4405)
+Producer 1 finished, sending 10000 messages (cycles per message 6260)
+Consumer 1 finished, receiving 12248 messages (cycles per message 5189) (PASSED)
+Consumer 0 finished, receiving 7752 messages (cycles per message 8198) (PASSED)
+Consumer 0 time : (2184 / 63558034)
+Consumer 1 time : (2012 / 63557704)
+Producer 0 time : (1704 / 44057170)
+Producer 1 time : (5148 / 62611520)
+Global time : (4259274750996230 / 4259274814766434)
+Test finished
+try 1
+Starting test with prod count 2, cons count 2, [1] policy
+0<<
+0/ 
+1/ 
+2/ 
+3/ 
+4/ 
+5/ 
+6/ 
+7/ 
+8/ 
+9/ 
+10/ 
+11/ 
+12/ 
+13/ 
+14/ 
+15/ 
+16/ 
+17/ 
+18/ 
+19/ 
+20/ 
+21/ 
+22/ 
+23/ 
+24/ 
+25/ 
+26/ 
+27/ 
+28/ 
+29/ 
+30/ 
+31/ 
+Pinning thread 139906731542272 to core 2...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 139906723149568 to core 0...
+Producer 0 (tid: 139906723149568) starting
+Pinning thread 139906714756864 to core 1...
+Consumer 0 (tid: 139906714756864) starting
+Pinning thread 139906706364160 to core 3...
+Consumer 1 (tid: 139906706364160) starting
+Producer 1 (tid: 139906731542272) starting
+Producer 0 finished, sending 10000 messages (cycles per message 4569)
+Producer 1 finished, sending 10000 messages (cycles per message 5846)
+Consumer 1 finished, receiving 5876 messages (cycles per message 11179) (PASSED)
+Consumer 0 finished, receiving 14124 messages (cycles per message 4651) (PASSED)
+Consumer 0 time : (2230 / 65695226)
+Consumer 1 time : (2114 / 65694306)
+Producer 0 time : (1750 / 45695254)
+Producer 1 time : (5012 / 58469716)
+Global time : (4259275433010152 / 4259275498925258)
+Test finished

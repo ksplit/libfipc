@@ -1,0 +1,134 @@
+try 0
+Starting test with prod count 6, cons count 6, [2] policy
+0<<
+0/ 
+1/ 
+2/ 
+3/ 
+4/ 
+5/ 
+6/ 
+7/ 
+Pinning thread 140690103985920 to core 20...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 140690095593216 to core 0...
+Pinning thread 140690087200512 to core 4...
+Producer 0 (tid: 140690095593216) starting
+Pinning thread 140690078807808 to core 8...
+Producer 1 (tid: 140690087200512) starting
+Pinning thread 140690070415104 to core 12...
+Producer 2 (tid: 140690078807808) starting
+Pinning thread 140690062022400 to core 16...
+Producer 3 (tid: 140690070415104) starting
+Pinning thread 140690053629696 to core 32...
+Producer 4 (tid: 140690062022400) starting
+Consumer 0 (tid: 140690053629696) starting
+Pinning thread 140686754051840 to core 36...
+Consumer 1 (tid: 140686754051840) starting
+Pinning thread 140686745659136 to core 40...
+Consumer 2 (tid: 140686745659136) starting
+Pinning thread 140686737266432 to core 44...
+Consumer 3 (tid: 140686737266432) starting
+Pinning thread 140686728873728 to core 48...
+Consumer 4 (tid: 140686728873728) starting
+Pinning thread 140686720481024 to core 52...
+Consumer 5 (tid: 140686720481024) starting
+Producer 5 (tid: 140690103985920) starting
+Producer 5 finished, sending 1000000 messages (cycles per message 1036)
+Producer 3 finished, sending 1000000 messages (cycles per message 1043)
+Producer 2 finished, sending 1000000 messages (cycles per message 1044)
+Producer 4 finished, sending 1000000 messages (cycles per message 1045)
+Producer 0 finished, sending 1000000 messages (cycles per message 1046)
+Producer 1 finished, sending 1000000 messages (cycles per message 1046)
+Consumer 1 finished, receiving 1000002 messages (cycles per message 1046) (PASSED)
+Consumer 0 finished, receiving 1000002 messages (cycles per message 1046) (PASSED)
+Consumer 2 finished, receiving 1000002 messages (cycles per message 1046) (PASSED)
+Consumer 3 finished, receiving 1000002 messages (cycles per message 1046) (PASSED)
+Consumer 4 finished, receiving 999996 messages (cycles per message 1047) (PASSED)
+Consumer 5 finished, receiving 999996 messages (cycles per message 1057) (PASSED)
+Consumer 0 time : (883 / 1046496148)
+Consumer 1 time : (600 / 1046496547)
+Consumer 2 time : (553 / 1046496814)
+Consumer 3 time : (569 / 1046498313)
+Consumer 4 time : (506 / 1047757013)
+Consumer 5 time : (434 / 1057498905)
+Producer 0 time : (547 / 1046100173)
+Producer 1 time : (616 / 1046489425)
+Producer 2 time : (575 / 1044889309)
+Producer 3 time : (588 / 1043934905)
+Producer 4 time : (528 / 1045332964)
+Producer 5 time : (4142 / 1036753938)
+Global time : (66908967590118 / 66910035042838)
+Test finished
+try 1
+Starting test with prod count 6, cons count 6, [2] policy
+0<<
+0/ 
+1/ 
+2/ 
+3/ 
+4/ 
+5/ 
+6/ 
+7/ 
+Pinning thread 139992904382208 to core 20...
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Allocating 536870912 bytes for the pool of 33554432 objects (pool order:25)
+Pinning thread 139992895989504 to core 0...
+Pinning thread 139992887596800 to core 4...
+Producer 0 (tid: 139992895989504) starting
+Producer 1 (tid: 139992887596800) starting
+Pinning thread 139992879204096 to core 8...
+Producer 2 (tid: 139992879204096) starting
+Pinning thread 139992870811392 to core 12...
+Pinning thread 139992862418688 to core 16...
+Producer 3 (tid: 139992870811392) starting
+Pinning thread 139989560063744 to core 32...
+Producer 4 (tid: 139992862418688) starting
+Consumer 0 (tid: 139989560063744) starting
+Pinning thread 139989551671040 to core 36...
+Consumer 1 (tid: 139989551671040) starting
+Pinning thread 139989543278336 to core 40...
+Consumer 2 (tid: 139989543278336) starting
+Pinning thread 139989534885632 to core 44...
+Consumer 3 (tid: 139989534885632) starting
+Pinning thread 139989526492928 to core 48...
+Consumer 4 (tid: 139989526492928) starting
+Pinning thread 139989518100224 to core 52...
+Consumer 5 (tid: 139989518100224) starting
+Producer 5 (tid: 139992904382208) starting
+Producer 5 finished, sending 1000000 messages (cycles per message 1036)
+Producer 3 finished, sending 1000000 messages (cycles per message 1045)
+Producer 0 finished, sending 1000000 messages (cycles per message 1045)
+Producer 1 finished, sending 1000000 messages (cycles per message 1045)
+Producer 4 finished, sending 1000000 messages (cycles per message 1045)
+Producer 2 finished, sending 1000000 messages (cycles per message 1046)
+Consumer 2 finished, receiving 1000002 messages (cycles per message 1046) (PASSED)
+Consumer 0 finished, receiving 1000002 messages (cycles per message 1046) (PASSED)
+Consumer 1 finished, receiving 1000002 messages (cycles per message 1046) (PASSED)
+Consumer 3 finished, receiving 1000002 messages (cycles per message 1046) (PASSED)
+Consumer 5 finished, receiving 999996 messages (cycles per message 1046) (PASSED)
+Consumer 4 finished, receiving 999996 messages (cycles per message 1049) (PASSED)
+Consumer 0 time : (597 / 1046254308)
+Consumer 1 time : (540 / 1046254606)
+Consumer 2 time : (543 / 1046255967)
+Consumer 3 time : (609 / 1046256970)
+Consumer 4 time : (559 / 1049290522)
+Consumer 5 time : (449 / 1046257960)
+Producer 0 time : (616 / 1045173639)
+Producer 1 time : (559 / 1045205373)
+Producer 2 time : (528 / 1046247195)
+Producer 3 time : (638 / 1045186899)
+Producer 4 time : (537 / 1045366897)
+Producer 5 time : (3878 / 1036130253)
+Global time : (66915545021541 / 66916604298224)
+Test finished
