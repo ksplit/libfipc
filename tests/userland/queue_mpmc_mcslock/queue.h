@@ -38,7 +38,11 @@ typedef struct queue_t
 	node_t* CACHE_ALIGNED head;
 	node_t* CACHE_ALIGNED tail;
 
-	mcslock* mcs_one_lock;
+	node_t first;
+
+	//mcslock* mcs_one_lock;
+	mcslock* H_lock;
+	mcslock* T_lock;
 
 } queue_t;
 

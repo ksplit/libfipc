@@ -26,10 +26,13 @@ typedef struct linked_node_t
 
 typedef struct queue_t
 {
-	node_t* head;
-	node_t* tail;
+	node_t* CACHE_ALIGNED head;
+	node_t* CACHE_ALIGNED tail;
 
-	struct thread_ticketlock ticket_lock;
+	node_t first;
+
+	struct thread_ticketlock H_lock;
+	struct thread_ticketlock T_lock;
 } queue_t;
 
 

@@ -20,29 +20,26 @@
 typedef struct linked_node_t
 {
 	uint64_t data;
-	uint64_t prod_id;
-	uint64_t cons_id;
 	struct linked_node_t* next;
 
 } node_t;
 
-typedef node_t request_t;
-
 typedef struct queue_t
 {
-	node_t* head;
-	node_t* tail;
+	node_t* CACHE_ALIGNED head;
+	node_t* CACHE_ALIGNED tail;
 
-	struct thread_ticketlock ticket_lock;
+	node_t first;
+
+	struct thread_ticketlock H_lock;
+	struct thread_ticketlock T_lock;
 } queue_t;
 
 
 int init_queue	( queue_t* q );
 int free_queue	( queue_t* q );
-int enqueue 	( queue_t* q, request_t* r );
+int enqueue 	( queue_t* q, node_t* r );
 int dequeue 	( queue_t* q, uint64_t* data );
-int enqueue_blk	( queue_t* q, request_t* r );
-int dequeue_blk	( queue_t* q, uint64_t* data );
 
 
 #endif

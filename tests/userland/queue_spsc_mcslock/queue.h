@@ -23,23 +23,26 @@
 // Types
 typedef uint64_t data_t;
 
+//typedef node_t request_t;
+
 // Types
 typedef struct linked_node_t
 {
 	uint64_t data;
-    uint64_t prod_id;
-    uint64_t cons_id;
 	struct linked_node_t* next;
 
 } node_t;
  
-
 typedef struct queue_t
 {
 	node_t* CACHE_ALIGNED head;
 	node_t* CACHE_ALIGNED tail;
 
-	mcslock* mcs_one_lock;
+	node_t first;
+
+	//mcslock* mcs_one_lock;
+	mcslock* H_lock;
+	mcslock* T_lock;
 
 } queue_t;
 
