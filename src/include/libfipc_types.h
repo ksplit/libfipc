@@ -35,14 +35,26 @@
  */
 #define FIPC_NR_REGS 7
 struct fipc_message {
-	/**
-	 * Reserved. Used internally to track message status.
-	 */
-	volatile uint32_t msg_status;
-	/**
-	 * Not touched by libfipc.
-	 */
-	uint32_t flags;
+	union {
+		struct {
+			/**
+			 * Reserved. Used internally to track message status.
+			 */
+			volatile uint32_t msg_status;
+			/**
+			 * Not touched by libfipc.
+			 */
+			uint32_t flags;
+		};
+		struct {
+			union {
+				uint32_t syscall_nr;
+				uint32_t rpc_id;
+			};
+			uint32_t vmfunc_id;
+		};
+		unsigned long id;
+	};
 	/**
 	 * Not touched by libfipc.
 	 */
