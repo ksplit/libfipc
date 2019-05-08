@@ -16,7 +16,7 @@
 
 // Assumed cache line size, in bytes
 #ifndef FIPC_CACHE_LINE_SIZE
-	#define FIPC_CACHE_LINE_SIZE 64
+	#define FIPC_CACHE_LINE_SIZE 128
 #endif
 
 // Type modifier that aligns the variable to the cache line
