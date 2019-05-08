@@ -94,7 +94,7 @@ void* requester ( void* data )
 	// Print count
 	printf("-------------------------------------------------\n");
 	
-	printf("Average across entire loop: %llu\n", 
+	printf("Average across entire loop: %lu\n", 
 			(whole_end - whole_start) / transactions);
 
 	pthread_mutex_unlock( &requester_mutex );
