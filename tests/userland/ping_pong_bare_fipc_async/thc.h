@@ -242,7 +242,7 @@ void inline THCYieldToIdAndSaveNoDispatchDirectTrusted(uint32_t id_to, uint32_t 
 
 void inline THCYieldWithAwe(awe_t *awe_from);
 
-void inline THCYieldToAwe(awe_t *awe_to, awe_t *awe_from);
+void inline THCYieldToAwe(awe_t *awe_to, awe_t *awe_from); 
 
 int THCYieldToAweNoDispatch_TopLevel(awe_t *awe_to);
 

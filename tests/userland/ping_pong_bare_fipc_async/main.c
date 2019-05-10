@@ -38,10 +38,10 @@
 // perf enough time to kick in
 static uint64_t transactions   = 1000000;
 static uint32_t num_inner_asyncs = 4;
-static unsigned long long load_length = 19; 
-static unsigned long long LOAD_TEST_LENGH = 100; 
+//static unsigned long long load_length = 19; 
+//static unsigned long long LOAD_TEST_LENGH = 100; 
 
-static unsigned long long no_msg_count=0;
+//static unsigned long long no_msg_count=0;
 static unsigned long long not_ours_msg_count=0;
 static unsigned long long spin_count=0;
 
@@ -1399,7 +1399,7 @@ int thc_ipc_recv_response_new ( header_t* channel, message_t** out, uint64_t id 
 {
 	int ret;
 	int received_cookie;
-	unsigned long long sum;
+//	unsigned long long sum;
 	PTState_t *pts = PTS();
 retry:
 	while ( 1 )
@@ -1927,7 +1927,7 @@ void respond_blocking(header_t *chan) {
 void* requester ( void* data )
 {
 	header_t* chan = (header_t*) data;
-	int i; 
+	//int i; 
 	//int regs;
 #if defined(FINE_GRAINED)		
 	times = malloc( transactions * sizeof( int64_t ) );
@@ -2043,7 +2043,7 @@ void* requester ( void* data )
 void* responder ( void* data )
 {
 	header_t* chan = (header_t*) data;
-	int i; 
+	//int i; 
 	//int regs;	
 	thc_init();
 

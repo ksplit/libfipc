@@ -622,7 +622,7 @@ static void thc_yield_with_cont_pts(void *awe, void *arg, void *pts) {
 }
 
 __attribute__ ((unused))
-static void thc_yield_with_cont_no_dispatch(void *a, void *arg) {
+void thc_yield_with_cont_no_dispatch(void *a, void *arg) {
     thc_yield_with_cont_should_dispatch(a, arg, 0);
 }
 
@@ -843,7 +843,7 @@ THCYieldWithAwe(awe_t *awe_from)
 EXPORT_SYMBOL(THCYieldWithAwe);
 
 
-void inline  
+void inline __attribute__ ((unused))
 THCYieldToAwe(awe_t *awe_from, awe_t *awe_to) {
   EXEC_AWE(awe_from, awe_to);
   return;

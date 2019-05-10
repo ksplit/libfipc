@@ -47,17 +47,17 @@ void awe_mapper_uninit(void);
  */
 int awe_mapper_create_id();
 
-static inline awe_table_t* get_awe_map(void)
+inline awe_table_t* get_awe_map(void)
 {
     return PTS()->awe_map;
 }
 
-static inline int _is_slot_allocated(awe_table_t *awe_map, uint32_t id)
+inline int _is_slot_allocated(awe_table_t *awe_map, uint32_t id)
 {
     return !(awe_map->awe_bitmap & (1 << (id - 1)));
 }
 
-static inline int is_slot_allocated(uint32_t id)
+inline int is_slot_allocated(uint32_t id)
 {
     awe_table_t *awe_map =  get_awe_map();
     return _is_slot_allocated(awe_map, id);
@@ -68,12 +68,12 @@ static inline int is_slot_allocated(uint32_t id)
  * Called in awe_mapper_init.
  * Sets awe_map struct of the current PTS to a specific awe_table.
  */
-static inline void set_awe_map(awe_table_t * map_ptr)
+inline void set_awe_map(awe_table_t * map_ptr)
 {
     PTS()->awe_map = map_ptr;
 }
 
-static inline void
+inline void
 _awe_mapper_remove_id(awe_table_t *awe_map, uint32_t id)
 {
     assert(id < AWE_TABLE_COUNT);
@@ -84,7 +84,7 @@ _awe_mapper_remove_id(awe_table_t *awe_map, uint32_t id)
 /*
  * Marks provided id as available
  */
-static inline void
+inline void
 LIBASYNC_FUNC_ATTR 
 awe_mapper_remove_id(uint32_t id)
 {
@@ -109,7 +109,7 @@ awe_mapper_remove_id(uint32_t id)
 //    _awe_mapper_set_id(awe_map, id, awe_ptr);
 //}
 
-static inline awe_t *
+inline awe_t *
 _awe_mapper_get_awe(awe_table_t *awe_map, uint32_t id)
 {
     assert(id < AWE_TABLE_COUNT);
@@ -124,7 +124,7 @@ _awe_mapper_get_awe(awe_table_t *awe_map, uint32_t id)
 /*
  * Returns awe_ptr that corresponds to id.
  */
-static inline awe_t*
+inline awe_t*
 LIBASYNC_FUNC_ATTR 
 awe_mapper_get_awe(uint32_t id)
 {
@@ -132,14 +132,14 @@ awe_mapper_get_awe(uint32_t id)
     return _awe_mapper_get_awe(awe_map, id);
 }
 
-static inline awe_t *
+inline awe_t *
 LIBASYNC_FUNC_ATTR 
 _awe_mapper_get_awe_ptr_trusted(awe_table_t *awe_map, uint32_t id)
 {
     return &(awe_map->awe_list[id]);
 }
 
-static inline awe_t*
+inline awe_t*
 LIBASYNC_FUNC_ATTR 
 awe_mapper_get_awe_ptr_trusted(uint32_t id)
 {
