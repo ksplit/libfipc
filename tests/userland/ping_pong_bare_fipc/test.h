@@ -13,7 +13,7 @@
 
 #include "../libfipc_test.h"
 
-static uint64_t transactions   = 10000000;
+static uint64_t transactions   = 100000000;
 
 #define REQUESTER_CPU	0
 #define RESPONDER_CPU	4
