@@ -49,11 +49,11 @@ producer ( void* data )
 	// from that pool as transaction_id mod pool_size
 	uint64_t obj_id_mask = ((1UL << mem_pool_order) - 1);
 
-	uint64_t rank = *(uint64_t*)data;
-	node_t*   t = node_tables[rank];
-	queue_t** q = prod_queues[rank];
+	uint64_t tid = *(uint64_t*)data;
+	node_t*   t = node_tables[tid];
+	queue_t** q = prod_queues[tid];
 
-	pr_err( "Producer %lu starting...\n", rank );
+	pr_err( "Producer %lu starting...\n", tid );
 	// Touching data
 	//for ( transaction_id = 0; transaction_id < mem_pool_size; transaction_id++ )
 	//{
@@ -216,8 +216,10 @@ void * controller ( void* data )
 
 	halt = (int*) vmalloc( consumer_count*sizeof(*halt) );
 
+	// For each producer allocate a queue connecting it to <consumer_count> consumers
 	for ( i = 0; i < producer_count; ++i )
 		prod_queues[i] = (queue_t**) memalign( FIPC_CACHE_LINE_SIZE, consumer_count*sizeof(queue_t*) );
+
 
 	for ( i = 0; i < consumer_count; ++i ) {
 		cons_queues[i] = (queue_t**) memalign( FIPC_CACHE_LINE_SIZE, producer_count*sizeof(queue_t*) );
