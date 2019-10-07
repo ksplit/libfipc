@@ -20,8 +20,6 @@
 
 #endif
 
-//struct numa_node *get_numa_config(void);
-
 uint64_t CACHE_ALIGNED prod_sum = 0;
 uint64_t CACHE_ALIGNED cons_sum = 0;
 int * halt;
@@ -103,7 +101,7 @@ producer ( void* data )
 
 	// End test
 	pr_err( "Producer %lu finished, sending %lu messages (cycles per message %lu) (prod_sum:%lu)\n", 
-			rank,
+			tid,
 			transaction_id, 
 			(end - start) / transaction_id, prod_sum);
 
@@ -124,7 +122,10 @@ consumer ( void* data )
 	uint64_t prod_id = 0;
 	uint64_t transaction_id = 0;
 	node_t   *node;
-	int i, j;
+	int i;
+#ifdef PREFETCH_VALUE
+	int j;
+#endif
 
 	uint64_t rank = *(uint64_t*)data;
 	queue_t** q = cons_queues[rank];
@@ -274,7 +275,7 @@ void * controller ( void* data )
 	{
 		p_rank[i] = i;
 		//prod_threads[i] = fipc_test_thread_spawn_on_CPU ( producer, &p_rank[i], producer_cpus[i] );
-		printf("producer %d : queued on %d\n", i, _nodes[0].cpu_list[i*2]);
+		printf("producer %lu : queued on %u\n", i, _nodes[0].cpu_list[i*2]);
 		prod_threads[i] = fipc_test_thread_spawn_on_CPU ( producer, &p_rank[i], _nodes[0].cpu_list[i*2] );
 
 		if ( prod_threads[i] == NULL )
