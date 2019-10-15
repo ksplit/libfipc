@@ -6,7 +6,7 @@ DEP:=main.c ../../../src/ipc.c bqueue.c numa.c
 
 #CFLAGS+=-DTOUCH_VALUE
 #CFLAGS+=-DPREFETCH_VALUE
-CFLAGS+=-D_NUMA
+# CFLAGS+=-D_NUMA
 
 PERF_CACHE:='cache-misses,cache-references,alignment-faults,major-faults, \
 				minor-faults,L1-dcache-load-misses,L1-dcache-loads, \
