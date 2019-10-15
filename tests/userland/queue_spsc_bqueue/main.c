@@ -6,19 +6,18 @@
 #include <linux/module.h>
 #endif
 
-#include "test.h"
-#include "numa_helper.h"
 #ifndef __KERNEL__
 #include <sched.h>
-
 #define kthread_t pthread_t
 #define vmalloc malloc
 #define vfree free
 #define pr_err printf
-
 #include <malloc.h>
-
 #endif
+
+#include "test.h"
+#include "numa_helper.h"
+
 
 uint64_t CACHE_ALIGNED prod_sum = 0;
 uint64_t CACHE_ALIGNED cons_sum = 0;
@@ -30,11 +29,7 @@ int null_invocation ( void )
 	return 0;
 }
 
-#ifdef __KERNEL__
-void *
-#else
-void *
-#endif
+void* 
 producer ( void* data )
 {
 	uint64_t transaction_id;
@@ -110,11 +105,7 @@ producer ( void* data )
 	return 0;
 }
 
-#ifdef __KERNEL__
-void *
-#else
-void *
-#endif
+void* 
 consumer ( void* data )
 {
 	uint64_t start;
@@ -198,12 +189,16 @@ void * controller ( void* data )
 {
 	uint64_t i;
 	uint64_t j;
+
+#ifdef _NUMA
 	struct numa_node *_nodes = get_numa_config();
 
 	if (!_nodes)
 		printf("%s, nodes is null\n", __func__);
 	else
 		printf("%s, nodes %p\n", __func__, _nodes);
+#endif
+
 	mem_pool_size = 1 << mem_pool_order;
 
 	// Queue Allocation
@@ -274,10 +269,13 @@ void * controller ( void* data )
 	for ( i = 0; i < (producer_count-0); ++i )
 	{
 		p_rank[i] = i;
-		//prod_threads[i] = fipc_test_thread_spawn_on_CPU ( producer, &p_rank[i], producer_cpus[i] );
+		
+#ifdef _NUMA
 		printf("producer %lu : queued on %u\n", i, _nodes[0].cpu_list[i*2]);
 		prod_threads[i] = fipc_test_thread_spawn_on_CPU ( producer, &p_rank[i], _nodes[0].cpu_list[i*2] );
-
+#else
+		prod_threads[i] = fipc_test_thread_spawn_on_CPU ( producer, &p_rank[i], producer_cpus[i] );
+#endif
 		if ( prod_threads[i] == NULL )
 		{
 			pr_err( "%s\n", "Error while creating thread" );
@@ -288,8 +286,13 @@ void * controller ( void* data )
 	for ( i = 0; i < consumer_count; ++i )
 	{
 		c_rank[i] = i;
-		//cons_threads[i] = fipc_test_thread_spawn_on_CPU ( consumer, &c_rank[i], consumer_cpus[i] );
+		
+
+#ifdef _NUMA
 		cons_threads[i] = fipc_test_thread_spawn_on_CPU ( consumer, &c_rank[i], _nodes[0].cpu_list[(i*2)+1] );
+#else
+	cons_threads[i] = fipc_test_thread_spawn_on_CPU ( consumer, &c_rank[i], consumer_cpus[i] );
+#endif
 
 		if ( cons_threads[i] == NULL )
 		{
