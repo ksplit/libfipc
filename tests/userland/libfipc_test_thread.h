@@ -110,7 +110,9 @@ pthread_t* fipc_test_thread_spawn_on_CPU ( void* (*threadfn)(void* data),
 {
 	pthread_t* thread = malloc( sizeof( pthread_t ) );
 
-	if ( pthread_create( thread, NULL, threadfn, data ) )
+	int pthread_create_err = pthread_create( thread, NULL, threadfn, data );
+
+	if (pthread_create_err)
 	{
 		#ifdef FIPC_TEST_DEBUG
 			fprintf( stderr, "%s\n", "Error while creating thread" );
@@ -120,8 +122,8 @@ pthread_t* fipc_test_thread_spawn_on_CPU ( void* (*threadfn)(void* data),
 		return NULL;
 	}
 
-
-	if ( fipc_test_thread_pin_thread_to_CPU( *thread, cpu_pin ) )
+	int pin_thread_err = fipc_test_thread_pin_thread_to_CPU( *thread, cpu_pin );
+	if (pin_thread_err)
 	{
 		#ifdef FIPC_TEST_DEBUG
 			fprintf( stderr, "%s%d\n", "Error while pinning thread to CPU: ",
