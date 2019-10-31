@@ -9,9 +9,15 @@
  *
  * NOTE: This library assumes an x86 architecture.
  */
+#include <errno.h>
 
 #ifndef LIBFIPC_TEST_THREAD_LIBRARY_LOCK
 #define LIBFIPC_TEST_THREAD_LIBRARY_LOCK
+
+
+#define handle_error_en(en, msg) \
+       do { errno = en; perror(msg); exit(EXIT_FAILURE); } while (0)
+
 
 /**
  * This inline helper function pins the specified process to the specified core.
@@ -35,7 +41,7 @@ int fipc_test_thread_pin_process_to_CPU ( pid_t pid, size_t cpu_pin )
 static inline
 int fipc_test_thread_pin_thread_to_CPU ( pthread_t thread, size_t cpu_pin )
 {
-	printf("Pinning thread to cpu:%zu\n", cpu_pin); 
+	printf("[%lu]: Pinning thread %lu to cpu:%zu\n", pthread_self(), thread, cpu_pin); 
 
 	if ( cpu_pin >= NUM_CORES ) {
 		printf("%s:Error: cpu:%zu id exeeds number of cores %lu\n", 
@@ -48,9 +54,30 @@ int fipc_test_thread_pin_thread_to_CPU ( pthread_t thread, size_t cpu_pin )
 	CPU_ZERO( &cpu_mask );
 	CPU_SET( cpu_pin, &cpu_mask );
 
-	return pthread_setaffinity_np( thread,
+	int set_affinity_err =  pthread_setaffinity_np( thread,
 					   sizeof(cpu_set_t),
 					   &cpu_mask );
+
+	/*
+	if (!set_affinity_err) {
+
+		cpu_set_t cpuset;
+		CPU_ZERO(&cpuset);
+
+		int s = pthread_getaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
+		if (s != 0) {
+			handle_error_en(s, "pthread_getaffinity_np");
+		}
+
+		for (int j = 0; j < CPU_SETSIZE; j++) {
+    	   if (CPU_ISSET(j, &cpuset)) {
+        	   printf("Thread pinned to CPU %d\n", j);
+    	   }
+	   }
+	}
+	*/
+
+	return set_affinity_err;
 }
 
 /**

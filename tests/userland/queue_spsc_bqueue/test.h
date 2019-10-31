@@ -34,6 +34,10 @@ module_param( consumer_count, byte, 0 );
 //NUMA node2 CPU(s):     2,6,10,14,18,22,26,30
 //NUMA node3 CPU(s):     3,7,11,15,19,23,27,31
 
+// static uint8_t producer_cpus[5] = {1, 2, 3, 4, 5};
+
+// static uint8_t consumer_cpus[5] = {6, 7, 8, 9, 10};
+
 static uint8_t producer_cpus[32] = { 0, 4, 8, 12,
 								     1, 5, 9, 13,
 								     2, 6, 10, 14,

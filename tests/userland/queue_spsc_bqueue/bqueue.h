@@ -10,11 +10,11 @@
 
 #include "../libfipc_test.h"
 
-#define QUEUE_SIZE (1024 * 8) 
-#define BATCH_SIZE (QUEUE_SIZE/16)
-#define CONS_BATCH_SIZE BATCH_SIZE
-#define PROD_BATCH_SIZE BATCH_SIZE
-#define BATCH_INCREMENT (BATCH_SIZE/2)
+#define QUEUE_SIZE (1024 * 8) //8192 
+#define BATCH_SIZE (QUEUE_SIZE/16) //512
+#define CONS_BATCH_SIZE BATCH_SIZE //512
+#define PROD_BATCH_SIZE BATCH_SIZE //512
+#define BATCH_INCREMENT (BATCH_SIZE/2) 
 
 #define CONGESTION_PENALTY (1000) /* cycles */
 
