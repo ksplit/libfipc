@@ -45,6 +45,7 @@ producer ( void* data )
 	uint64_t thread_id = *(uint64_t*)data ;
 	node_t*   t = node_tables[thread_id];
 	queue_t** q = prod_queues[thread_id];
+	node_t*   h = halt_node_tables[thread_id];
 
 	pr_err( "[%lu]: Producer %lu starting...\n", pthread_self(), thread_id );
 	// Touching data
@@ -76,6 +77,8 @@ producer ( void* data )
 	{
 		//pr_err("[%lu]: transaction_id = %ld\n", pthread_self(), transaction_id);
 		//pr_err("[%lu] cons_id: %lu\n", pthread_self(), cons_id);
+		//if (transaction_id % 1000 == 0)
+		//pr_err("[%lu]: transaction_id = %ld\n", pthread_self(), transaction_id);
 
 		for(i = 0; i < batch_size; i++) {
 			node_t *node = &t[transaction_id & obj_id_mask];
@@ -94,6 +97,10 @@ producer ( void* data )
 			}
 			//usleep(5000);
 			transaction_id ++;
+			if (transaction_id % (transactions/10) == 0) {
+				pr_err("[%lu]: Producer: %lu, transaction_id: %lu, node->field: %lu \n", pthread_self(), 
+					thread_id, transaction_id, node->field);
+			}
 		};
 
 		++cons_id;
@@ -101,6 +108,30 @@ producer ( void* data )
 		if (cons_id >= consumer_count) 
 			cons_id = 0;
 	}
+
+	cons_id = 0;
+	pr_err("[%lu]: Producer: %lu, enqueueing 0XDEADBEEF: %lu\n", pthread_self(), thread_id, h->field);
+
+	for ( cons_id = 0; cons_id < consumer_count; cons_id++)
+	{
+			node_t *node = h;
+
+			node->field = 0XDEADBEEF;
+			//prod_sum += transaction_id; /* node->field; */
+			//pr_err("Sending, thread_id:%lu, mask%lu, mod:%lu\n", 
+			//		transaction_id, obj_id_mask, transaction_id & obj_id_mask);
+
+			// pr_err("[%lu] transaction_id: %lu\n", pthread_self(), transaction_id);
+			if ( enqueue( q[cons_id], (data_t)node ) != SUCCESS )
+			{
+				pr_err("[%lu]: Producer: %lu, Failed to enqueue thread_id:%llu\n", pthread_self(), thread_id, 
+					(unsigned long long)transaction_id);
+				break;
+			}
+			pr_err("[%lu]: Producer: %lu, node->field: %lu \n", pthread_self(), 
+				thread_id, node->field);
+	}
+
 
 	end = RDTSCP();
 
@@ -131,7 +162,7 @@ consumer ( void* data )
 	uint64_t thread_id = *(uint64_t*)data;
 	queue_t** q = cons_queues[thread_id];
 
-	pr_err( "[%lu] Consumer %llu starting\n", pthread_self(), (unsigned long long)thread_id );
+	pr_err( "[%lu] Consumer %lu starting\n", pthread_self(), thread_id );
 
 	// Begin test
 	// fipc_test_thread_take_control_of_CPU();
@@ -153,10 +184,11 @@ consumer ( void* data )
 	producer <prod_id> into <node>
 	then move to next producer, and dequeue. And so on. 
 	Wrap around back to first producer
-	TODO how is transcation_id used here?
 	*/
-	while(!halt[thread_id])
+	do
 	{
+	// for ( transaction_id = 0; transaction_id < consumer_count/producer_count * transactions; )
+	// {
 		// pr_err("[%lu] prod_id: %lu\n", pthread_self(), prod_id);
 		for(i = 0; i < batch_size; i++) {
 
@@ -175,7 +207,14 @@ consumer ( void* data )
 			__builtin_prefetch (node, 0, 0);
 #endif
 			transaction_id ++;
-			//if (transaction_id % 100000 == 0) pr_err("%lu\n", transaction_id);
+
+			if (transaction_id % (transactions/10) == 0) {
+				pr_err("[%lu]: Consumer %lu: node-> field: %lu\n", pthread_self(), thread_id, node->field);
+				}
+			// if (thread_id == 1){
+			// 	pr_err("[%lu]: Consumer %lu: %d\n", pthread_self(), thread_id, halt[thread_id]);	
+			// }
+
 		}
 
 #ifdef PREFETCH_VALUE
@@ -187,7 +226,9 @@ consumer ( void* data )
 		++prod_id; 
 		if ( prod_id >= producer_count ) 
 			prod_id = 0;
-	}
+	} while(node->field != 0XDEADBEEF);
+
+	pr_err("[%lu]: Consumer %lu finished: (%lu)%08lx\n", pthread_self(), thread_id, node->field, node->field);
 
 	end = RDTSCP();
 
@@ -277,6 +318,24 @@ void * controller ( void* data )
 
 	}
 
+	// Magic number halt node
+	halt_node_tables = (node_t**) vmalloc( producer_count*sizeof(node_t*) );
+
+	for ( i = 0; i < producer_count; ++i ) {
+		pr_err("[%lu]: Allocating %lu bytes for the pool of %u halt objects\n", pthread_self(),
+			1*sizeof(node_t), 1);
+
+		halt_node_tables[i] = (node_t*) memalign( FIPC_CACHE_LINE_SIZE, 1*sizeof(node_t) );
+		if(!halt_node_tables[i]) {
+			pr_err("[%lu]: Failed to allocate halt nodes\n", pthread_self());
+			return NULL;
+		}
+		halt_node_tables[i]->field = 0XDEADBEEF;
+		pr_err("[%lu]: Check if halt nodes are mem aligned: (%p):%s\n", pthread_self(),
+			halt_node_tables[i],
+			((uint64_t)halt_node_tables[i] & (FIPC_CACHE_LINE_SIZE - 1)) ? "not aligned" : "aligned");
+
+	}
 
 	fipc_test_mfence();
 
@@ -304,9 +363,9 @@ void * controller ( void* data )
 		printf("producer %lu : queued on %u\n", i, _nodes[0].cpu_list[i*2]);
 		prod_threads[i] = fipc_test_thread_spawn_on_CPU ( producer, &p_rank[i], _nodes[0].cpu_list[i*2] );
 #else
-		prod_threads[i] = fipc_test_thread_spawn_on_CPU ( producer, &p_rank[i], producer_cpus[i] );
+		prod_threads[i-1] = fipc_test_thread_spawn_on_CPU ( producer, &p_rank[i], producer_cpus[i] );
 #endif
-		if ( prod_threads[i] == NULL )
+		if ( prod_threads[i-1] == NULL )
 		{
 			pr_err( "%s\n", "Error while creating thread" );
 			return NULL;
@@ -332,7 +391,7 @@ void * controller ( void* data )
 	}
 #ifdef __KERNEL__
 	// Start threads
-	for ( i = 1; i < (producer_count); ++i )
+	for ( i = 0; i < (producer_count-1); ++i )
 		wake_up_process( prod_threads[i] );
 
 	for ( i = 0; i < consumer_count; ++i )
@@ -347,7 +406,7 @@ void * controller ( void* data )
 
 	fipc_test_mfence();
 
-	// Begin Testcompl
+	// Begin Test
 	test_ready = 1;
 
 	fipc_test_mfence();
@@ -365,8 +424,8 @@ void * controller ( void* data )
 
 	// Tell consumers to halt
 	for ( i = 0; i < consumer_count; ++i ) {
-
 		halt[i] = 1;
+		// pr_err("[%lu] halt[%lu]: %d \n", pthread_self(), i, halt[i]);
 	}
 
 	// Wait for consumers to complete
@@ -379,11 +438,13 @@ void * controller ( void* data )
 	vfree( c_rank );
 	vfree( p_rank );
 
-	for ( i = 0; i < consumer_count; ++i )
+	for ( i = 0; i < consumer_count; ++i ){
 		fipc_test_thread_free_thread( cons_threads[i] );
+	}
 
-		for ( i = 1; i < producer_count; ++i )
+	for ( i = 0; i < (producer_count-1); ++i ){
 		fipc_test_thread_free_thread( prod_threads[i] );
+	}
 
 	vfree( cons_threads );
 
