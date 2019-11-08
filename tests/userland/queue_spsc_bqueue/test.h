@@ -62,7 +62,6 @@ static uint8_t consumer_cpus[5] = {6, 7, 8, 9, 10};
 static queue_t*** prod_queues = NULL;
 static queue_t*** cons_queues = NULL;
 static node_t**   node_tables = NULL;
-static node_t**   halt_node_tables = NULL;
 
 // Request Types
 #define MSG_ENQUEUE         1
