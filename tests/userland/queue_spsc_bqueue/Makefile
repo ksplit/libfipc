@@ -1,11 +1,12 @@
 CC:=gcc
-CFLAGS:=-Wall -D_GNU_SOURCE -pthread -lm -O2 -g -lnuma
+CFLAGS:=-Wall -D_GNU_SOURCE -pthread -lm -O2 -g -g3 -lnuma
 INCLUDE_DIRS:=-I../../../include -I../../../include/userland
 TARGET:=$(notdir $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))))
 DEP:=main.c ../../../src/ipc.c bqueue.c numa.c
 
 #CFLAGS+=-DTOUCH_VALUE
 #CFLAGS+=-DPREFETCH_VALUE
+# CFLAGS+=-D_NUMA
 
 PERF_CACHE:='cache-misses,cache-references,alignment-faults,major-faults, \
 				minor-faults,L1-dcache-load-misses,L1-dcache-loads, \
