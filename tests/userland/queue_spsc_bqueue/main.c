@@ -97,10 +97,10 @@ producer ( void* data )
 				break;
 			}
 			transaction_id ++;
-			if (transaction_id % (transactions/10) == 0) {
-				pr_err("[%lu]: Producer %lu, transaction_id %lu, node->field: %lu \n", 
-					pthread_self(),	thread_id, transaction_id, node->field);
-			}
+			// if (transaction_id % (transactions/10) == 0) {
+			// 	pr_err("[%lu]: Producer %lu, transaction_id %lu, node->field: %lu \n", 
+			// 		pthread_self(),	thread_id, transaction_id, node->field);
+			// }
 		};
 
 		++cons_id;
@@ -204,13 +204,10 @@ consumer ( void* data )
 #endif
 			transaction_id ++;
 
-			if (transaction_id % (transactions/10) == 0) {
-				pr_err("[%lu]: Consumer %lu, prod_id %lu, transaction_id %lu, node->field %lu\n", 
-					pthread_self(), thread_id, prod_id, transaction_id, node->field);
-				}
-			// if (thread_id == 1){
-			// 	pr_err("[%lu]: Consumer %lu: %d\n", pthread_self(), thread_id, halt[thread_id]);	
-			// }
+			// if (transaction_id % (transactions/10) == 0) {
+			// 	pr_err("[%lu]: Consumer %lu, prod_id %lu, transaction_id %lu, node->field %lu\n", 
+			// 		pthread_self(), thread_id, prod_id, transaction_id, node->field);
+			// 	}
 
 		}
 
